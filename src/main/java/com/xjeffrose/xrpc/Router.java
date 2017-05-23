@@ -50,7 +50,7 @@ public class Router {
   private final int workerThreads;
   private final Map<Route, Map<String, String>> var_map = new HashMap<>();
   private final Map<Route, Function<HttpRequest, HttpResponse>> s_routes = new HashMap<>();
-  private final Map<Route, BiFunction<HttpRequest, Map<String, String>, HttpResponse>> b_routes = new HashMap<>();
+  private final Map<Route, BiFunction<HttpRequest, Route, HttpResponse>> b_routes = new HashMap<>();
 
   private Channel channel;
   private EventLoopGroup bossGroup;
@@ -66,11 +66,11 @@ public class Router {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
 
-  public void addRoute(String route, BiFunction<HttpRequest, Map<String, String>, HttpResponse> handler) {
+  public void addRoute(String route, BiFunction<HttpRequest, Route, HttpResponse> handler) {
     Route r = Route.build(route);
-    Map<String, String> m = r.groups(route);
+//    Map<String, String> m = r.groups(route);
     b_routes.put(r, handler);
-    var_map.put(r, m);
+//    var_map.put(r, m);
   }
 
   public void addRoute(String route, Function<HttpRequest, HttpResponse> handler) {
@@ -177,7 +177,7 @@ public class Router {
 
         for (Route route : b_routes.keySet()) {
           if (route.matches(uri)) {
-            ctx.writeAndFlush(b_routes.get(route).apply((HttpRequest) msg, var_map.get(route))).addListener(ChannelFutureListener.CLOSE);;
+            ctx.writeAndFlush(b_routes.get(route).apply((HttpRequest) msg, route)).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
             return;
           }
