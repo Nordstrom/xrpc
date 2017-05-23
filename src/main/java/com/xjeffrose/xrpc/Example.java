@@ -6,6 +6,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Utf8;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
@@ -18,6 +19,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -70,7 +72,7 @@ public class Example {
 
       ByteBuf bb =  Unpooled.compositeBuffer();
 
-      bb.writeBytes(adapter.toJson(people).getBytes());
+      bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
