@@ -91,8 +91,8 @@ public class Router {
       channelClass = NioServerSocketChannel.class;
 
       b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-          .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
-          .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024)
+//          .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
+//          .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024)
           .option(ChannelOption.SO_BACKLOG, 128)
           .option(ChannelOption.TCP_NODELAY, true);
     }
@@ -104,7 +104,7 @@ public class Router {
       public void initChannel(Channel ch) throws Exception {
         ChannelPipeline cp = ch.pipeline();
         cp.addLast("globalConnectionLimiter", globalConnectionLimiter); // For all endpoints
-        cp.addLast("encryptionHandler", new NoOpHandler()); // FIIIXXX THISSSS
+        cp.addLast("encryptionHandler", new TLS().getEncryptionHandler()); // Add Config for Certs
         cp.addLast("messageLogger", new MessageLogger());
         cp.addLast("codec", new HttpServerCodec());
 //        cp.addLast("aggregator", new NoOpHandler()); // Not Needed but maybe keep in here?
