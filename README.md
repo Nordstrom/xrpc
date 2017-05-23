@@ -6,7 +6,7 @@ Simple, production ready Java API server. ConnectionLimits, OAuth2 and TLS 1.2 b
 Make .jar not .war ... 
 
 ```java
- List<String> people = new ArrayList<>();
+    List<String> people = new ArrayList<>();
 
     // Acceptor threads, Worker threads
     Router router = new Router(4,20); 
