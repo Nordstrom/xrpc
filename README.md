@@ -6,35 +6,62 @@ Simple, production ready Java API server. ConnectionLimits, OAuth2 and TLS 1.2 b
 Make .jar not .war ... 
 
 ```java
-    List<String> people = new ArrayList<>();
+@Slf4j
+public class Example {
 
-    // Acceptor threads, Worker threads
-    Router router = new Router(4,20); 
+  @AllArgsConstructor
+  static class Person {
+    private String name;
+  }
 
-    // Create a simple function to handle a post
-    BiFunction<HttpRequest, Map<String, String>, HttpResponse> personHandler = (x, y) -> {
-      people.add(y.get("person"));
+  public static void main(String[] args) {
+    List<Person> people = new ArrayList<>();
 
-      return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+    // See Moshi documentation for the Moshi Magic
+    Moshi moshi = new Moshi.Builder().build();
+    Type type = Types.newParameterizedType(List.class, Person.class);
+    JsonAdapter<List<Person>> adapter = moshi.adapter(type);
+
+    // Build your router
+    Router router = new Router(4,20);
+
+    // Define a complex function call
+    BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
+      Person p = new Person(y.groups(x.uri()).get("person"));
+      people.add(p);
+
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+      response.headers().set(CONTENT_TYPE, "text/plain");
+      response.headers().setInt(CONTENT_LENGTH, 0);
+
+      return response;
     };
 
-    // Create a more complicated function with URI vars
+
+    // Define a simple function call
     Function<HttpRequest, HttpResponse> peopleHandler = x -> {
       ByteBuf bb =  Unpooled.compositeBuffer();
-      people.forEach(xs -> bb.writeBytes(xs.getBytes()));
 
-      return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
+      bb.writeBytes(adapter.toJson(people).getBytes());
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
+      response.headers().set(CONTENT_TYPE, "text/plain");
+      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+
+      return response;
     };
 
-    // Oh so simple route mapping
+
+    // Create your route mapping
     router.addRoute("/people/:person", personHandler);
     router.addRoute("/people", peopleHandler);
 
+
     try {
+      // Fire away
       router.listenAndServe(8080);
     } catch (IOException e) {
       log.error("Failed to start people server", e);
-    } finally {
-      router.shutdown();
     }
+
+  }
 ```

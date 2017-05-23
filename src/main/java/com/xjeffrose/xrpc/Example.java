@@ -23,13 +23,14 @@ import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@AllArgsConstructor
-class Person {
-  private String name;
-}
 
 @Slf4j
 public class Example {
+
+  @AllArgsConstructor
+  static class Person {
+    private String name;
+  }
 
   public static void main(String[] args) {
     List<Person> people = new ArrayList<>();
