@@ -1,4 +1,4 @@
-package xrpc;
+package com.xjeffrose.xrpc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class Route {
   private static final Pattern keywordPattern = Pattern.compile("(:\\w+)");
   private final Pattern pathPattern;
@@ -26,19 +28,19 @@ public class Route {
       final String[] segments = pattern.split("/");
 
       for (String segment : segments) {
-	if (!segment.equals("")) {
-	  regexPattern.append("/");
-	  if (keywordPattern.matcher(segment).matches()) {
-	    String keyword = segment.substring(1);
-	    regexPattern
-		.append("(?<")
-		.append(keyword)
-		.append(">[^/]*)");
-	    keywords.add(keyword);
-	  } else {
-	    regexPattern.append(segment);
-	  }
-	}
+        if (!segment.equals("")) {
+          regexPattern.append("/");
+          if (keywordPattern.matcher(segment).matches()) {
+            String keyword = segment.substring(1);
+            regexPattern
+                .append("(?<")
+                .append(keyword)
+                .append(">[^/]*)");
+            keywords.add(keyword);
+          } else {
+            regexPattern.append(segment);
+          }
+        }
       }
     }
     regexPattern.append("[/]?");
@@ -64,7 +66,7 @@ public class Route {
     if (matcher.matches()) {
       Map<String, String> groups = new HashMap<>();
       for (String keyword : keywords) {
-	groups.put(keyword, matcher.group(keyword));
+        groups.put(keyword, matcher.group(keyword));
       }
       return groups;
     } else {
