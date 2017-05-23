@@ -68,9 +68,7 @@ public class Router {
 
   public void addRoute(String route, BiFunction<HttpRequest, Route, HttpResponse> handler) {
     Route r = Route.build(route);
-//    Map<String, String> m = r.groups(route);
     b_routes.put(r, handler);
-//    var_map.put(r, m);
   }
 
   public void addRoute(String route, Function<HttpRequest, HttpResponse> handler) {
