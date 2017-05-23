@@ -26,7 +26,7 @@ Make .jar not .war ...
       return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
     };
 
-    // Oh so simple 
+    // Oh so simple route mapping
     router.addRoute("/people/:person", personHandler);
     router.addRoute("/people", peopleHandler);
 

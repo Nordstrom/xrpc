@@ -1,6 +1,8 @@
 package com.xjeffrose.xrpc;
 
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.OpenSsl;
@@ -22,6 +24,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
 
@@ -68,7 +71,7 @@ public class TLS  {
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
         publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
       } else {
-        selfSignedCert = SelfSignedX509CertGenerator.generate("*.paypal.com");
+        selfSignedCert = SelfSignedX509CertGenerator.generate("*.xjeffrose.com");
         privateKey = selfSignedCert.getKey();
       }
 
@@ -93,7 +96,7 @@ public class TLS  {
         }
       } else {
         if (selfSignedCert == null) {
-          selfSignedCert = SelfSignedX509CertGenerator.generate("*.paypal.com");
+          selfSignedCert = SelfSignedX509CertGenerator.generate("*.xjeffrose.com");
         }
         chain = new java.security.cert.X509Certificate[1];
         chain[0] = selfSignedCert.getCert();
@@ -122,12 +125,8 @@ public class TLS  {
 
         ChannelHandler handler = sslCtx.newHandler(new PooledByteBufAllocator());
 
-        //
-        // tsu - enable all protocols since legacy apps still use SSLv2Hello...
-        // JDK 7, 8, 9 (Early Access)    SSLv2Hello(2), SSLv3, TLSv1, TLSv1.1, TLSv1.2
-        // TODO(JR): Fix this or only enable for certain service as this is insecure
-        ((SslHandler) handler).engine()
-            .setEnabledProtocols(((SslHandler) handler).engine().getSupportedProtocols());
+        String[] protocols = new String[] {"TLSv1.2"};
+        ((SslHandler) handler).engine().setEnabledProtocols(protocols);
 
         return handler;
 

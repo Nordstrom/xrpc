@@ -80,6 +80,7 @@ public class Router {
   public void listenAndServe(int port) throws IOException {
     ServerBootstrap b = new ServerBootstrap();
     ConnectionLimiter globalConnectionLimiter = new ConnectionLimiter(5000); // All endpoints for a given service
+    URLRouter router = new URLRouter();
 
     if (Epoll.isAvailable()) {
       bossGroup = new EpollEventLoopGroup(bossThreads, threadFactory(workerNameFormat));
@@ -93,8 +94,8 @@ public class Router {
       b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
 //          .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
 //          .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024)
-          .option(ChannelOption.SO_BACKLOG, 128)
-          .option(ChannelOption.TCP_NODELAY, true);
+          .option(ChannelOption.SO_BACKLOG, 128);
+//          .option(ChannelOption.TCP_NODELAY, true);
     }
 
     b.group(bossGroup, workerGroup);
@@ -104,18 +105,17 @@ public class Router {
       public void initChannel(Channel ch) throws Exception {
         ChannelPipeline cp = ch.pipeline();
         cp.addLast("globalConnectionLimiter", globalConnectionLimiter); // For all endpoints
+        cp.addLast("serviceConnectionLimiter", new ConnectionLimiter(200)); // for any endpoint
         cp.addLast("encryptionHandler", new TLS().getEncryptionHandler()); // Add Config for Certs
         cp.addLast("messageLogger", new MessageLogger());
         cp.addLast("codec", new HttpServerCodec());
 //        cp.addLast("aggregator", new NoOpHandler()); // Not Needed but maybe keep in here?
-        cp.addLast("authHandler", new NoOpHandler()); // OAuth2.0 Impl
-        cp.addLast("routingFilter", new URLRouter());
-        cp.addLast("serviceConnectionLimiter", new ConnectionLimiter(200)); // for each endpoint
+        cp.addLast("authHandler", new NoOpHandler()); // OAuth2.0 Impl needed
+        cp.addLast("routingFilter", router);
         cp.addLast("idleDisconnectHandler", new IdleDisconnectHandler(
             NO_READER_IDLE_TIMEOUT,
             NO_WRITER_IDLE_TIMEOUT,
             NO_ALL_IDLE_TIMEOUT));
-//        cp.addLast("dispatcher", new Dispatcher());
         cp.addLast("exceptionLogger", new ExceptionLogger());
 
       }
@@ -157,55 +157,42 @@ public class Router {
   }
 
   @ChannelHandler.Sharable
-  private  class URLRouter extends ChannelDuplexHandler {
+  private class URLRouter extends ChannelDuplexHandler {
 
     public URLRouter() {
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
-      ctx.fireChannelActive();
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
-      ctx.fireChannelInactive();
-    }
-
-    @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof HttpRequest) {
+        String uri = ((HttpRequest) msg).uri();
 
         for (Route route : s_routes.keySet()) {
-          if (route.matches(((HttpRequest) msg).uri())) {
-            ctx.write(s_routes.get(route).apply((HttpRequest) msg));
+          if (route.matches(uri)) {
+            ctx.writeAndFlush(s_routes.get(route).apply((HttpRequest) msg)).addListener(ChannelFutureListener.CLOSE);;
             ctx.fireChannelRead(msg);
             return;
           }
         }
 
         for (Route route : b_routes.keySet()) {
-          if (route.matches(((HttpRequest) msg).uri())) {
-            ctx.write(b_routes.get(route).apply((HttpRequest) msg, var_map.get(route)));
+          if (route.matches(uri)) {
+            ctx.writeAndFlush(b_routes.get(route).apply((HttpRequest) msg, var_map.get(route))).addListener(ChannelFutureListener.CLOSE);;
             ctx.fireChannelRead(msg);
             return;
           }
         }
 
-        ctx.write(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
+        ctx.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
       }
       ctx.fireChannelRead(msg);
     }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-
       ctx.fireChannelReadComplete();
     }
   }
-
 
 
   @ChannelHandler.Sharable
