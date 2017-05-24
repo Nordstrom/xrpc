@@ -1,6 +1,14 @@
 package com.xjeffrose.xrpc;
 
 
+import static com.codahale.metrics.MetricRegistry.name;
+
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -21,6 +29,7 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -33,10 +42,12 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
@@ -56,6 +67,24 @@ public class Router {
   private EventLoopGroup bossGroup;
   private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
+
+  // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
+  private final MetricRegistry metrics = new MetricRegistry();
+  private final Meter requests = metrics.meter("requests");
+  private final Histogram responseSizes = metrics.histogram(name(URLRouter.class, "response-sizes"));
+
+  private final ConsoleReporter consoleReporter = ConsoleReporter.forRegistry(metrics)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build();
+
+  final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metrics)
+      .outputTo(LoggerFactory.getLogger(Router.class))
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build();
+
+  final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
 
   public Router(int bthreads, int wthreads) {
     this.bossThreads = bthreads;
@@ -123,6 +152,11 @@ public class Router {
     ChannelFuture future = b.bind(new InetSocketAddress(port));
 
     try {
+      // Get some loggy logs
+      consoleReporter.start(30, TimeUnit.SECONDS);
+      slf4jReporter.start(30, TimeUnit.SECONDS);
+      jmxReporter.start();
+
       future.await();
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -161,13 +195,20 @@ public class Router {
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      requests.mark();
+    }
+
+    @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof HttpRequest) {
         String uri = ((HttpRequest) msg).uri();
 
         for (Route route : s_routes.keySet()) {
           if (route.matches(uri)) {
-            ctx.writeAndFlush(s_routes.get(route).apply((HttpRequest) msg)).addListener(ChannelFutureListener.CLOSE);;
+            FullHttpResponse resp = (FullHttpResponse) s_routes.get(route).apply((HttpRequest) msg);
+            responseSizes.update(resp.content().readableBytes());
+            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
             return;
           }
@@ -175,7 +216,9 @@ public class Router {
 
         for (Route route : b_routes.keySet()) {
           if (route.matches(uri)) {
-            ctx.writeAndFlush(b_routes.get(route).apply((HttpRequest) msg, route)).addListener(ChannelFutureListener.CLOSE);
+            FullHttpResponse resp = (FullHttpResponse) b_routes.get(route).apply((HttpRequest) msg, route);
+            responseSizes.update(resp.content().readableBytes());
+            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
             return;
           }
