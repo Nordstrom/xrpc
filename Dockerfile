@@ -23,4 +23,4 @@ RUN apk --update upgrade && \
     rm -rf target && \
     apk del curl openjdk8
 
-CMD java -Ddw.server.connector.port=$PORT -jar app.jar server config.yml
+CMD java -Dserver.port=$PORT -Dconfig.file=application.conf -jar app.jar

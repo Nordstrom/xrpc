@@ -53,7 +53,7 @@ public class XConfig {
   }
 
   public int port() {
-    return config.getInt("port");
+    return config.getInt("server.port");
   }
 
 }

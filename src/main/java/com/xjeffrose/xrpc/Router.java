@@ -124,8 +124,8 @@ public class Router {
       b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
 //          .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
 //          .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024)
-          .option(ChannelOption.SO_BACKLOG, 128)
-          .option(ChannelOption.TCP_NODELAY, true);
+          .option(ChannelOption.SO_BACKLOG, 128);
+//          .option(ChannelOption.TCP_NODELAY, true);
     }
 
     b.group(bossGroup, workerGroup);
