@@ -25,8 +25,15 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
+
 @Slf4j
 public class Example {
+
+  @AllArgsConstructor
+  static class Person {
+
+    private String name;
+  }
 
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
@@ -37,7 +44,7 @@ public class Example {
     JsonAdapter<List<Person>> adapter = moshi.adapter(type);
 
     // Build your router
-    Router router = new Router(4, 20);
+    Router router = new Router();
 
     // Define a complex function call
     BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
@@ -71,17 +78,12 @@ public class Example {
 
     try {
       // Fire away
-      router.listenAndServe(8080);
+      router.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
 
   }
 
-  @AllArgsConstructor
-  static class Person {
-
-    private String name;
-  }
 
 }
