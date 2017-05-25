@@ -25,15 +25,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
-
 @Slf4j
 public class Example {
-
-  @AllArgsConstructor
-  static class Person {
-
-    private String name;
-  }
 
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
@@ -46,19 +39,6 @@ public class Example {
     // Build your router
     Router router = new Router();
 
-    // Define a complex function call
-    BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
-      Person p = new Person(y.groups(x.uri()).get("person"));
-      people.add(p);
-
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-
-      return response;
-    };
-
     // Define a simple function call
     Function<HttpRequest, HttpResponse> peopleHandler = x -> {
       ByteBuf bb = Unpooled.compositeBuffer();
@@ -68,6 +48,19 @@ public class Example {
           HttpResponseStatus.OK, bb);
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+
+      return response;
+    };
+
+    // Define a complex function call
+    BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
+      Person p = new Person(y.groups(x.uri()).get("person"));
+      people.add(p);
+
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+          HttpResponseStatus.OK);
+      response.headers().set(CONTENT_TYPE, "text/plain");
+      response.headers().setInt(CONTENT_LENGTH, 0);
 
       return response;
     };
@@ -83,6 +76,12 @@ public class Example {
       log.error("Failed to start people server", e);
     }
 
+  }
+
+  @AllArgsConstructor
+  static class Person {
+
+    private String name;
   }
 
 

@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package xjeffrose.person;
+
+option java_package = "com.xjeffrose.xrpc";
+
+message Person {
+  // Name of the Person
+  required string name = 1;
+
+  // Fav Color
+  required string fav_color = 2;
+
+}
