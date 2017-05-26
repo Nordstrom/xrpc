@@ -176,7 +176,7 @@
             <configuration>
               <includes>
                 <!-- proto package names to generate code for -->
-                <include>xjeffrose.person.*</include>
+                <include>xjeffrose.dino.*</include>
               </includes>
             </configuration>
           </execution>
