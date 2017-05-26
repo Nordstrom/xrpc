@@ -6,11 +6,11 @@ import io.netty.handler.codec.http.HttpServerUpgradeHandler;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProtoCodec extends
+public class ProtoServerCodec extends
     CombinedChannelDuplexHandler<ProtoObjectDecoder, ProtoObjectEncoder> implements
     HttpServerUpgradeHandler.SourceCodec {
 
-  public ProtoCodec() {
+  public ProtoServerCodec() {
     super(new ProtoObjectDecoder(), new ProtoObjectEncoder());
   }
 
