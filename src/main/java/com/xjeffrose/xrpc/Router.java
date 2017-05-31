@@ -4,6 +4,7 @@ package com.xjeffrose.xrpc;
 import static com.codahale.metrics.MetricRegistry.name;
 
 import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
@@ -105,9 +106,14 @@ public class Router {
     s_routes.put(Route.build(route), handler);
   }
 
+  public MetricRegistry getMetrics() {
+
+    return metrics;
+  }
+
   public void listenAndServe() throws IOException {
-    ConnectionLimiter globalConnectionLimiter = new ConnectionLimiter(config.maxConnections()); // All endpoints for a given service
-    ServiceRateLimiter rateLimiter = new ServiceRateLimiter(config.rateLimit()); // RateLimit incomming connections in terms of req / second
+    ConnectionLimiter globalConnectionLimiter = new ConnectionLimiter(metrics, config.maxConnections()); // All endpoints for a given service
+    ServiceRateLimiter rateLimiter = new ServiceRateLimiter(metrics, config.rateLimit()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b = new ServerBootstrap();
     URLRouter router = new URLRouter();
@@ -241,35 +247,49 @@ public class Router {
   @ChannelHandler.Sharable
   private static class ServiceRateLimiter extends ChannelDuplexHandler {
     private final RateLimiter limiter;
+    private final Meter reqs;
 
-    public ServiceRateLimiter(float rateLimit) {
-      this.limiter = RateLimiter.create(1.0);
+    public ServiceRateLimiter(MetricRegistry metrics, float rateLimit) {
+      this.limiter = RateLimiter.create(rateLimit);
+      this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
     }
 
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
+      //TODO(JR): Should this be before or after the acquire? Do we want to know when
+      //          we are limiting? Do we want to know what the actual rate of incoming
+      //          requests are?
+      reqs.mark();
       limiter.acquire();
 
       ctx.fireChannelActive();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+
+      ctx.fireChannelInactive();
     }
 
   }
 
   @ChannelHandler.Sharable
   private static class ConnectionLimiter extends ChannelDuplexHandler {
-
     private final AtomicInteger numConnections;
     private final int maxConnections;
+    private final Counter connections;
 
-    public ConnectionLimiter(int maxConnections) {
+    public ConnectionLimiter(MetricRegistry metrics, int maxConnections) {
       this.maxConnections = maxConnections;
       this.numConnections = new AtomicInteger(0);
+      this.connections = metrics.counter(name(Router.class, "Active Connections"));
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      connections.inc();
+
       if (maxConnections > 0) {
         if (numConnections.incrementAndGet() > maxConnections) {
           ctx.channel().close();
@@ -282,6 +302,8 @@ public class Router {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+      connections.dec();
+
       if (maxConnections > 0) {
         if (numConnections.decrementAndGet() < 0) {
           log.error("BUG in ConnectionLimiter");
