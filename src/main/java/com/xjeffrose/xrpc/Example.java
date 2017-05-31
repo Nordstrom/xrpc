@@ -92,7 +92,7 @@ public class Example {
         Optional.of(Dino.ADAPTER.decode(((FullHttpRequest) x).content().array()));
       } catch (IOException e) {
         HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-            HttpResponseStatus.BAD_REQUEST;
+            HttpResponseStatus.BAD_REQUEST);
         response.headers().set(CONTENT_TYPE, "text/plain");
         response.headers().setInt(CONTENT_LENGTH, 0);
 
@@ -108,7 +108,6 @@ public class Example {
 
       return response;
     };
-
 
 
     // Create your route mapping
