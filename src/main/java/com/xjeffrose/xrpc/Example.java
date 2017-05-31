@@ -10,6 +10,7 @@ import com.squareup.moshi.Types;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -19,6 +20,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
@@ -30,6 +32,7 @@ public class Example {
 
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
+    final List<Dino> dinos = new ArrayList<>();
 
     // See https://github.com/square/moshi for the Moshi Magic
     Moshi moshi = new Moshi.Builder().build();
@@ -52,6 +55,7 @@ public class Example {
       return response;
     };
 
+
     // Define a complex function call
     BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
       Person p = new Person(y.groups(x.uri()).get("person"));
@@ -65,9 +69,55 @@ public class Example {
       return response;
     };
 
+
+    // do some proto
+    Function<HttpRequest, HttpResponse> dinosHandler = x -> {
+      ByteBuf bb = Unpooled.compositeBuffer();
+
+      bb.writeBytes(dinos.get(0).encode());
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+          HttpResponseStatus.OK, bb);
+      response.headers().set(CONTENT_TYPE, "application/octet-stream");
+      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+
+      return response;
+    };
+
+
+    // Define a complex function call with Proto
+    BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
+
+      Optional<Dino> d = null;
+      try {
+        Optional.of(Dino.ADAPTER.decode(((FullHttpRequest) x).content().array()));
+      } catch (IOException e) {
+        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+            HttpResponseStatus.BAD_REQUEST;
+        response.headers().set(CONTENT_TYPE, "text/plain");
+        response.headers().setInt(CONTENT_LENGTH, 0);
+
+        return response;
+      }
+
+      d.ifPresent(dinos::add);
+
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+          HttpResponseStatus.OK);
+      response.headers().set(CONTENT_TYPE, "text/plain");
+      response.headers().setInt(CONTENT_LENGTH, 0);
+
+      return response;
+    };
+
+
+
     // Create your route mapping
     router.addRoute("/people/:person", personHandler);
     router.addRoute("/people", peopleHandler);
+
+    // Create your route mapping
+    router.addRoute("/dinos/:dino", dinoHandler);
+    router.addRoute("/dinos", dinosHandler);
 
     try {
       // Fire away
@@ -79,7 +129,7 @@ public class Example {
   }
 
   @AllArgsConstructor
-  static class Person {
+  private static class Person {
 
     private String name;
   }
