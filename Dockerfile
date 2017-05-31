@@ -23,4 +23,5 @@ RUN apk --update upgrade && \
     rm -rf target && \
     apk del curl openjdk8
 
-CMD java -Dserver.port=$PORT -Dconfig.file=application.conf -jar app.jar
+#CMD java -Dserver.port=$PORT -Dconfig.file=application.conf -jar app.jar
+CMD bin/startServer.sh

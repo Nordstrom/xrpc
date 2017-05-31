@@ -44,7 +44,6 @@ import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
-package com.xjeffrose.xrpc;
 
 @Slf4j
 public class ProtoRouter {
@@ -62,7 +61,7 @@ public class ProtoRouter {
   private final int workerThreads = config.workerThreads();
   private final Map<Route, Function<HttpRequest, HttpResponse>> s_routes = new HashMap<>();
   private final Map<Route, BiFunction<HttpRequest, Route, HttpResponse>> b_routes = new HashMap<>();
-  
+
   // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
   private final MetricRegistry metrics = new MetricRegistry();
   final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metrics)
@@ -83,7 +82,7 @@ public class ProtoRouter {
   private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
 
-  public Router() {
+  public ProtoRouter() {
 
   }
 
@@ -182,7 +181,7 @@ public class ProtoRouter {
         if (!future.isSuccess()) {
           //log.log(Level.WARNING, "Error shutting down server", future.cause());
         }
-        synchronized (Router.this) {
+        synchronized (ProtoRouter.this) {
           // listener.serverShutdown();
         }
       }
