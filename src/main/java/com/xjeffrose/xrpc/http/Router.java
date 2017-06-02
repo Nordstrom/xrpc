@@ -1,7 +1,7 @@
 package com.xjeffrose.xrpc.http;
 
 import com.xjeffrose.xrpc.XConfig;
-import com.xjeffrose.xrpc.TLS;
+import com.xjeffrose.xrpc.tls.TLS;
 import com.xjeffrose.xrpc.MessageLogger;
 import com.xjeffrose.xrpc.ExceptionLogger;
 
