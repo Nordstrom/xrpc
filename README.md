@@ -14,8 +14,7 @@ What you get:
 8) Protobuf support
 9) Docker
 10) k8s
-11) protobuf
-12) Many Much more
+11) Many Much more
 
 Make .jar not .war ...
 
