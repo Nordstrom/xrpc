@@ -1,4 +1,4 @@
-package com.xjeffrose.xrpc;
+package com.xjeffrose.xrpc.tls;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
