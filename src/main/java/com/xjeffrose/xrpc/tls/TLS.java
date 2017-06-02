@@ -1,4 +1,4 @@
-package com.xjeffrose.xrpc;
+package com.xjeffrose.xrpc.tls;
 
 
 import com.google.common.collect.ImmutableList;
