@@ -157,10 +157,15 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.5.1</version>
         <configuration>
+          <fork>true</fork>
           <source>1.8</source>
           <target>1.8</target>
+          <compilerArgs>
+            <arg>-XDignore.symbol.file</arg>
+            <arg>-Xlint:all</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
