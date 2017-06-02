@@ -1,4 +1,4 @@
-package com.xjeffrose.xrpc;
+package com.xjeffrose.xrpc.http;
 
 import java.util.ArrayList;
 import java.util.HashMap;
