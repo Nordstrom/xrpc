@@ -1,4 +1,4 @@
-package com.xjeffrose.xrpc;
+package com.xjeffrose.xrpc.logging;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
