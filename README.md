@@ -127,3 +127,49 @@ public class Example {
 
   }
 ```
+
+# Building the jar
+
+```shell
+$ mvn package
+```
+
+# Running the jar
+
+```shell
+$ java -jar target/xrpc-0.1.0-SNAPSHOT.jar
+```
+
+# Basic http set
+
+```shell
+$ curl -k  https://localhost:8080/people/bob
+```
+
+# Basic http get
+
+```shell
+$ curl -k  https://localhost:8080/people
+[{"name":"bob"}]
+```
+
+# Proto encode/decode
+
+```shell
+$ java -cp target/xrpc-0.1.0-SNAPSHOT.jar com.xjeffrose.xrpc.DinoEncoder trex blue > out
+$ java -cp target/xrpc-0.1.0-SNAPSHOT.jar com.xjeffrose.xrpc.DinoDecoder < out
+Dino{name=trex, fav_color=blue}
+```
+
+# Proto http set
+
+```shell
+$ java -cp target/xrpc-0.1.0-SNAPSHOT.jar com.xjeffrose.xrpc.DinoEncoder trex blue | curl -k  https://localhost:8080/dinos/trex --data-binary @-
+```
+
+# Proto http get
+
+```shell
+$ curl -k -s   https://localhost:8080/dinos/ | java -cp target/xrpc-0.1.0-SNAPSHOT.jar com.xjeffrose.xrpc.DinoDecoder
+Dino{name=trex, fav_color=blue}
+```

@@ -27,6 +27,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okio.ByteString;
 
 
 @Slf4j
@@ -89,10 +90,12 @@ public class Example {
     // Define a complex function call with Proto
     BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
 
-      Optional<Dino> d = null;
       try {
-        Optional.of(Dino.ADAPTER.decode(((FullHttpRequest) x).content().array()));
+        Optional<Dino> d = null;
+        d = Optional.of(Dino.ADAPTER.decode(ByteString.of(((FullHttpRequest) x).content().nioBuffer())));
+        d.ifPresent(dinos::add);
       } catch (IOException e) {
+        log.error("Dino Error", (Throwable)e);
         HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
             HttpResponseStatus.BAD_REQUEST);
         response.headers().set(CONTENT_TYPE, "text/plain");
@@ -101,7 +104,6 @@ public class Example {
         return response;
       }
 
-      d.ifPresent(dinos::add);
 
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
           HttpResponseStatus.OK);

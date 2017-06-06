@@ -2,8 +2,8 @@ package com.xjeffrose.xrpc.http;
 
 import com.xjeffrose.xrpc.XConfig;
 import com.xjeffrose.xrpc.tls.TLS;
-import com.xjeffrose.xrpc.MessageLogger;
-import com.xjeffrose.xrpc.ExceptionLogger;
+import com.xjeffrose.xrpc.logging.MessageLogger;
+import com.xjeffrose.xrpc.logging.ExceptionLogger;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -36,6 +36,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -149,6 +150,7 @@ public class Router {
         cp.addLast("encryptionHandler", new TLS(config.cert(), config.key()).getEncryptionHandler()); // Add Config for Certs
         cp.addLast("messageLogger", new MessageLogger());
         cp.addLast("codec", new HttpServerCodec());
+        cp.addLast("aggregator", new HttpObjectAggregator(1*1024*1024)); // Aggregate up to 1MB
 //        cp.addLast("aggregator", new NoOpHandler()); // Not Needed but maybe keep in here?
         cp.addLast("authHandler", new NoOpHandler()); // OAuth2.0 Impl needed
         cp.addLast("routingFilter", router);
