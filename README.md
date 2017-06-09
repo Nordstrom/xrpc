@@ -21,6 +21,7 @@ Make .jar not .war ...
 
 Example.java
 ```java
+
 @Slf4j
 public class Example {
 
@@ -29,7 +30,7 @@ public class Example {
 
     private String name;
   }
-
+  
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
     final List<Dino> dinos = new ArrayList<>();
@@ -48,7 +49,7 @@ public class Example {
 
       bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-	  HttpResponseStatus.OK, bb);
+          HttpResponseStatus.OK, bb);
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
 
@@ -62,7 +63,7 @@ public class Example {
       people.add(p);
 
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-	  HttpResponseStatus.OK);
+          HttpResponseStatus.OK);
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, 0);
 
@@ -76,7 +77,7 @@ public class Example {
 
       bb.writeBytes(dinos.get(0).encode());
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-	  HttpResponseStatus.OK, bb);
+          HttpResponseStatus.OK, bb);
       response.headers().set(CONTENT_TYPE, "application/octet-stream");
       response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
 
@@ -87,22 +88,23 @@ public class Example {
     // Define a complex function call with Proto
     BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
 
-      Optional<Dino> d = null;
       try {
-	Optional.of(Dino.ADAPTER.decode(((FullHttpRequest) x).content().array()));
+        Optional<Dino> d = null;
+        d = Optional.of(Dino.ADAPTER.decode(ByteString.of(((FullHttpRequest) x).content().nioBuffer())));
+        d.ifPresent(dinos::add);
       } catch (IOException e) {
-	HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-	    HttpResponseStatus.BAD_REQUEST);
-	response.headers().set(CONTENT_TYPE, "text/plain");
-	response.headers().setInt(CONTENT_LENGTH, 0);
+        log.error("Dino Error", (Throwable)e);
+        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+            HttpResponseStatus.BAD_REQUEST);
+        response.headers().set(CONTENT_TYPE, "text/plain");
+        response.headers().setInt(CONTENT_LENGTH, 0);
 
-	return response;
+        return response;
       }
 
-      d.ifPresent(dinos::add);
 
       HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-	  HttpResponseStatus.OK);
+          HttpResponseStatus.OK);
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, 0);
 
@@ -126,6 +128,7 @@ public class Example {
     }
 
   }
+ 
 ```
 
 # Building the jar
