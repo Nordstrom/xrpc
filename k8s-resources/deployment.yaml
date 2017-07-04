@@ -1,0 +1,37 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: xrpc   # Name of the application. You can append environment (dev, default, prod) to the name too.
+  namespace: default                # Namespace name
+  labels:
+    app: xrpc
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  revisionHistoryLimit: 5           # The number of old ReplicaSets to retain to allow rollback.
+  template:
+    metadata:
+      labels:
+        app: xrpc
+    spec:
+      containers:
+        - name: xrpc # Name of container. Can be same as app-name
+          image: xrpc:1.0 # docker image with version tag
+          imagePullPolicy: Always   # You don't need to specify this field if you version your docker images (recommended). Default to IfNotPresent.
+          ports:                    # List of ports to expose from the container
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:           # Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails.
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            failureThreshold: 3
+            successThreshold: 1
+            initialDelaySeconds: 15
+            timeoutSeconds: 2

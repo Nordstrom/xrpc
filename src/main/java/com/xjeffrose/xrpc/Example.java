@@ -113,6 +113,16 @@ public class Example {
       return response;
     };
 
+    // Define a simple function call
+    Function<HttpRequest, HttpResponse> healthCheckHandler = x -> {
+      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+                                                          HttpResponseStatus.OK);
+      response.headers().set(CONTENT_TYPE, "text/plain");
+      response.headers().setInt(CONTENT_LENGTH, 0);
+
+      return response;
+    };
+
 
     // Create your route mapping
     router.addRoute("/people/:person", personHandler);
@@ -121,6 +131,9 @@ public class Example {
     // Create your route mapping
     router.addRoute("/dinos/:dino", dinoHandler);
     router.addRoute("/dinos", dinosHandler);
+
+    // Health Check for k8s
+    router.addRoute("/health", healthCheckHandler);
 
     try {
       // Fire away

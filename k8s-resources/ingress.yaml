@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: xrpc # Name of the application.
+  namespace: default      # Namespace name.
+  labels:
+    app: xrpc
+spec:
+  rules:
+    - host: xrpc.default.platform.prod.aws.cloud.{{.deployment_domain}} # hostname for your application. Please add namespace to avoid colision.
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: sample-app
+              servicePort: 80
+  # - host: {{app_name}}.{{deployment_domain}} # If you want to use a friendly name, create a DNS CNAME entry pointing to the above hostname
+  #   http:
+  #     paths:
+  #       - path: /
+  #         backend:
+  #           serviceName: sample-app
+  #           servicePort: 80
