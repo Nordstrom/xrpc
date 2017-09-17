@@ -7,10 +7,9 @@ mvn package && \
   mv target/*.jar app.jar && \
   # remove all build artifacts & dependencies, Maven, and the JDK
   rm -rf /root/.m2 && \
-    rm -rf /usr/lib/mvn && \
-    rm -rf target && \
+  rm -rf /usr/lib/mvn && \
+  rm -rf target && \
 
-#echo $xrpc_pid > $pid_file
 java -ea          \
   $JAVA_OPTS                      \
   -Djava.net.preferIPv4Stack=true \
@@ -37,5 +36,3 @@ java -ea          \
   -Dserver.port=$PORT                               \
   -Dconfig.file=application.conf                    \
   -jar app.jar
-
-#rm $pid_file
