@@ -3,12 +3,7 @@
 PORT=8080
 
 mvn package && \
-  rm target/original-*.jar && \
-  mv target/*.jar app.jar && \
-  # remove all build artifacts & dependencies, Maven, and the JDK
-  rm -rf /root/.m2 && \
-  rm -rf /usr/lib/mvn && \
-  rm -rf target && \
+  mv build/libs/*-all.jar app.jar
 
 java -ea          \
   $JAVA_OPTS                      \
