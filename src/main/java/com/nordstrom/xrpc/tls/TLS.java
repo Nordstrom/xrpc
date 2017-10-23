@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.tls;
+package com.nordstrom.xrpc.tls;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -57,7 +57,7 @@ public class TLS  {
 
   public static X509Certificate createSelfSigned(){
     try{
-      return SelfSignedX509CertGenerator.generate("*.xjeffrose.com");
+      return SelfSignedX509CertGenerator.generate("*.nordstrom.com");
     }catch (Exception e){
       e.printStackTrace();
     }
@@ -100,7 +100,7 @@ public class TLS  {
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
         publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
       } else {
-        selfSignedCert = SelfSignedX509CertGenerator.generate("*.xjeffrose.com");
+        selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
         privateKey = selfSignedCert.getKey();
       }
 
@@ -125,7 +125,7 @@ public class TLS  {
         }
       } else {
         if (selfSignedCert == null) {
-          selfSignedCert = SelfSignedX509CertGenerator.generate("*.xjeffrose.com");
+          selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
         }
         chain = new java.security.cert.X509Certificate[1];
         chain[0] = selfSignedCert.getCert();

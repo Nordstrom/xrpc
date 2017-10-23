@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.http;
+package com.nordstrom.xrpc.http;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.http;
+package com.nordstrom.xrpc.http;
 
-import com.xjeffrose.xrpc.XConfig;
-import com.xjeffrose.xrpc.tls.TLS;
-import com.xjeffrose.xrpc.logging.MessageLogger;
-import com.xjeffrose.xrpc.logging.ExceptionLogger;
+import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.tls.TLS;
+import com.nordstrom.xrpc.logging.MessageLogger;
+import com.nordstrom.xrpc.logging.ExceptionLogger;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;

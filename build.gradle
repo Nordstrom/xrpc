@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-group = 'com.xjeffrose'
+group = 'com.nordstrom'
 version = '0.1.0-SNAPSHOT'
 
 description = """Simple, production ready Java API server built on top of functional composition."""
@@ -60,6 +60,6 @@ protobuf {
 
 shadowJar {
   manifest {
-    attributes 'Main-Class': 'com.xjeffrose.xrpc.Example'
+    attributes 'Main-Class': 'com.nordstrom.xrpc.Example'
   }
 }

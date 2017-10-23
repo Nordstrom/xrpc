@@ -14,36 +14,21 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.tls;
+package com.nordstrom.xrpc;
 
-import java.security.PrivateKey;
-import lombok.extern.slf4j.Slf4j;
-import sun.security.x509.X509CertImpl;
+import java.io.IOException;
 
-@Slf4j
-public final class X509Certificate {
+public class DinoEncoder {
 
+  public static void main(String[] args) throws IOException {
 
-  private final String fqdn;
-  private final PrivateKey key;
-  private final X509CertImpl cert;
+    Dino dino = new Dino.Builder()
+      .name(args[0])
+      .fav_color(args[1])
+      .build();
 
-  public X509Certificate(String fqdn, PrivateKey key, X509CertImpl cert) {
-
-    this.fqdn = fqdn;
-    this.key = key;
-    this.cert = cert;
+    byte[] bytes = Dino.ADAPTER.encode(dino);
+    System.out.write(bytes, 0, bytes.length);
   }
 
-  public String getFqdn() {
-    return fqdn;
-  }
-
-  public PrivateKey getKey() {
-    return key;
-  }
-
-  public X509CertImpl getCert() {
-    return cert;
-  }
 }
