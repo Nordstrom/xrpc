@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.tls;
+package com.nordstrom.xrpc.tls;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

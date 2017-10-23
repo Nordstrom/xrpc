@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc.logging;
+package com.nordstrom.xrpc.logging;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;

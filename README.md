@@ -159,20 +159,20 @@ $ curl -k  https://localhost:8080/people
 # Proto encode/decode
 
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.xjeffrose.xrpc.DinoEncoder trex blue > out
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.xjeffrose.xrpc.DinoDecoder < out
+$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue > out
+$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder < out
 Dino{name=trex, fav_color=blue}
 ```
 
 # Proto http set
 
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.xjeffrose.xrpc.DinoEncoder trex blue | curl -k  https://localhost:8080/dinos/trex --data-binary @-
+$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue | curl -k  https://localhost:8080/dinos/trex --data-binary @-
 ```
 
 # Proto http get
 
 ```shell
-$ curl -k -s   https://localhost:8080/dinos/ | java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.xjeffrose.xrpc.DinoDecoder
+$ curl -k -s   https://localhost:8080/dinos/ | java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder
 Dino{name=trex, fav_color=blue}
 ```

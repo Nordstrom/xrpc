@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc;
+syntax = "proto2";
 
-import java.io.IOException;
+package nordstrom.dino;
 
-public class DinoDecoder {
+option java_package = "com.nordstrom.xrpc";
 
-  public static void main(String[] args) throws IOException {
+message Dino {
+  // Name of the Person
+  required string name = 1;
 
-    byte[] bytes = new byte[System.in.available()];
-    System.in.read(bytes, 0, bytes.length);
-    Dino dino = Dino.ADAPTER.decode(bytes);
-
-    System.out.println(dino);
-  }
+  // Fav Color
+  required string fav_color = 2;
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.xjeffrose.xrpc;
+package com.nordstrom.xrpc;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
