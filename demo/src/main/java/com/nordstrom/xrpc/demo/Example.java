@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc;
+package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.http.Router;
 import com.nordstrom.xrpc.http.Route;
-import com.nordstrom.xrpc.proto.Dino;
+import com.nordstrom.xrpc.demo.proto.Dino;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;

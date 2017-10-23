@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc;
+package com.nordstrom.xrpc.demo;
 
-import com.nordstrom.xrpc.proto.Dino;
+import com.nordstrom.xrpc.demo.proto.Dino;
 
 import java.io.IOException;
 
-public class DinoDecoder {
-
+public class DinoEncoder {
   public static void main(String[] args) throws IOException {
-
-    byte[] bytes = new byte[System.in.available()];
-    System.in.read(bytes, 0, bytes.length);
-    Dino dino = Dino.parseFrom(bytes);
-
-    System.out.println(dino);
+    Dino dino = Dino.newBuilder().setName(args[0]).setFavColor(args[1]).build();
+    System.out.write(dino.toByteArray());
   }
-
 }
