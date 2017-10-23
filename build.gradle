@@ -22,7 +22,12 @@ description = """Simple, production ready Java API server built on top of functi
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 tasks.withType(JavaCompile) {
-	options.encoding = 'UTF-8'
+    options.encoding = 'UTF-8'
+    // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
+    // the compiler so that the definition works).
+    options.compilerArgs += ['-XDignore.symbol.file']
+    options.fork = true
+    options.forkOptions.executable = 'javac'
 }
 
 repositories {
