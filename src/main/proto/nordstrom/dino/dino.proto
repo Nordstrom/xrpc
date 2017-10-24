@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-syntax = "proto2";
+syntax = "proto3";
 
 package nordstrom.dino;
 
-option java_package = "com.nordstrom.xrpc";
+option java_package = "com.nordstrom.xrpc.proto";
+option java_multiple_files = true;
 
 message Dino {
   // Name of the Person
-  required string name = 1;
+  string name = 1;
 
   // Fav Color
-  required string fav_color = 2;
-
+  string fav_color = 2;
 }

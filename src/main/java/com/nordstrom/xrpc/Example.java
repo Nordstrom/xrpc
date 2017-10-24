@@ -18,14 +18,18 @@ package com.nordstrom.xrpc;
 
 import com.nordstrom.xrpc.http.Router;
 import com.nordstrom.xrpc.http.Route;
+import com.nordstrom.xrpc.proto.Dino;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -48,6 +52,11 @@ import okio.ByteString;
 
 @Slf4j
 public class Example {
+  /** Example POJO for use in request / response. */
+  @AllArgsConstructor
+  private static class Person {
+    private String name;
+  }
 
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
@@ -91,15 +100,25 @@ public class Example {
 
     // do some proto
     Function<HttpRequest, HttpResponse> dinosHandler = x -> {
+      // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+      Dino output = dinos.get(0);
       ByteBuf bb = Unpooled.compositeBuffer();
-
-      bb.writeBytes(dinos.get(0).encode());
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK, bb);
-      response.headers().set(CONTENT_TYPE, "application/octet-stream");
-      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-
-      return response;
+      bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
+      try {
+        output.writeTo(new ByteBufOutputStream(bb));
+        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+            HttpResponseStatus.OK, bb);
+        response.headers().set(CONTENT_TYPE, "application/octet-stream");
+        response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+        return response;
+      } catch (IOException e) {
+        log.error("Dino Error", (Throwable)e);
+        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        response.headers().set(CONTENT_TYPE, "text/plain");
+        response.headers().setInt(CONTENT_LENGTH, 0);
+        return response;
+      }
     };
 
 
@@ -107,8 +126,9 @@ public class Example {
     BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
 
       try {
-        Optional<Dino> d = null;
-        d = Optional.of(Dino.ADAPTER.decode(ByteString.of(((FullHttpRequest) x).content().nioBuffer())));
+        // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+        Optional<Dino> d;
+        d = Optional.of(Dino.parseFrom(CodedInputStream.newInstance(((FullHttpRequest) x).content().nioBuffer())));
         d.ifPresent(dinos::add);
       } catch (IOException e) {
         log.error("Dino Error", (Throwable)e);
@@ -157,14 +177,5 @@ public class Example {
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
-
   }
-
-  @AllArgsConstructor
-  private static class Person {
-
-    private String name;
-  }
-
-
 }

@@ -16,6 +16,8 @@
 
 package com.nordstrom.xrpc;
 
+import com.nordstrom.xrpc.proto.Dino;
+
 import java.io.IOException;
 
 public class DinoDecoder {
@@ -24,7 +26,7 @@ public class DinoDecoder {
 
     byte[] bytes = new byte[System.in.available()];
     System.in.read(bytes, 0, bytes.length);
-    Dino dino = Dino.ADAPTER.decode(bytes);
+    Dino dino = Dino.parseFrom(bytes);
 
     System.out.println(dino);
   }
