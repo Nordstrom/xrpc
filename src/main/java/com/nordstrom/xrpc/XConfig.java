@@ -22,10 +22,6 @@ import com.typesafe.config.ConfigFactory;
 public class XConfig {
   private final Config config = ConfigFactory.load();
 
-  public XConfig() {
-
-  }
-
   public int readerIdleTimeout() {
     return config.getInt("reader_idle_timeout");
   }

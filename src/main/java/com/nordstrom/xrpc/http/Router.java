@@ -117,10 +117,6 @@ public class Router {
 
   private final TLS tls =  new TLS(config.cert(), config.key());
 
-        public Router() {
-
-        }
-
         static private ThreadFactory threadFactory(String nameFormat) {
                 return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
         }
@@ -227,9 +223,6 @@ public class Router {
 
         @ChannelHandler.Sharable
         private class URLRouter extends ChannelDuplexHandler {
-
-                public URLRouter() {
-                }
 
                 @Override
                 public void channelActive(ChannelHandlerContext ctx) throws Exception {
