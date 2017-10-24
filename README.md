@@ -18,6 +18,8 @@ What you get:
 
 Make .jar not .war ...
 
+If you are contributing to this repository, see [the developer guide](developing.md).
+
 
 Example.java
 ```java

@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-group = 'com.nordstrom'
+group = 'com.nordstrom.xrpc'
 version = '0.1.0-SNAPSHOT'
 archivesBaseName = 'xrpc-demo'
 
