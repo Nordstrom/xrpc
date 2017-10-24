@@ -27,5 +27,4 @@ public class DinoDecoder {
     Dino dino = Dino.parseFrom(bytes);
     System.out.println(dino);
   }
-
 }

@@ -48,10 +48,7 @@ public class Route {
           regexPattern.append("/");
           if (keywordPattern.matcher(segment).matches()) {
             String keyword = segment.substring(1);
-            regexPattern
-                .append("(?<")
-                .append(keyword)
-                .append(">[^/]*)");
+            regexPattern.append("(?<").append(keyword).append(">[^/]*)");
             keywords.add(keyword);
           } else {
             regexPattern.append(segment);

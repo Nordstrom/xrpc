@@ -16,8 +16,6 @@
 
 package com.nordstrom.xrpc.tls;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.OpenSsl;
@@ -39,26 +37,25 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TLS  {
+public class TLS {
   private static final String PASSWORD = "passwordsAreGood";
 
   private final String cert;
   private final String key;
-  //TODO(JR): This should only be called if a cert is not provided
-  private final static X509Certificate selfSignedCert = createSelfSigned();
+  // TODO(JR): This should only be called if a cert is not provided
+  private static final X509Certificate selfSignedCert = createSelfSigned();
 
   private SslContext sslCtx;
 
-  public static X509Certificate createSelfSigned(){
-    try{
+  public static X509Certificate createSelfSigned() {
+    try {
       return SelfSignedX509CertGenerator.generate("*.nordstrom.com");
-    }catch (Exception e){
+    } catch (Exception e) {
       e.printStackTrace();
     }
     return null;
@@ -75,16 +72,15 @@ public class TLS  {
     this.sslCtx = buildEncryptionHandler();
   }
 
-    public ChannelHandler getEncryptionHandler() {
+  public ChannelHandler getEncryptionHandler() {
 
-        ChannelHandler handler = sslCtx.newHandler(new PooledByteBufAllocator());
+    ChannelHandler handler = sslCtx.newHandler(new PooledByteBufAllocator());
 
-        String[] protocols = new String[] {"TLSv1.2"};
-        ((SslHandler) handler).engine().setEnabledProtocols(protocols);
+    String[] protocols = new String[] {"TLSv1.2"};
+    ((SslHandler) handler).engine().setEnabledProtocols(protocols);
 
-        return handler;
-
-    }
+    return handler;
+  }
 
   public SslContext buildEncryptionHandler() {
     try {
@@ -96,7 +92,8 @@ public class TLS  {
       X509Certificate selfSignedCert = null;
 
       if (key != null) {
-        X509CertificateGenerator.DERKeySpec derKeySpec = X509CertificateGenerator.parseDERKeySpec(key);
+        X509CertificateGenerator.DERKeySpec derKeySpec =
+            X509CertificateGenerator.parseDERKeySpec(key);
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
         publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
       } else {
@@ -113,8 +110,9 @@ public class TLS  {
         for (String cert : certs) {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
           java.security.cert.X509Certificate x509Certificate =
-              (java.security.cert.X509Certificate) cf.generateCertificate(
-                  new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes()));
+              (java.security.cert.X509Certificate)
+                  cf.generateCertificate(
+                      new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes()));
           certList.add(x509Certificate);
         }
 
@@ -133,30 +131,33 @@ public class TLS  {
 
       SslContext _sslCtx = null;
 
-        if (OpenSsl.isAvailable()) {
-          log.info("Using OpenSSL");
-          _sslCtx = SslContextBuilder
-              .forServer(privateKey, chain)
-              .sslProvider(SslProvider.OPENSSL)
-              .build();
-        } else {
-          log.info("Using JSSE");
-          final KeyStore keyStore = KeyStore.getInstance("JKS", "SUN");
-          keyStore.load(null, PASSWORD.toCharArray());
-          keyStore.setKeyEntry(chain[0].getIssuerX500Principal().getName(), privateKey,
-              PASSWORD.toCharArray(), chain);
-          KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+      if (OpenSsl.isAvailable()) {
+        log.info("Using OpenSSL");
+        _sslCtx =
+            SslContextBuilder.forServer(privateKey, chain).sslProvider(SslProvider.OPENSSL).build();
+      } else {
+        log.info("Using JSSE");
+        final KeyStore keyStore = KeyStore.getInstance("JKS", "SUN");
+        keyStore.load(null, PASSWORD.toCharArray());
+        keyStore.setKeyEntry(
+            chain[0].getIssuerX500Principal().getName(), privateKey, PASSWORD.toCharArray(), chain);
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 
-          kmf.init(keyStore, PASSWORD.toCharArray());
-          _sslCtx = SslContextBuilder
-              .forServer(kmf)
-              .sslProvider(SslProvider.JDK)
-              .build();
-        }
+        kmf.init(keyStore, PASSWORD.toCharArray());
+        _sslCtx = SslContextBuilder.forServer(kmf).sslProvider(SslProvider.JDK).build();
+      }
 
-        return _sslCtx;
+      return _sslCtx;
 
-    } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException | CertificateException | NoSuchProviderException | IllegalArgumentException | IOException | SignatureException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException
+        | KeyStoreException
+        | UnrecoverableKeyException
+        | CertificateException
+        | NoSuchProviderException
+        | IllegalArgumentException
+        | IOException
+        | SignatureException
+        | InvalidKeyException e) {
       e.printStackTrace();
     }
 
