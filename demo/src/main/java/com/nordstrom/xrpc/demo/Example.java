@@ -161,11 +161,11 @@ public class Example {
         };
 
     // Create your route mapping
-    router.addRoute("/people/:person", personHandler);
+    router.addRoute("/people/{person}", personHandler);
     router.addRoute("/people", peopleHandler);
 
     // Create your route mapping
-    router.addRoute("/dinos/:dino", dinoHandler);
+    router.addRoute("/dinos/{dino}", dinoHandler);
     router.addRoute("/dinos", dinosHandler);
 
     // Health Check for k8s

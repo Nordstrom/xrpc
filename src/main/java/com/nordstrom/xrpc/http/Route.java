@@ -24,56 +24,79 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * A single route in an application, possibly with variable path elements. An xrpc application is
+ * built out of {route, handler} pairs.
+ */
 @Slf4j
 public class Route {
-  private static final Pattern keywordPattern = Pattern.compile("(:\\w+)");
+  /**
+   * Pattern to extract a variable from a URL path. This captures the variable name and any
+   * associated regular expression.
+   */
+  private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{(\\w+)(?::([^\\{\\}]+))?\\}");
+
+  /**
+   * Compiled pattern that matches a path, and extracts named groups for each named wildcard
+   * segment.
+   */
   private final Pattern pathPattern;
+
   private final List<String> keywords;
 
-  private Route(Pattern path, List<String> keywords) {
-    this.pathPattern = path;
+  private Route(Pattern pathPattern, List<String> keywords) {
+    this.pathPattern = pathPattern;
     this.keywords = keywords;
   }
 
-  public static Pattern compile(String pattern, List<String> keywords) {
-    StringBuilder regexPattern = new StringBuilder();
-
-    if (pattern.equals("/")) {
-      regexPattern.append("/");
-    } else {
-      final String[] segments = pattern.split("/");
-
-      for (String segment : segments) {
-        if (!segment.equals("")) {
-          regexPattern.append("/");
-          if (keywordPattern.matcher(segment).matches()) {
-            String keyword = segment.substring(1);
-            regexPattern.append("(?<").append(keyword).append(">[^/]*)");
-            keywords.add(keyword);
-          } else {
-            regexPattern.append(segment);
-          }
-        }
-      }
-    }
-    regexPattern.append("[/]?");
-
-    return Pattern.compile(regexPattern.toString());
-  }
-
-  public static Route build(String pattern) {
+  /**
+   * Build a route from the given path pattern. This pattern will be exact-matched, expect if there
+   * are variables matching "{identifer}" or "{identifier:regex}". All text matched by the
+   * variable's regular expression will be available to the handler; if "regex" isn't provided, the
+   * regular expression "[^/]+" will be used (at least one non-slash character).
+   */
+  public static Route build(String pathPattern) {
+    // Keywords pulled from the path pattern (items matching KEYWORD_PATTERN).
     List<String> keywords = new ArrayList<>();
-    return new Route(compile(pattern, keywords), keywords);
+    StringBuilder pathRegex = new StringBuilder();
+    Matcher variableMatcher = VARIABLE_PATTERN.matcher(pathPattern);
+    int prevEnd = 0;
+    while (variableMatcher.find()) {
+      // Add the keyword to our list.
+      String keywordName = variableMatcher.group(1);
+      keywords.add(keywordName);
+
+      // Extract the regex for the variable.
+      String variableRegex = variableMatcher.group(2);
+      if (variableRegex == null) {
+        variableRegex = "[^/]+";
+      }
+
+      // Add a named capture group to the pattern for extraction.
+      pathRegex.append(Pattern.quote(pathPattern.substring(prevEnd, variableMatcher.start())));
+      pathRegex.append("(?<").append(keywordName).append('>').append(variableRegex).append(')');
+      prevEnd = variableMatcher.end();
+    }
+    pathRegex.append(Pattern.quote(pathPattern.substring(prevEnd, pathPattern.length())));
+    // Always allow paths to end in a slash, for usability / sanity.
+    if (!pathPattern.endsWith("/")) {
+      pathRegex.append("/?");
+    }
+
+    Pattern compiledPattern = Pattern.compile(pathRegex.toString());
+
+    return new Route(compiledPattern, keywords);
   }
 
-  public Pattern pathPattern() {
-    return pathPattern;
-  }
-
+  /** @return true if this route matches the given URL path */
   public boolean matches(String path) {
     return pathPattern.matcher(path).matches();
   }
 
+  /**
+   * @return the groups this captured from the given path, if any; or null if this route doesn't
+   *     match the path
+   */
   public Map<String, String> groups(String path) {
     Matcher matcher = pathPattern.matcher(path);
     if (matcher.matches()) {
