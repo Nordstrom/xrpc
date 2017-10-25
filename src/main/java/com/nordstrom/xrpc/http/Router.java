@@ -16,17 +16,17 @@
 
 package com.nordstrom.xrpc.http;
 
-import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.tls.TLS;
-import com.nordstrom.xrpc.logging.MessageLogger;
-import com.nordstrom.xrpc.logging.ExceptionLogger;
-
 import static com.codahale.metrics.MetricRegistry.name;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.netty.channel.ChannelOption.SO_BACKLOG;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 import static io.netty.channel.ChannelOption.TCP_NODELAY;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+
+import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.logging.ExceptionLogger;
+import com.nordstrom.xrpc.logging.MessageLogger;
+import com.nordstrom.xrpc.tls.Tls;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
@@ -65,6 +65,9 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -74,16 +77,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
   private final XConfig config = new XConfig();
 
-  private final int NO_READER_IDLE_TIMEOUT = config.readerIdleTimeout();
-  private final int NO_WRITER_IDLE_TIMEOUT = config.writerIdleTimeout();;
-  private final int NO_ALL_IDLE_TIMEOUT = config.requestIdleTimeout();
+  private final int noReaderIdleTimeout = config.readerIdleTimeout();
+  private final int noWriterIdleTimeout = config.writerIdleTimeout();
+  private final int noAllIdleTimeout = config.requestIdleTimeout();
 
   private final String workerNameFormat = config.workerNameFormat();
 
@@ -100,7 +101,7 @@ public class Router {
   // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
   private final MetricRegistry metrics = new MetricRegistry();
   private final Meter requests = metrics.meter("requests");
-  private final Histogram responseSizes = metrics.histogram(name(URLRouter.class, "responses"));
+  private final Histogram responseSizes = metrics.histogram(name(UrlRouter.class, "responses"));
 
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metrics)
@@ -117,7 +118,7 @@ public class Router {
 
   final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
 
-  private final TLS tls = new TLS(config.cert(), config.key());
+  private final Tls tls = new Tls(config.cert(), config.key());
 
   private static ThreadFactory threadFactory(String nameFormat) {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
@@ -147,7 +148,7 @@ public class Router {
             config.rateLimit()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b = new ServerBootstrap();
-    URLRouter router = new URLRouter();
+    UrlRouter router = new UrlRouter();
 
     if (Epoll.isAvailable()) {
       bossGroup = new EpollEventLoopGroup(bossThreads, threadFactory(workerNameFormat));
@@ -185,7 +186,7 @@ public class Router {
             cp.addLast(
                 "idleDisconnectHandler",
                 new IdleDisconnectHandler(
-                    NO_READER_IDLE_TIMEOUT, NO_WRITER_IDLE_TIMEOUT, NO_ALL_IDLE_TIMEOUT));
+                    noReaderIdleTimeout, noWriterIdleTimeout, noAllIdleTimeout));
             cp.addLast("exceptionLogger", new ExceptionLogger());
           }
         });
@@ -233,7 +234,7 @@ public class Router {
   }
 
   @ChannelHandler.Sharable
-  private class URLRouter extends ChannelDuplexHandler {
+  private class UrlRouter extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

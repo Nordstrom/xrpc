@@ -16,18 +16,6 @@
 
 package com.nordstrom.xrpc.tls;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.SecureRandom;
-import java.security.SignatureException;
-import java.security.cert.CertificateException;
-import java.util.Date;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateIssuerName;
@@ -40,7 +28,18 @@ import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
-// import java.util.logging.Logger;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.util.Date;
 
 final class SelfSignedX509CertGenerator {
   //  private static final Logger log = Log.getLogger(SelfSignedX509CertGenerator.class.getName());
@@ -59,8 +58,6 @@ final class SelfSignedX509CertGenerator {
     KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     keyGen.initialize(2048, null);
     keypair = keyGen.generateKeyPair();
-
-    PrivateKey key = keypair.getPrivate();
 
     // Prepare the information required for generating an X.509 certificate.
     X509CertInfo info = new X509CertInfo();
@@ -90,6 +87,8 @@ final class SelfSignedX509CertGenerator {
 
     // Sign the cert to identify the algorithm that's used.
     X509CertImpl cert = new X509CertImpl(info);
+
+    PrivateKey key = keypair.getPrivate();
     cert.sign(key, "SHA256withRSA");
 
     // Update the algorithm and sign again.

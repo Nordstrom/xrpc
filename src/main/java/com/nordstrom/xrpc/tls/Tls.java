@@ -23,6 +23,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
@@ -39,10 +41,9 @@ import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TLS {
+public class Tls {
   private static final String PASSWORD = "passwordsAreGood";
 
   private final String cert;
@@ -61,12 +62,12 @@ public class TLS {
     return null;
   }
 
-  public TLS() {
+  public Tls() {
     this.cert = null;
     this.key = null;
   }
 
-  public TLS(String cert, String key) {
+  public Tls(String cert, String key) {
     this.cert = cert;
     this.key = key;
     this.sslCtx = buildEncryptionHandler();
@@ -92,8 +93,8 @@ public class TLS {
       X509Certificate selfSignedCert = null;
 
       if (key != null) {
-        X509CertificateGenerator.DERKeySpec derKeySpec =
-            X509CertificateGenerator.parseDERKeySpec(key);
+        X509CertificateGenerator.DerKeySpec derKeySpec =
+            X509CertificateGenerator.parseDerKeySpec(key);
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
         publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
       } else {
@@ -129,11 +130,11 @@ public class TLS {
         chain[0] = selfSignedCert.getCert();
       }
 
-      SslContext _sslCtx = null;
+      SslContext sslCtx = null;
 
       if (OpenSsl.isAvailable()) {
         log.info("Using OpenSSL");
-        _sslCtx =
+        sslCtx =
             SslContextBuilder.forServer(privateKey, chain).sslProvider(SslProvider.OPENSSL).build();
       } else {
         log.info("Using JSSE");
@@ -144,10 +145,10 @@ public class TLS {
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 
         kmf.init(keyStore, PASSWORD.toCharArray());
-        _sslCtx = SslContextBuilder.forServer(kmf).sslProvider(SslProvider.JDK).build();
+        sslCtx = SslContextBuilder.forServer(kmf).sslProvider(SslProvider.JDK).build();
       }
 
-      return _sslCtx;
+      return sslCtx;
 
     } catch (NoSuchAlgorithmException
         | KeyStoreException

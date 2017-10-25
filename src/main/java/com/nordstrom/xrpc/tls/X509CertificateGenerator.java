@@ -16,6 +16,11 @@
 
 package com.nordstrom.xrpc.tls;
 
+import lombok.extern.slf4j.Slf4j;
+import sun.security.util.DerInputStream;
+import sun.security.util.DerValue;
+import sun.security.x509.X509CertImpl;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,17 +39,13 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
-import lombok.extern.slf4j.Slf4j;
-import sun.security.util.DerInputStream;
-import sun.security.util.DerValue;
-import sun.security.x509.X509CertImpl;
 
 @Slf4j
 public final class X509CertificateGenerator {
 
   private X509CertificateGenerator() {}
 
-  public static DERKeySpec parseDERKeySpec(Path path) {
+  public static DerKeySpec parseDerKeySpec(Path path) {
     String rawKeyString = null;
     try {
       rawKeyString = new String(Files.readAllBytes(path.toAbsolutePath()));
@@ -54,10 +55,10 @@ public final class X509CertificateGenerator {
           new GeneralSecurityException("Could not parse a PKCS1 private key."));
     }
 
-    return parseDERKeySpec(rawKeyString);
+    return parseDerKeySpec(rawKeyString);
   }
 
-  public static DERKeySpec parseDERKeySpec(String rawKeyString) {
+  public static DerKeySpec parseDerKeySpec(String rawKeyString) {
     try {
       // Base64 decode the data
       Base64.Decoder b64decoder = Base64.getDecoder();
@@ -76,7 +77,7 @@ public final class X509CertificateGenerator {
             new GeneralSecurityException("Could not parse a PKCS1 private key."));
       }
 
-      DERKeySpec ks = new DERKeySpec();
+      DerKeySpec ks = new DerKeySpec();
 
       ks.version = seq[0].getBigInteger();
       ks.modulus = seq[1].getBigInteger();
@@ -94,7 +95,7 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PrivateKey buildPrivateKey(DERKeySpec ks) {
+  public static PrivateKey buildPrivateKey(DerKeySpec ks) {
     try {
       RSAPrivateCrtKeySpec keySpec = ks.rsaPrivateCrtKeySpec();
 
@@ -105,12 +106,12 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PrivateKey parsePrivateKeyFromPEM(String path) {
-    DERKeySpec ks = parseDERKeySpec(path);
+  public static PrivateKey parsePrivateKeyFromPem(String path) {
+    DerKeySpec ks = parseDerKeySpec(path);
     return buildPrivateKey(ks);
   }
 
-  public static PublicKey buildPublicKey(DERKeySpec ks) {
+  public static PublicKey buildPublicKey(DerKeySpec ks) {
     try {
       RSAPublicKeySpec keySpec = ks.rsaPublicKeySpec();
 
@@ -121,8 +122,8 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PublicKey parsePublicKeyFromPEM(String path) {
-    DERKeySpec ks = parseDERKeySpec(path);
+  public static PublicKey parsePublicKeyFromPem(String path) {
+    DerKeySpec ks = parseDerKeySpec(path);
     return buildPublicKey(ks);
   }
 
@@ -131,7 +132,7 @@ public final class X509CertificateGenerator {
 
     try {
 
-      DERKeySpec ks = parseDERKeySpec(Paths.get(keyPath));
+      DerKeySpec ks = parseDerKeySpec(Paths.get(keyPath));
       PrivateKey privateKey = buildPrivateKey(ks);
       PublicKey publicKey = buildPublicKey(ks);
 
@@ -161,7 +162,7 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static class DERKeySpec {
+  public static class DerKeySpec {
     private BigInteger version;
     private BigInteger modulus;
     private BigInteger publicExp;
