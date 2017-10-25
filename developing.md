@@ -14,34 +14,35 @@ xrpc is published to [the central repository](https://oss.sonatype.org/#nexus-se
 4. If you used gpg v2.1 or greater, create a gradle-compatible old-style private keyring:
 
     ```bash
-touch ~/.gnupg/secring.gpg
-chmod 600 ~/.gnupg/secring.gpg
-gpg --export-secret-keys > ~/.gnupg/secring.gpg
+    touch ~/.gnupg/secring.gpg
+    chmod 600 ~/.gnupg/secring.gpg
+    gpg --export-secret-keys > ~/.gnupg/secring.gpg
     ```
+
 5. If you haven't configured gradle to use this key yet, note the four-byte ID of your key:
 
     ```bash
-$ gpg --keyid-format SHORT -k {PUBLIC_KEY_ID}
-pub   rsa2048/{FOUR_BYTES_HEX} 2017-01-01 [SC] [expires: 2019-01-01]
-      1234567890ABCDEF1234567890ABCDEF12345678
-uid         [ultimate] Your Name <your.name@email.com>
-sub   rsa2048/IGNORED 2017-01-01 [E] [expires: 2019-01-01]
+    $ gpg --keyid-format SHORT -k {PUBLIC_KEY_ID}
+    pub   rsa2048/{FOUR_BYTES_HEX} 2017-01-01 [SC] [expires: 2019-01-01]
+          1234567890ABCDEF1234567890ABCDEF12345678
+    uid         [ultimate] Your Name <your.name@email.com>
+    sub   rsa2048/IGNORED 2017-01-01 [E] [expires: 2019-01-01]
     ```
 
     The string where `{FOUR_BYTES_HEX}` is above should be your four-byte key ID. The public ID of your key can be shown bu running `gpg --list-keys`.
 6. Create a private `gradle.properties` file:
 
     ```bash
-mkdir -p ~/.gradle
-touch ~/.gradle/gradle.properties
-chmod 600 ~/.gradle/gradle.properties
+    mkdir -p ~/.gradle
+    touch ~/.gradle/gradle.properties
+    chmod 600 ~/.gradle/gradle.properties
     ```
 7. If you haven't configured the gradle plugin for signing, follow [these instructions](https://docs.gradle.org/current/userguide/signing_plugin.html#sec:signatory_credentials). Use the four-byte value from step 5 for `keyId`, and set `secretKeyRingFile` to the full path to `~/.gnupg/secring.gpg`.
 8. If you haven't configured the gradle plugin for signing, add your JIRA credentials to `gradle.properties`:
 
     ```
-ossrhUsername={username}
-ossrhPassword={password}
+    ossrhUsername={username}
+    ossrhPassword={password}
     ```
 
 ## Publishing Steps 
