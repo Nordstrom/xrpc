@@ -1,1 +1,3 @@
+include 'demo'
+
 rootProject.name = 'xrpc'
