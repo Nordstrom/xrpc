@@ -1,12 +1,12 @@
-# Developer How-Tos
+# Contributing
 
 For people contributing to this project.
 
-# Publishing
+## Publishing
 
 xrpc is published to [the central repository](https://oss.sonatype.org/#nexus-search;quick~com.nordstrom.xrpc).
 
-## Setup
+### Setup
 
 1. [Create a Sontatype JIRA account](https://issues.sonatype.org/secure/Signup!default.jspa), if you don't have one. This will be what you log in to the central repository with.
 2. Get added to the nordstrom.com group. This means contacting one of the administrators of the group, and filing a ticket, as described in [this issue](https://issues.sonatype.org/browse/OSSRH-13276).
@@ -45,11 +45,11 @@ xrpc is published to [the central repository](https://oss.sonatype.org/#nexus-se
     ossrhPassword={password}
     ```
 
-## Publishing Steps 
+### Publishing Steps
 
 Run:
 ```
 ./gradlew uploadArtifacts
 ```
 
-TODO: Document versioning.
+TODO: Document versioning; probably use a release plugin for gradle.

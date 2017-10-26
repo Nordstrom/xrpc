@@ -18,9 +18,6 @@ What you get:
 
 Make .jar not .war ...
 
-If you are contributing to this repository, see [the developer guide](developing.md).
-
-
 Example.java
 ```java
 
@@ -178,3 +175,7 @@ $ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder
 $ curl -k -s   https://localhost:8080/dinos/ | java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder
 Dino{name=trex, fav_color=blue}
 ```
+
+# Contributing
+
+Please see [the contributing guide](CONTRIBUTING.md) for details on contributing to this repository.
