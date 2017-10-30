@@ -17,6 +17,7 @@
 package com.nordstrom.xrpc.http;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +101,10 @@ public class Route {
   public Map<String, String> groups(String path) {
     Matcher matcher = pathPattern.matcher(path);
     if (matcher.matches()) {
+      if (matcher.groupCount() == 0) {
+        return Collections.emptyMap();
+      }
+
       Map<String, String> groups = new HashMap<>();
       for (String keyword : keywords) {
         groups.put(keyword, matcher.group(keyword));
