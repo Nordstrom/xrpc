@@ -5,6 +5,7 @@ buildscript {
   }
 }
 
+apply plugin: 'checkstyle'
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'signing'
@@ -49,6 +50,11 @@ dependencies {
     compile 'org.projectlombok:lombok:1.16.16'
     compile 'org.slf4j:slf4j-api:1.7.25'
     testCompile 'junit:junit:4.12'
+}
+
+// Run with the latest checkstyle version. Required for our checkstyle.xml.
+checkstyle {
+  toolVersion '8.3'
 }
 
 // Configure Maven upload.

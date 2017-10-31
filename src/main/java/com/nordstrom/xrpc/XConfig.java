@@ -22,10 +22,6 @@ import com.typesafe.config.ConfigFactory;
 public class XConfig {
   private final Config config = ConfigFactory.load();
 
-  public XConfig() {
-
-  }
-
   public int readerIdleTimeout() {
     return config.getInt("reader_idle_timeout");
   }
@@ -50,7 +46,6 @@ public class XConfig {
     return config.getInt("worker_threads");
   }
 
-
   public int maxConnections() {
     return config.getInt("max_connections");
   }
@@ -58,7 +53,6 @@ public class XConfig {
   public float rateLimit() {
     return (float) config.getInt("req_per_sec");
   }
-
 
   public String cert() {
     return config.getString("cert");
@@ -71,5 +65,4 @@ public class XConfig {
   public int port() {
     return config.getInt("server.port");
   }
-
 }

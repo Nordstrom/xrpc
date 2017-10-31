@@ -42,40 +42,41 @@ import sun.security.x509.X509CertImpl;
 @Slf4j
 public final class X509CertificateGenerator {
 
+  private X509CertificateGenerator() {}
 
-  private X509CertificateGenerator() {
-  }
-
-  public static DERKeySpec parseDERKeySpec(Path path) {
+  public static DerKeySpec parseDerKeySpec(Path path) {
     String rawKeyString = null;
     try {
       rawKeyString = new String(Files.readAllBytes(path.toAbsolutePath()));
     } catch (IOException e) {
-      //TODO(JR): This is bad practice, we should fix this more elegantly
-      throw new RuntimeException(new GeneralSecurityException("Could not parse a PKCS1 private key."));
+      // TODO(JR): This is bad practice, we should fix this more elegantly
+      throw new RuntimeException(
+          new GeneralSecurityException("Could not parse a PKCS1 private key."));
     }
 
-    return parseDERKeySpec(rawKeyString);
+    return parseDerKeySpec(rawKeyString);
   }
 
-  public static DERKeySpec parseDERKeySpec(String rawKeyString) {
+  public static DerKeySpec parseDerKeySpec(String rawKeyString) {
     try {
       // Base64 decode the data
       Base64.Decoder b64decoder = Base64.getDecoder();
-      byte[] encoded = b64decoder.decode(
-          rawKeyString.replace("-----BEGIN RSA PRIVATE KEY-----\n", "")
-              .replace("-----END RSA PRIVATE KEY-----\n", "")
-              .replace("\n", "")
-      );
+      byte[] encoded =
+          b64decoder.decode(
+              rawKeyString
+                  .replace("-----BEGIN RSA PRIVATE KEY-----\n", "")
+                  .replace("-----END RSA PRIVATE KEY-----\n", "")
+                  .replace("\n", ""));
 
       DerInputStream derReader = new DerInputStream(encoded);
       DerValue[] seq = derReader.getSequence(0);
 
       if (seq.length != 9) {
-        throw new RuntimeException(new GeneralSecurityException("Could not parse a PKCS1 private key."));
+        throw new RuntimeException(
+            new GeneralSecurityException("Could not parse a PKCS1 private key."));
       }
 
-      DERKeySpec ks = new DERKeySpec();
+      DerKeySpec ks = new DerKeySpec();
 
       ks.version = seq[0].getBigInteger();
       ks.modulus = seq[1].getBigInteger();
@@ -93,7 +94,7 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PrivateKey buildPrivateKey(DERKeySpec ks) {
+  public static PrivateKey buildPrivateKey(DerKeySpec ks) {
     try {
       RSAPrivateCrtKeySpec keySpec = ks.rsaPrivateCrtKeySpec();
 
@@ -104,12 +105,12 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PrivateKey parsePrivateKeyFromPEM(String path) {
-    DERKeySpec ks = parseDERKeySpec(path);
+  public static PrivateKey parsePrivateKeyFromPem(String path) {
+    DerKeySpec ks = parseDerKeySpec(path);
     return buildPrivateKey(ks);
   }
 
-  public static PublicKey buildPublicKey(DERKeySpec ks) {
+  public static PublicKey buildPublicKey(DerKeySpec ks) {
     try {
       RSAPublicKeySpec keySpec = ks.rsaPublicKeySpec();
 
@@ -120,8 +121,8 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static PublicKey parsePublicKeyFromPEM(String path) {
-    DERKeySpec ks = parseDERKeySpec(path);
+  public static PublicKey parsePublicKeyFromPem(String path) {
+    DerKeySpec ks = parseDerKeySpec(path);
     return buildPublicKey(ks);
   }
 
@@ -130,19 +131,20 @@ public final class X509CertificateGenerator {
 
     try {
 
-      DERKeySpec ks = parseDERKeySpec(Paths.get(keyPath));
+      DerKeySpec ks = parseDerKeySpec(Paths.get(keyPath));
       PrivateKey privateKey = buildPrivateKey(ks);
       PublicKey publicKey = buildPublicKey(ks);
 
       // Sign the cert to identify the algorithm that's used.
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
       certInputStream = new FileInputStream(certPath);
-      java.security.cert.X509Certificate x509Certificate = (java.security.cert.X509Certificate) cf.generateCertificate(certInputStream);
+      java.security.cert.X509Certificate x509Certificate =
+          (java.security.cert.X509Certificate) cf.generateCertificate(certInputStream);
       X509CertImpl cert = (X509CertImpl) x509Certificate;
 
-      //TODO(JR): We should verify key after creation
-//      cert.sign(privateKey, "SHA1withRSA");
-//      cert.verify(publicKey);
+      // TODO(JR): We should verify key after creation
+      //      cert.sign(privateKey, "SHA1withRSA");
+      //      cert.verify(publicKey);
 
       return new X509Certificate(cert.getIssuerX500Principal().getName(), privateKey, cert);
     } catch (FileNotFoundException | CertificateException e) {
@@ -159,7 +161,7 @@ public final class X509CertificateGenerator {
     }
   }
 
-  public static class DERKeySpec {
+  public static class DerKeySpec {
     private BigInteger version;
     private BigInteger modulus;
     private BigInteger publicExp;
@@ -171,7 +173,8 @@ public final class X509CertificateGenerator {
     private BigInteger crtCoef;
 
     private RSAPrivateCrtKeySpec rsaPrivateCrtKeySpec() {
-      return new RSAPrivateCrtKeySpec(modulus, publicExp, privateExp, prime1, prime2, exp1, exp2, crtCoef);
+      return new RSAPrivateCrtKeySpec(
+          modulus, publicExp, privateExp, prime1, prime2, exp1, exp2, crtCoef);
     }
 
     private RSAPublicKeySpec rsaPublicKeySpec() {

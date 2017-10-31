@@ -16,15 +16,14 @@
 
 package com.nordstrom.xrpc.demo;
 
-import com.nordstrom.xrpc.http.Router;
-import com.nordstrom.xrpc.http.Route;
-import com.nordstrom.xrpc.demo.proto.Dino;
-
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.nordstrom.xrpc.demo.proto.Dino;
+import com.nordstrom.xrpc.http.Route;
+import com.nordstrom.xrpc.http.Router;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
@@ -47,8 +46,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okio.ByteString;
-
 
 @Slf4j
 public class Example {
@@ -71,94 +68,97 @@ public class Example {
     Router router = new Router();
 
     // Define a simple function call
-    Function<HttpRequest, HttpResponse> peopleHandler = x -> {
-      ByteBuf bb = Unpooled.compositeBuffer();
+    Function<HttpRequest, HttpResponse> peopleHandler =
+        x -> {
+          ByteBuf bb = Unpooled.compositeBuffer();
 
-      bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK, bb);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+          bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
+          HttpResponse response =
+              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
+          response.headers().set(CONTENT_TYPE, "text/plain");
+          response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
 
-      return response;
-    };
-
+          return response;
+        };
 
     // Define a complex function call
-    BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
-      Person p = new Person(y.groups(x.uri()).get("person"));
-      people.add(p);
+    BiFunction<HttpRequest, Route, HttpResponse> personHandler =
+        (x, y) -> {
+          Person p = new Person(y.groups(x.uri()).get("person"));
+          people.add(p);
 
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
+          HttpResponse response =
+              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+          response.headers().set(CONTENT_TYPE, "text/plain");
+          response.headers().setInt(CONTENT_LENGTH, 0);
 
-      return response;
-    };
-
+          return response;
+        };
 
     // do some proto
-    Function<HttpRequest, HttpResponse> dinosHandler = x -> {
-      // TODO(jkinkead): Clean this up; we should have a helper to handle this.
-      Dino output = dinos.get(0);
-      ByteBuf bb = Unpooled.compositeBuffer();
-      bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
-      try {
-        output.writeTo(new ByteBufOutputStream(bb));
-        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-            HttpResponseStatus.OK, bb);
-        response.headers().set(CONTENT_TYPE, "application/octet-stream");
-        response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-        return response;
-      } catch (IOException e) {
-        log.error("Dino Error", (Throwable)e);
-        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-            HttpResponseStatus.INTERNAL_SERVER_ERROR);
-        response.headers().set(CONTENT_TYPE, "text/plain");
-        response.headers().setInt(CONTENT_LENGTH, 0);
-        return response;
-      }
-    };
-
+    Function<HttpRequest, HttpResponse> dinosHandler =
+        x -> {
+          // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+          Dino output = dinos.get(0);
+          ByteBuf bb = Unpooled.compositeBuffer();
+          bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
+          try {
+            output.writeTo(new ByteBufOutputStream(bb));
+            HttpResponse response =
+                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
+            response.headers().set(CONTENT_TYPE, "application/octet-stream");
+            response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+            return response;
+          } catch (IOException e) {
+            log.error("Dino Error", (Throwable) e);
+            HttpResponse response =
+                new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+            response.headers().set(CONTENT_TYPE, "text/plain");
+            response.headers().setInt(CONTENT_LENGTH, 0);
+            return response;
+          }
+        };
 
     // Define a complex function call with Proto
-    BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
+    BiFunction<HttpRequest, Route, HttpResponse> dinoHandler =
+        (x, y) -> {
+          try {
+            // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+            Optional<Dino> d;
+            d =
+                Optional.of(
+                    Dino.parseFrom(
+                        CodedInputStream.newInstance(((FullHttpRequest) x).content().nioBuffer())));
+            d.ifPresent(dinos::add);
+          } catch (IOException e) {
+            log.error("Dino Error", (Throwable) e);
+            HttpResponse response =
+                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
+            response.headers().set(CONTENT_TYPE, "text/plain");
+            response.headers().setInt(CONTENT_LENGTH, 0);
 
-      try {
-        // TODO(jkinkead): Clean this up; we should have a helper to handle this.
-        Optional<Dino> d;
-        d = Optional.of(Dino.parseFrom(CodedInputStream.newInstance(((FullHttpRequest) x).content().nioBuffer())));
-        d.ifPresent(dinos::add);
-      } catch (IOException e) {
-        log.error("Dino Error", (Throwable)e);
-        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-            HttpResponseStatus.BAD_REQUEST);
-        response.headers().set(CONTENT_TYPE, "text/plain");
-        response.headers().setInt(CONTENT_LENGTH, 0);
+            return response;
+          }
 
-        return response;
-      }
+          HttpResponse response =
+              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+          response.headers().set(CONTENT_TYPE, "text/plain");
+          response.headers().setInt(CONTENT_LENGTH, 0);
 
-
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-
-      return response;
-    };
+          return response;
+        };
 
     // Define a simple function call
-    Function<HttpRequest, HttpResponse> healthCheckHandler = x -> {
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-                                                          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
+    Function<HttpRequest, HttpResponse> healthCheckHandler =
+        x -> {
+          HttpResponse response =
+              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+          response.headers().set(CONTENT_TYPE, "text/plain");
+          response.headers().setInt(CONTENT_LENGTH, 0);
 
-      return response;
-    };
-
+          return response;
+        };
 
     // Create your route mapping
     router.addRoute("/people/:person", personHandler);
