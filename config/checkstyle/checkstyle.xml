@@ -4,15 +4,13 @@
     "http://checkstyle.sourceforge.net/dtds/configuration_1_3.dtd">
 
 <!--
-    Checkstyle configuration that checks the Google coding conventions from Google Java Style
-    that can be found at https://google.github.io/styleguide/javaguide.html.
+  Lightly adapted from the google-checkstyle at https://git.io/vFkPE .
 
-    Checkstyle is very configurable. Be sure to read the documentation at
-    http://checkstyle.sf.net (or in your downloaded distribution).
-
-    To completely disable a check, just comment it out or delete it from the file.
-
-    Authors: Max Vetrenko, Ruslan Diachenko, Roman Ivanov.
+  This differs from the google style in the following ways:
+  - Whitespace at end-of-line is disallowed.
+  - Newlines are required at end-of-file.
+  - Javadoc is not required on public members.
+  - Single-line Javadoc is allowed.
  -->
 <module name = "Checker">
     <property name="charset" value="UTF-8"/>
@@ -184,8 +182,7 @@
         <module name="CustomImportOrder">
             <property name="sortImportsInGroupAlphabetically" value="true"/>
             <property name="separateLineBetweenGroups" value="true"/>
-            <property name="customImportOrderRules" value="STATIC###SPECIAL_IMPORTS###THIRD_PARTY_PACKAGE###STANDARD_JAVA_PACKAGE"/>
-            <property name="specialImportsRegExp" value="com\.nordstrom\..*" />
+            <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>
         </module>
         <module name="MethodParamPad"/>
         <module name="NoWhitespaceBefore">
@@ -233,9 +230,12 @@
             <message key="name.invalidPattern"
              value="Method name ''{0}'' must match pattern ''{1}''."/>
         </module>
+        <!-- Single-line Javadoc is just fine. -->
+        <!--
         <module name="SingleLineJavadoc">
             <property name="ignoreInlineTags" value="false"/>
         </module>
+        -->
         <module name="EmptyCatchBlock">
             <property name="exceptionVariableName" value="expected"/>
         </module>
