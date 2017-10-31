@@ -16,11 +16,6 @@
 
 package com.nordstrom.xrpc.tls;
 
-import lombok.extern.slf4j.Slf4j;
-import sun.security.util.DerInputStream;
-import sun.security.util.DerValue;
-import sun.security.x509.X509CertImpl;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -39,6 +34,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
+import lombok.extern.slf4j.Slf4j;
+import sun.security.util.DerInputStream;
+import sun.security.util.DerValue;
+import sun.security.x509.X509CertImpl;
 
 @Slf4j
 public final class X509CertificateGenerator {

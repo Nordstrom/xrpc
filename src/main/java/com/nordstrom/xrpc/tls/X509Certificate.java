@@ -16,10 +16,9 @@
 
 package com.nordstrom.xrpc.tls;
 
+import java.security.PrivateKey;
 import lombok.extern.slf4j.Slf4j;
 import sun.security.x509.X509CertImpl;
-
-import java.security.PrivateKey;
 
 @Slf4j
 public final class X509Certificate {

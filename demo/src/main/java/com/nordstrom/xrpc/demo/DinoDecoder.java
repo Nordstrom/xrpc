@@ -17,7 +17,6 @@
 package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.demo.proto.Dino;
-
 import java.io.IOException;
 
 public class DinoDecoder {

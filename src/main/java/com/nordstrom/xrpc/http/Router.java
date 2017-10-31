@@ -23,11 +23,6 @@ import static io.netty.channel.ChannelOption.TCP_NODELAY;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
-import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.logging.ExceptionLogger;
-import com.nordstrom.xrpc.logging.MessageLogger;
-import com.nordstrom.xrpc.tls.Tls;
-
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
@@ -37,6 +32,10 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.logging.ExceptionLogger;
+import com.nordstrom.xrpc.logging.MessageLogger;
+import com.nordstrom.xrpc.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -65,9 +64,6 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -77,6 +73,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {

@@ -16,15 +16,14 @@
 
 package com.nordstrom.xrpc.demo;
 
-import com.nordstrom.xrpc.http.Router;
-import com.nordstrom.xrpc.http.Route;
-import com.nordstrom.xrpc.demo.proto.Dino;
-
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.nordstrom.xrpc.demo.proto.Dino;
+import com.nordstrom.xrpc.http.Route;
+import com.nordstrom.xrpc.http.Router;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
