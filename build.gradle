@@ -5,6 +5,16 @@ buildscript {
   }
 }
 
+plugins {
+  id 'net.researchgate.release' version '2.4.0'
+}
+
+release {
+  preTagCommitMessage = 'Updating to release version '
+  tagCommitMessage = 'New release: '
+  newVersionCommitMessage = 'Creating new SNAPSHOT version '
+}
+
 apply plugin: 'checkstyle'
 apply plugin: 'java'
 apply plugin: 'maven'
@@ -12,7 +22,6 @@ apply plugin: 'signing'
 
 group = 'com.nordstrom.xrpc'
 archivesBaseName = 'xrpc'
-version = '0.1.0-SNAPSHOT'
 
 description = """Simple, production ready Java API server built on top of functional composition."""
 
@@ -119,3 +128,5 @@ uploadArchives {
     }
   }
 }
+// Run the upload as a part of the "release" task.
+afterReleaseBuild.dependsOn uploadArchives
