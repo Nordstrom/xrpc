@@ -19,50 +19,98 @@ package com.nordstrom.xrpc;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+/**
+ * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
+ * configuration object for overrides.
+ *
+ * <p>See <a
+ * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">the
+ * embedded config</a> for defaults and documentation.
+ */
 public class XConfig {
-  private final Config config = ConfigFactory.load();
+  private final int readerIdleTimeout;
+  private final int writerIdleTimeout;
+  private final int allIdleTimeout;
+  private final String workerNameFormat;
+  private final int bossThreadCount;
+  private final int workerThreadCount;
+  private final int maxConnections;
+  private final double rateLimit;
+  private final String cert;
+  private final String key;
+  private final int port;
+
+  /**
+   * Construct a config object using the default configuration values <a
+   * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">here</a>.
+   */
+  public XConfig() {
+    this(ConfigFactory.empty());
+  }
+
+  /**
+   * Construct a config object using the provided configuration, falling back on the default
+   * configuration values <a
+   * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">here</a>.
+   */
+  public XConfig(Config configOverrides) {
+    Config defaultConfig = ConfigFactory.parseResources(this.getClass(), "xrpc.conf");
+    Config config = configOverrides.withFallback(defaultConfig);
+
+    readerIdleTimeout = config.getInt("reader_idle_timeout_seconds");
+    writerIdleTimeout = config.getInt("writer_idle_timeout_seconds");
+    allIdleTimeout = config.getInt("all_idle_timeout_seconds");
+    workerNameFormat = config.getString("worker_name_format");
+    bossThreadCount = config.getInt("boss_thread_count");
+    workerThreadCount = config.getInt("worker_thread_count");
+    maxConnections = config.getInt("max_connections");
+    rateLimit = config.getDouble("req_per_sec");
+    cert = config.getString("cert");
+    key = config.getString("key");
+    port = config.getInt("server.port");
+  }
 
   public int readerIdleTimeout() {
-    return config.getInt("reader_idle_timeout");
+    return readerIdleTimeout;
   }
 
   public int writerIdleTimeout() {
-    return config.getInt("writer_idle_timeout");
+    return writerIdleTimeout;
   }
 
-  public int requestIdleTimeout() {
-    return config.getInt("request_idle_timeout");
+  public int allIdleTimeout() {
+    return allIdleTimeout;
   }
 
   public String workerNameFormat() {
-    return config.getString("worker_name_format");
+    return workerNameFormat;
   }
 
-  public int bossThreads() {
-    return config.getInt("boss_threads");
+  public int bossThreadCount() {
+    return bossThreadCount;
   }
 
-  public int workerThreads() {
-    return config.getInt("worker_threads");
+  public int workerThreadCount() {
+    return workerThreadCount;
   }
 
   public int maxConnections() {
-    return config.getInt("max_connections");
+    return maxConnections;
   }
 
-  public float rateLimit() {
-    return (float) config.getInt("req_per_sec");
+  public double rateLimit() {
+    return rateLimit;
   }
 
   public String cert() {
-    return config.getString("cert");
+    return cert;
   }
 
   public String key() {
-    return config.getString("key");
+    return key;
   }
 
   public int port() {
-    return config.getInt("server.port");
+    return port;
   }
 }

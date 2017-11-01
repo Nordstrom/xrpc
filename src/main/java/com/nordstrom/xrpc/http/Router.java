@@ -77,16 +77,12 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  private final XConfig config = new XConfig();
+  private final XConfig config;
+  /** Format to use for worker thread names. */
+  private final String workerNameFormat;
 
-  private final int noReaderIdleTimeout = config.readerIdleTimeout();
-  private final int noWriterIdleTimeout = config.writerIdleTimeout();
-  private final int noAllIdleTimeout = config.requestIdleTimeout();
-
-  private final String workerNameFormat = config.workerNameFormat();
-
-  private final int bossThreads = config.bossThreads();
-  private final int workerThreads = config.workerThreads();
+  private final int bossThreadCount;
+  private final int workerThreadCount;
   /** LinkedHashMap to retain ordering. */
   private final Map<Route, Handler> routes = new LinkedHashMap<>();
 
@@ -115,10 +111,18 @@ public class Router {
 
   final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
 
-  private final Tls tls = new Tls(config.cert(), config.key());
+  private final Tls tls;
 
   private static ThreadFactory threadFactory(String nameFormat) {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
+  }
+
+  public Router(XConfig config) {
+    this.config = config;
+    workerNameFormat = config.workerNameFormat();
+    bossThreadCount = config.bossThreadCount();
+    workerThreadCount = config.workerThreadCount();
+    tls = new Tls(config.cert(), config.key());
   }
 
   public void addRoute(String route, Handler handler) {
@@ -142,12 +146,12 @@ public class Router {
     UrlRouter router = new UrlRouter();
 
     if (Epoll.isAvailable()) {
-      bossGroup = new EpollEventLoopGroup(bossThreads, threadFactory(workerNameFormat));
-      workerGroup = new EpollEventLoopGroup(workerThreads, threadFactory(workerNameFormat));
+      bossGroup = new EpollEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
+      workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
       channelClass = EpollServerSocketChannel.class;
     } else {
-      bossGroup = new NioEventLoopGroup(bossThreads, threadFactory(workerNameFormat));
-      workerGroup = new NioEventLoopGroup(workerThreads, threadFactory(workerNameFormat));
+      bossGroup = new NioEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
+      workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
       channelClass = NioServerSocketChannel.class;
 
       b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -177,7 +181,9 @@ public class Router {
             cp.addLast(
                 "idleDisconnectHandler",
                 new IdleDisconnectHandler(
-                    noReaderIdleTimeout, noWriterIdleTimeout, noAllIdleTimeout));
+                    config.readerIdleTimeout(),
+                    config.writerIdleTimeout(),
+                    config.allIdleTimeout()));
             cp.addLast("exceptionLogger", new ExceptionLogger());
           }
         });
@@ -272,7 +278,7 @@ public class Router {
     private final RateLimiter limiter;
     private final Meter reqs;
 
-    public ServiceRateLimiter(MetricRegistry metrics, float rateLimit) {
+    public ServiceRateLimiter(MetricRegistry metrics, double rateLimit) {
       this.limiter = RateLimiter.create(rateLimit);
       this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
     }
