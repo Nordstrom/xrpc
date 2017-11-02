@@ -26,6 +26,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Timer;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -96,10 +97,9 @@ public class Router {
   private Class<? extends ServerChannel> channelClass;
 
   // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
-  private final MetricRegistry metrics = new MetricRegistry();
+  private static final MetricRegistry metrics = new MetricRegistry();
   private final Meter requests = metrics.meter("requests");
-  private final Histogram responseSizes = metrics.histogram(name(UrlRouter.class, "responses"));
-
+  
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metrics)
           .convertRatesTo(TimeUnit.SECONDS)
@@ -168,10 +168,7 @@ public class Router {
             cp.addLast("encryptionHandler", tls.getEncryptionHandler()); // Add Config for Certs
             cp.addLast("messageLogger", new MessageLogger());
             cp.addLast("codec", new HttpServerCodec());
-            cp.addLast(
-                "aggregator", new HttpObjectAggregator(1 * 1024 * 1024)); // Aggregate up to 1MB
-            //        cp.addLast("aggregator", new NoOpHandler()); // Not Needed but maybe keep in
-            // here?
+            cp.addLast("aggregator", new HttpObjectAggregator(1 * 1024 * 1024)); // Aggregate up to 1MB
             //        cp.addLast("authHandler", new NoOpHandler()); // OAuth2.0 Impl needed
             cp.addLast("routingFilter", router);
             cp.addLast(
@@ -187,7 +184,8 @@ public class Router {
     try {
       // Get some loggy logs
       consoleReporter.start(30, TimeUnit.SECONDS);
-      slf4jReporter.start(30, TimeUnit.SECONDS);
+      // This is too noisy right now, re-enable prior to shipping.
+      //slf4jReporter.start(30, TimeUnit.SECONDS);
       jmxReporter.start();
 
       future.await();
@@ -242,9 +240,7 @@ public class Router {
           if (groups != null) {
             Context context = new Context(request, groups);
             HttpResponse resp = routes.get(route).handle(context);
-            if (resp instanceof ByteBufHolder) {
-              responseSizes.update(((ByteBufHolder) resp).content().readableBytes());
-            }
+
             ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
             return;
@@ -271,10 +267,14 @@ public class Router {
   private static class ServiceRateLimiter extends ChannelDuplexHandler {
     private final RateLimiter limiter;
     private final Meter reqs;
+    private final Timer timer;
+
+    private static Timer.Context context;
 
     public ServiceRateLimiter(MetricRegistry metrics, float rateLimit) {
       this.limiter = RateLimiter.create(rateLimit);
       this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
+      this.timer = metrics.timer("Request Latency");
     }
 
     @Override
@@ -284,12 +284,14 @@ public class Router {
       //          requests are?
       reqs.mark();
       limiter.acquire();
+      context = timer.time();
 
       ctx.fireChannelActive();
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+      context.stop();
 
       ctx.fireChannelInactive();
     }
