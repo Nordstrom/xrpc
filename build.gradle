@@ -45,7 +45,7 @@ tasks.withType(JavaCompile) {
 }
 
 repositories {
-     maven { url 'http://repo.maven.apache.org/maven2' }
+    mavenCentral()
 }
 
 dependencies {
@@ -90,53 +90,63 @@ signing {
 }
 
 uploadArchives {
-   repositories {
-     mavenDeployer {
-       beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+  repositories {
+    mavenDeployer {
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-       repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-         authentication(userName: ossrhUsername, password: ossrhPassword)
-       }
+      // Safe aliases for username & password that don't require them to be set in order to load the
+      // project.
+      def ossrhUsername = rootProject.hasProperty('ossrhUsername') ? rootProject.ossrhUsername : ''
+      def ossrhPassword = rootProject.hasProperty('ossrhPassword') ? rootProject.ossrhPassword : ''
 
-       snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-         authentication(userName: ossrhUsername, password: ossrhPassword)
-       }
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
+      }
 
-       pom.project {
-         name 'xrpc library'
-         packaging 'jar'
-         // Optionally artifactId can be defined here, instead of relying on archivesBaseName.
-         description 'Simple, production ready Java API server built on top of functional composition.'
-         url 'https://github.com/Nordstrom/xrpc'
+      // Snapshots by default publish local. If you want to publish to Sonatype, use the
+      // commented-out configuration below. Note that you won't be able to resolve snapshots in
+      // other projects unless you add the repository to the appropriate configuration block.
+      //
+      // snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+      //   authentication(userName: ossrhUsername, password: ossrhPassword)
+      // }
+      snapshotRepository(url: mavenLocal().url)
 
-         scm {
-           connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-           developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-           url 'https://github.com/Nordstrom/xrpc'
-         }
+      pom.project {
+        name 'xrpc library'
+        packaging 'jar'
+        // Optionally artifactId can be defined here, instead of relying on archivesBaseName.
+        description 'Simple, production ready Java API server built on top of functional composition.'
+        url 'https://github.com/Nordstrom/xrpc'
 
-         licenses {
-           license {
-             name 'The Apache License, Version 2.0'
-             url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-           }
-         }
+        scm {
+          connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+          developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+          url 'https://github.com/Nordstrom/xrpc'
+        }
 
-         developers {
-           developer {
-             id 'jkinkead'
-             name 'Jesse Kinkead'
-             email 'jesse.kinkead@nordstrom.com'
-           }
-           developer {
-             id 'xjdr'
-             name 'Jeff Rose'
-             email 'jeff.rose@nordstrom.com'
-           }
-         }
-       }
-     }
-   }
+        licenses {
+          license {
+            name 'The Apache License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            id 'jkinkead'
+            name 'Jesse Kinkead'
+            email 'jesse.kinkead@nordstrom.com'
+          }
+          developer {
+            id 'xjdr'
+            name 'Jeff Rose'
+            email 'jeff.rose@nordstrom.com'
+          }
+        }
+      }
+    }
+  }
 }
 
 // Run the upload as a part of the "release" task.
