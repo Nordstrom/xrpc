@@ -99,8 +99,7 @@ public class Router {
   // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
   private static final MetricRegistry metrics = new MetricRegistry();
   private final Meter requests = metrics.meter("requests");
-  //  private final Histogram responseSizes = metrics.histogram(name(UrlRouter.class, "responses"));
-
+  
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metrics)
           .convertRatesTo(TimeUnit.SECONDS)
