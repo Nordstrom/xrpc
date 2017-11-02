@@ -1,4 +1,4 @@
 # Gradle output.
 /.gradle/
 build/
-*.jar
+/app.jar
