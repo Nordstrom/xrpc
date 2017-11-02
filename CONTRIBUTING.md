@@ -47,9 +47,17 @@ xrpc is published to [the central repository](https://oss.sonatype.org/#nexus-se
 
 ### Publishing Steps
 
-Run:
-```
-./gradlew uploadArtifacts
-```
+xrpc uses [gradle-release](https://github.com/researchgate/gradle-release) for publishing jars to
+Maven Central.
 
-TODO: Document versioning; probably use a release plugin for gradle.
+In order to use the plugin, you **must** have write permissions on this repository in GitHub. It
+will automatically push commits & the release tag to the repository.
+
+To publish:
+
+1. Ensure that you have a `github.com/Nordstrom/xrpc` remote in your git repository named
+   `upstream`.
+2. Check out a branch called `master`, synced to `upstream/master`.
+3. Run `./gradlew release`. Watch the output closely for prompts, and follow instructions.
+4. Follow the [release instructions at Sonatype](http://central.sonatype.org/pages/releasing-the-deployment.html).
+5. Edit the [release notes for the tag](https://github.com/Nordstrom/xrpc/releases), and mark it as released.
