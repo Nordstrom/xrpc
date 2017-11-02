@@ -21,6 +21,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.demo.proto.Dino;
 import com.nordstrom.xrpc.http.Handler;
 import com.nordstrom.xrpc.http.Recipes;
@@ -28,6 +29,8 @@ import com.nordstrom.xrpc.http.Router;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
@@ -56,15 +59,21 @@ public class Example {
     final List<Person> people = new ArrayList<>();
     final List<Dino> dinos = new ArrayList<>();
 
-    // See https://github.com/square/moshi for the Moshi Magic
+    // See https://github.com/square/moshi for the Moshi Magic.
     Moshi moshi = new Moshi.Builder().build();
     Type type = Types.newParameterizedType(List.class, Person.class);
     JsonAdapter<List<Person>> adapter = moshi.adapter(type);
 
-    // Build your router
-    Router router = new Router();
+    // Load application config from jar resources. The 'load' method below also allows supports
+    // overrides from environment variables.
+    Config config = ConfigFactory.load("demo.conf");
 
-    // Define a simple function call
+    // Build your router. This overrides the default configuration with values from
+    // src/main/resources/demo.conf.
+    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
+    Router router = new Router(xConfig);
+
+    // Define a simple function call.
     Handler peopleHandler =
         context -> {
           return Recipes.newResponseOk(
