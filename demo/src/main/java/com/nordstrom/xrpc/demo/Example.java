@@ -22,7 +22,8 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.nordstrom.xrpc.demo.proto.Dino;
-import com.nordstrom.xrpc.http.Route;
+import com.nordstrom.xrpc.http.Handler;
+import com.nordstrom.xrpc.http.Recipes;
 import com.nordstrom.xrpc.http.Router;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
@@ -32,18 +33,14 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -68,36 +65,24 @@ public class Example {
     Router router = new Router();
 
     // Define a simple function call
-    Function<HttpRequest, HttpResponse> peopleHandler =
-        x -> {
-          ByteBuf bb = Unpooled.compositeBuffer();
-
-          bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
-          HttpResponse response =
-              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
-          response.headers().set(CONTENT_TYPE, "text/plain");
-          response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-
-          return response;
+    Handler peopleHandler =
+        context -> {
+          return Recipes.newResponseOk(
+              adapter.toJson(people), Recipes.ContentType.Application_Json);
         };
 
     // Define a complex function call
-    BiFunction<HttpRequest, Route, HttpResponse> personHandler =
-        (x, y) -> {
-          Person p = new Person(y.groups(x.uri()).get("person"));
+    Handler personHandler =
+        context -> {
+          Person p = new Person(context.variable("person"));
           people.add(p);
 
-          HttpResponse response =
-              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-          response.headers().set(CONTENT_TYPE, "text/plain");
-          response.headers().setInt(CONTENT_LENGTH, 0);
-
-          return response;
+          return Recipes.newResponseOk("");
         };
 
     // do some proto
-    Function<HttpRequest, HttpResponse> dinosHandler =
-        x -> {
+    Handler dinosHandler =
+        context -> {
           // TODO(jkinkead): Clean this up; we should have a helper to handle this.
           Dino output = dinos.get(0);
           ByteBuf bb = Unpooled.compositeBuffer();
@@ -121,15 +106,16 @@ public class Example {
         };
 
     // Define a complex function call with Proto
-    BiFunction<HttpRequest, Route, HttpResponse> dinoHandler =
-        (x, y) -> {
+    Handler dinoHandler =
+        context -> {
           try {
             // TODO(jkinkead): Clean this up; we should have a helper to handle this.
             Optional<Dino> d;
             d =
                 Optional.of(
                     Dino.parseFrom(
-                        CodedInputStream.newInstance(((FullHttpRequest) x).content().nioBuffer())));
+                        CodedInputStream.newInstance(
+                            ((FullHttpRequest) context).content().nioBuffer())));
             d.ifPresent(dinos::add);
           } catch (IOException e) {
             log.error("Dino Error", (Throwable) e);
@@ -150,22 +136,17 @@ public class Example {
         };
 
     // Define a simple function call
-    Function<HttpRequest, HttpResponse> healthCheckHandler =
-        x -> {
-          HttpResponse response =
-              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-          response.headers().set(CONTENT_TYPE, "text/plain");
-          response.headers().setInt(CONTENT_LENGTH, 0);
-
-          return response;
+    Handler healthCheckHandler =
+        context -> {
+          return Recipes.newResponseOk("");
         };
 
     // Create your route mapping
-    router.addRoute("/people/:person", personHandler);
+    router.addRoute("/people/{person}", personHandler);
     router.addRoute("/people", peopleHandler);
 
     // Create your route mapping
-    router.addRoute("/dinos/:dino", dinoHandler);
+    router.addRoute("/dinos/{dino}", dinoHandler);
     router.addRoute("/dinos", dinosHandler);
 
     // Health Check for k8s

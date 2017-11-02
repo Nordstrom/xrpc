@@ -37,6 +37,7 @@ import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.logging.MessageLogger;
 import com.nordstrom.xrpc.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -66,13 +67,11 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +87,8 @@ public class Router {
 
   private final int bossThreads = config.bossThreads();
   private final int workerThreads = config.workerThreads();
-  private final Map<Route, Function<HttpRequest, HttpResponse>> s_routes = new HashMap<>();
-  private final Map<Route, BiFunction<HttpRequest, Route, HttpResponse>> b_routes = new HashMap<>();
+  /** LinkedHashMap to retain ordering. */
+  private final Map<Route, Handler> routes = new LinkedHashMap<>();
 
   private Channel channel;
   private EventLoopGroup bossGroup;
@@ -122,17 +121,11 @@ public class Router {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
 
-  public void addRoute(String route, BiFunction<HttpRequest, Route, HttpResponse> handler) {
-    Route r = Route.build(route);
-    b_routes.put(r, handler);
-  }
-
-  public void addRoute(String route, Function<HttpRequest, HttpResponse> handler) {
-    s_routes.put(Route.build(route), handler);
+  public void addRoute(String route, Handler handler) {
+    routes.put(Route.build(route), handler);
   }
 
   public MetricRegistry getMetrics() {
-
     return metrics;
   }
 
@@ -242,29 +235,23 @@ public class Router {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof HttpRequest) {
-        String uri = ((HttpRequest) msg).uri();
-
-        for (Route route : s_routes.keySet()) {
-          if (route.matches(uri)) {
-            FullHttpResponse resp = (FullHttpResponse) s_routes.get(route).apply((HttpRequest) msg);
-            responseSizes.update(resp.content().readableBytes());
+        HttpRequest request = (HttpRequest) msg;
+        String uri = request.uri();
+        for (Route route : routes.keySet()) {
+          Map<String, String> groups = route.groups(uri);
+          if (groups != null) {
+            Context context = new Context(request, groups);
+            HttpResponse resp = routes.get(route).handle(context);
+            if (resp instanceof ByteBufHolder) {
+              responseSizes.update(((ByteBufHolder) resp).content().readableBytes());
+            }
             ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
             return;
           }
         }
 
-        for (Route route : b_routes.keySet()) {
-          if (route.matches(uri)) {
-            FullHttpResponse resp =
-                (FullHttpResponse) b_routes.get(route).apply((HttpRequest) msg, route);
-            responseSizes.update(resp.content().readableBytes());
-            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-            ctx.fireChannelRead(msg);
-            return;
-          }
-        }
-
+        // No matching route.
         FullHttpResponse response =
             new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
         response.headers().set(CONTENT_TYPE, "text/plain");

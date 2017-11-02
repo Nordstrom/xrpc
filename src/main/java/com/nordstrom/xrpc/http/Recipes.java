@@ -34,10 +34,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.nio.charset.StandardCharsets;
 
+/** Container for utility methods and helpers. */
 public final class Recipes {
-  protected Recipes() {}
-
-  private static final HttpVersion v1_1 = HttpVersion.HTTP_1_1;
+  private Recipes() {}
 
   public static enum ContentType {
     Application_Json("application/json"),
@@ -94,12 +93,12 @@ public final class Recipes {
 
   // Response {{{
   public static HttpResponse newResponse(HttpResponseStatus status) {
-    return new DefaultHttpResponse(v1_1, status);
+    return new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
   }
 
   public static HttpResponse newResponse(
       HttpResponseStatus status, ByteBuf buffer, ContentType contentType) {
-    FullHttpResponse response = new DefaultFullHttpResponse(v1_1, status, buffer);
+    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
 
     response.headers().set(CONTENT_TYPE, contentType.value);
     response.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
