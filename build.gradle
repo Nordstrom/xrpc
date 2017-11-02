@@ -24,6 +24,7 @@ release {
 apply plugin: 'checkstyle'
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'signing'
 // Junit 5 gradle runner.
 apply plugin: 'org.junit.platform.gradle.plugin'
@@ -89,54 +90,68 @@ signing {
     sign configurations.archives
 }
 
-uploadArchives {
+// uploadArchives {
 
-  repositories {
-    mavenDeployer {
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+//   repositories {
+//     mavenDeployer {
+//       beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
+//       repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+//         authentication(userName: ossrhUsername, password: ossrhPassword)
+//       }
 
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
+//       snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+//         authentication(userName: ossrhUsername, password: ossrhPassword)
+//       }
 
-      pom.project {
-        name 'xrpc library'
-        packaging 'jar'
-        // Optionally artifactId can be defined here, instead of relying on archivesBaseName.
-        description 'Simple, production ready Java API server built on top of functional composition.'
-        url 'https://github.com/Nordstrom/xrpc'
+//       pom.project {
+//         name 'xrpc library'
+//         packaging 'jar'
+//         // Optionally artifactId can be defined here, instead of relying on archivesBaseName.
+//         description 'Simple, production ready Java API server built on top of functional composition.'
+//         url 'https://github.com/Nordstrom/xrpc'
 
-        scm {
-          connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-          developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-          url 'https://github.com/Nordstrom/xrpc'
+//         scm {
+//           connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+//           developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+//           url 'https://github.com/Nordstrom/xrpc'
+//         }
+
+//         licenses {
+//           license {
+//             name 'The Apache License, Version 2.0'
+//             url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+//           }
+//         }
+
+//         developers {
+//           developer {
+//             id 'jkinkead'
+//             name 'Jesse Kinkead'
+//             email 'jesse.kinkead@nordstrom.com'
+//           }
+//           developer {
+//             id 'xjdr'
+//             name 'Jeff Rose'
+//             email 'jeff.rose@nordstrom.com'
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId 'com.nordstrom'
+            artifactId 'xrpc'
+            version '0.1.0-SNAPSHOT'
+
+            from components.java
         }
-
-        licenses {
-          license {
-            name 'The Apache License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          }
-        }
-
-        developers {
-          developer {
-            id 'jkinkead'
-            name 'Jesse Kinkead'
-            email 'jesse.kinkead@nordstrom.com'
-          }
-          developer {
-            id 'xjdr'
-            name 'Jeff Rose'
-          }
-        }
-      }
     }
-  }
 }
+
 // Run the upload as a part of the "release" task.
 afterReleaseBuild.dependsOn uploadArchives
