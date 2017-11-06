@@ -86,6 +86,8 @@ artifacts {
 
 // Sign artifacts.
 signing {
+    // Only sign release versions.
+    required { !version.endsWith('-SNAPSHOT') }
     sign configurations.archives
 }
 
