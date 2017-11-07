@@ -40,6 +40,7 @@ import com.nordstrom.xrpc.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
@@ -56,14 +57,10 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http2.*;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
@@ -73,6 +70,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
@@ -84,8 +83,9 @@ public class Router {
 
   private final int bossThreadCount;
   private final int workerThreadCount;
-  /** LinkedHashMap to retain ordering. */
-  private final Map<Route, Handler> routes = new LinkedHashMap<>();
+  // TODO(JR): Not sure why we would want to retain ordering here, but added a high
+  // performance hash map impl JIC.
+  private final Map<Route, Handler> routes = PlatformDependent.newConcurrentHashMap();
 
   private Channel channel;
   private EventLoopGroup bossGroup;
@@ -155,7 +155,7 @@ public class Router {
       channelClass = NioServerSocketChannel.class;
 
       b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
-      b.option(SO_BACKLOG, 128);
+      b.option(SO_BACKLOG, 1024);
       b.childOption(SO_KEEPALIVE, true);
       b.childOption(TCP_NODELAY, true);
     }
@@ -169,12 +169,9 @@ public class Router {
             ChannelPipeline cp = ch.pipeline();
             cp.addLast("serverConnectionLimiter", globalConnectionLimiter);
             cp.addLast("serverRateLimiter", rateLimiter);
-            cp.addLast("encryptionHandler", tls.getEncryptionHandler()); // Add Config for Certs
-            cp.addLast("messageLogger", new MessageLogger());
-            cp.addLast("codec", new HttpServerCodec());
-            cp.addLast("aggregator", new HttpObjectAggregator(1 * 1024 * 1024)); // Aggregate up to 1MB
-            //        cp.addLast("authHandler", new NoOpHandler()); // OAuth2.0 Impl needed
-            cp.addLast("routingFilter", router);
+            cp.addLast("encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs
+            //cp.addLast("messageLogger", new MessageLogger()); // TODO(JR): Do not think we need this
+            cp.addLast("codec", new Http2OrHttpHandler(router));
             cp.addLast(
                 "idleDisconnectHandler",
                 new IdleDisconnectHandler(
@@ -228,6 +225,43 @@ public class Router {
             });
   }
 
+  public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
+
+    private static final int MAX_CONTENT_LENGTH = 1024 * 100;
+    private UrlRouter router;
+
+    protected Http2OrHttpHandler(UrlRouter router) {
+      super(ApplicationProtocolNames.HTTP_1_1);
+      this.router = router;
+    }
+
+    @Override
+    protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
+      if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
+        log.info("Using Http/2");
+        ChannelPipeline cp = ctx.pipeline();
+        cp.addLast(new Http2HandlerBuilder().server(true).build());
+        cp.addLast("routingFiler", router);
+        return;
+      }
+
+      if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
+        log.info("Using Http/1.1");
+        ChannelPipeline cp = ctx.pipeline();
+        cp.addLast("codec", new HttpServerCodec());
+        cp.addLast("aggregator", new HttpObjectAggregator(1 * 1024 * 1024)); // Aggregate up to 1MB
+        //cp.addLast("authHandler", new NoOpHandler()); // TODO(JR): OAuth2.0 Impl needed
+        cp.addLast("routingFilter", router);
+        return;
+      }
+
+      throw new IllegalStateException("unknown protocol: " + protocol);
+    }
+  }
+
+
+
+
   @ChannelHandler.Sharable
   private class UrlRouter extends ChannelDuplexHandler {
 
@@ -238,13 +272,14 @@ public class Router {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+      log.info("Received Req");
       if (msg instanceof HttpRequest) {
-        HttpRequest request = (HttpRequest) msg;
+        FullHttpRequest request = (FullHttpRequest) msg;
         String uri = request.uri();
         for (Route route : routes.keySet()) {
           Map<String, String> groups = route.groups(uri);
           if (groups != null) {
-            Context context = new Context(request, groups);
+            Context context = new Context(request, groups, ctx.alloc());
             HttpResponse resp = routes.get(route).handle(context);
 
             ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
@@ -252,7 +287,6 @@ public class Router {
             return;
           }
         }
-
         // No matching route.
         FullHttpResponse response =
             new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
@@ -260,6 +294,29 @@ public class Router {
         response.headers().setInt(CONTENT_LENGTH, 0);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
       }
+
+      if (msg instanceof Http2Request) {
+        log.info("Is a Http2 Request");
+        Http2Request<Http2Headers> request = (Http2Request) msg;
+        String uri = request.payload.path().toString();
+        for (Route route : routes.keySet()) {
+          Map<String, String> groups = route.groups(uri);
+          if (groups != null) {
+            log.info("Applying uri to route");
+            Context context = new Context(request, groups, ctx.alloc());
+            FullHttpResponse h1_resp = (FullHttpResponse) routes.get(route).handle(context);
+            //ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+            Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1_resp, true);
+            Http2DataFrame dataFrame = new DefaultHttp2DataFrame(h1_resp.content(), true);
+            
+            ctx.write(Http2Response.build(request.streamId, headers));
+            ctx.write(Http2Response.build(request.streamId, dataFrame)).addListener(ChannelFutureListener.CLOSE);
+            ctx.fireChannelRead(msg);
+            return;
+          }
+        }
+      }
+
       ctx.fireChannelRead(msg);
     }
 

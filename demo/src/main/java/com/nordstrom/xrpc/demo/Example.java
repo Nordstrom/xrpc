@@ -76,8 +76,10 @@ public class Example {
     // Define a simple function call.
     Handler peopleHandler =
         context -> {
-          return Recipes.newResponseOk(
-              adapter.toJson(people), Recipes.ContentType.Application_Json);
+          return Recipes.newResponse(
+            HttpResponseStatus.OK,
+            context.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
+            Recipes.ContentType.Application_Json);
         };
 
     // Define a complex function call
@@ -94,7 +96,7 @@ public class Example {
         context -> {
           // TODO(jkinkead): Clean this up; we should have a helper to handle this.
           Dino output = dinos.get(0);
-          ByteBuf bb = Unpooled.compositeBuffer();
+          ByteBuf bb = context.getAlloc().compositeDirectBuffer();
           bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
           try {
             output.writeTo(new ByteBufOutputStream(bb));
