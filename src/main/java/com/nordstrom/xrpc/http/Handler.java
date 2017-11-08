@@ -18,10 +18,8 @@ package com.nordstrom.xrpc.http;
 
 import io.netty.handler.codec.http.HttpResponse;
 
-import java.io.IOException;
-
 /** A handler for an HTTP route. */
 @FunctionalInterface
 public interface Handler {
-  HttpResponse handle(Context context) throws IOException;
+  HttpResponse handle(XrpcRequest xrpcRequest);
 }

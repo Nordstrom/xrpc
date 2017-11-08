@@ -16,41 +16,74 @@
 
 package com.nordstrom.xrpc.http;
 
-import java.util.Map;
-
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http2.Http2DataFrame;
+import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
+import java.util.Map;
+
+import io.netty.handler.codec.http2.HttpConversionUtil;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Request context. */
-public class Context {
+/** Xprc specific Request object. */
+public class XrpcRequest {
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
-  @Getter private final Http2Request<Http2Headers> h2Request;
+
+  @Getter private final Http2Headers h2Headers;
   @Getter private final ByteBufAllocator alloc;
-  @Setter private Http2Request<Http2DataFrame> data;
+  @Setter private ByteBuf data;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
+  private final int streamId;
 
-  public Context(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
+  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
     this.h1Request = request;
-    this.h2Request = null;
+    this.h2Headers = null;
     this.groups = groups;
     this.alloc = alloc;
+    this.streamId = -1;
   }
 
-  public Context(Http2Request<Http2Headers> request, Map<String, String> groups, ByteBufAllocator alloc) {
+  public XrpcRequest(Http2Headers headers, Map<String, String> groups, ByteBufAllocator alloc, int streamId) {
     this.h1Request = null;
-    this.h2Request = request;
+    this.h2Headers = headers;
     this.groups = groups;
     this.alloc = alloc;
+    this.streamId = streamId;
   }
 
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
   public String variable(String name) {
     return groups.get(name);
+  }
+
+  /** Create a convenience function to prevent direct access too the Allocator */
+  public ByteBuf getByteBuf() {
+    return alloc.compositeDirectBuffer();
+  }
+
+  public FullHttpRequest getRequest() {
+    if (h1Request != null) {
+      return h1Request;
+    }
+
+    if (h2Headers != null) {
+      try {
+        FullHttpRequest h1req = HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
+        if (data != null) {
+          h1req.replace(data);
+        }
+
+        return h1Request;
+      } catch (Http2Exception e) {
+        //TODO(JR): Do something more meaningful with this exception
+        e.printStackTrace();
+      }
+    }
+
+    return null;
   }
 }

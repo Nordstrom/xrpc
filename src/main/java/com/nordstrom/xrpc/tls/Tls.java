@@ -23,9 +23,6 @@ import io.netty.handler.ssl.*;
 import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.net.ssl.KeyManagerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.*;
@@ -33,6 +30,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
+import javax.net.ssl.KeyManagerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Tls {
@@ -67,7 +66,7 @@ public class Tls {
 
     ChannelHandler handler = sslCtx.newHandler(alloc);
 
-    String[] protocols = new String[]{"TLSv1.2"};
+    String[] protocols = new String[] {"TLSv1.2"};
     ((SslHandler) handler).engine().setEnabledProtocols(protocols);
 
     return handler;
@@ -84,7 +83,7 @@ public class Tls {
 
       if (key != null) {
         X509CertificateGenerator.DerKeySpec derKeySpec =
-          X509CertificateGenerator.parseDerKeySpec(key);
+            X509CertificateGenerator.parseDerKeySpec(key);
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
         publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
       } else {
@@ -101,9 +100,9 @@ public class Tls {
         for (String cert : certs) {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
           java.security.cert.X509Certificate x509Certificate =
-            (java.security.cert.X509Certificate)
-              cf.generateCertificate(
-                new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes()));
+              (java.security.cert.X509Certificate)
+                  cf.generateCertificate(
+                      new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes()));
           certList.add(x509Certificate);
         }
 
@@ -125,52 +124,55 @@ public class Tls {
       if (OpenSsl.isAvailable()) {
         log.info("Using OpenSSL");
         sslCtx =
-          SslContextBuilder.forServer(privateKey, chain)
-            .sslProvider(SslProvider.OPENSSL)
-            .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-            .applicationProtocolConfig(new ApplicationProtocolConfig(
-              Protocol.ALPN,
-              // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-              SelectorFailureBehavior.NO_ADVERTISE,
-              // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-              SelectedListenerFailureBehavior.ACCEPT,
-              ApplicationProtocolNames.HTTP_2,
-              ApplicationProtocolNames.HTTP_1_1))
-            .build();
+            SslContextBuilder.forServer(privateKey, chain)
+                .sslProvider(SslProvider.OPENSSL)
+                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                .applicationProtocolConfig(
+                    new ApplicationProtocolConfig(
+                        Protocol.ALPN,
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectorFailureBehavior.NO_ADVERTISE,
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2,
+                        ApplicationProtocolNames.HTTP_1_1))
+                .build();
       } else {
         log.info("Using JSSE");
         final KeyStore keyStore = KeyStore.getInstance("JKS", "SUN");
         keyStore.load(null, PASSWORD.toCharArray());
         keyStore.setKeyEntry(
-          chain[0].getIssuerX500Principal().getName(), privateKey, PASSWORD.toCharArray(), chain);
+            chain[0].getIssuerX500Principal().getName(), privateKey, PASSWORD.toCharArray(), chain);
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 
         kmf.init(keyStore, PASSWORD.toCharArray());
-        sslCtx = SslContextBuilder.forServer(kmf)
-          .sslProvider(SslProvider.JDK)
-          .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-          .applicationProtocolConfig(new ApplicationProtocolConfig(
-            Protocol.ALPN,
-            // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-            SelectorFailureBehavior.NO_ADVERTISE,
-            // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-            SelectedListenerFailureBehavior.ACCEPT,
-            ApplicationProtocolNames.HTTP_2,
-            ApplicationProtocolNames.HTTP_1_1))
-          .build();
+        sslCtx =
+            SslContextBuilder.forServer(kmf)
+                .sslProvider(SslProvider.JDK)
+                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                .applicationProtocolConfig(
+                    new ApplicationProtocolConfig(
+                        Protocol.ALPN,
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectorFailureBehavior.NO_ADVERTISE,
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2,
+                        ApplicationProtocolNames.HTTP_1_1))
+                .build();
       }
 
       return sslCtx;
 
     } catch (NoSuchAlgorithmException
-      | KeyStoreException
-      | UnrecoverableKeyException
-      | CertificateException
-      | NoSuchProviderException
-      | IllegalArgumentException
-      | IOException
-      | SignatureException
-      | InvalidKeyException e) {
+        | KeyStoreException
+        | UnrecoverableKeyException
+        | CertificateException
+        | NoSuchProviderException
+        | IllegalArgumentException
+        | IOException
+        | SignatureException
+        | InvalidKeyException e) {
       e.printStackTrace();
     }
 
