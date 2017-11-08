@@ -50,6 +50,7 @@ protobuf {
   protoc {
     artifact = 'com.google.protobuf:protoc:3.0.0'
   }
+  generatedFilesBaseDir = "$projectDir/src/"
 }
 
 shadowJar {
