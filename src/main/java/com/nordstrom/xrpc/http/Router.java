@@ -17,41 +17,20 @@
 package com.nordstrom.xrpc.http;
 
 import static com.codahale.metrics.MetricRegistry.name;
-import static io.netty.channel.ChannelOption.SO_BACKLOG;
-import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
-import static io.netty.channel.ChannelOption.TCP_NODELAY;
+import static io.netty.channel.ChannelOption.*;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Timer;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Slf4jReporter;
+import com.codahale.metrics.*;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
-import com.nordstrom.xrpc.logging.MessageLogger;
 import com.nordstrom.xrpc.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBufHolder;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ServerChannel;
+import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
@@ -59,24 +38,33 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
+import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
+  // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
+  private static final MetricRegistry metrics = new MetricRegistry();
+  final Slf4jReporter slf4jReporter =
+      Slf4jReporter.forRegistry(metrics)
+          .outputTo(LoggerFactory.getLogger(Router.class))
+          .convertRatesTo(TimeUnit.SECONDS)
+          .convertDurationsTo(TimeUnit.MILLISECONDS)
+          .build();
+  final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
   private final XConfig config;
   /** Format to use for worker thread names. */
   private final String workerNameFormat;
@@ -86,43 +74,39 @@ public class Router {
   // TODO(JR): Not sure why we would want to retain ordering here, but added a high
   // performance hash map impl JIC.
   private final Map<Route, Handler> routes = PlatformDependent.newConcurrentHashMap();
-
-  private Channel channel;
-  private EventLoopGroup bossGroup;
-  private EventLoopGroup workerGroup;
-  private Class<? extends ServerChannel> channelClass;
-
-  // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
-  private static final MetricRegistry metrics = new MetricRegistry();
+  private final int MAX_PAYLOAD_SIZE;
   private final Meter requests = metrics.meter("requests");
-  
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metrics)
           .convertRatesTo(TimeUnit.SECONDS)
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
-
-  final Slf4jReporter slf4jReporter =
-      Slf4jReporter.forRegistry(metrics)
-          .outputTo(LoggerFactory.getLogger(Router.class))
-          .convertRatesTo(TimeUnit.SECONDS)
-          .convertDurationsTo(TimeUnit.MILLISECONDS)
-          .build();
-
-  final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
-
   private final Tls tls;
-
-  private static ThreadFactory threadFactory(String nameFormat) {
-    return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
-  }
+  private Channel channel;
+  private EventLoopGroup bossGroup;
+  private EventLoopGroup workerGroup;
+  private Class<? extends ServerChannel> channelClass;
 
   public Router(XConfig config) {
     this.config = config;
-    workerNameFormat = config.workerNameFormat();
-    bossThreadCount = config.bossThreadCount();
-    workerThreadCount = config.workerThreadCount();
-    tls = new Tls(config.cert(), config.key());
+    this.workerNameFormat = config.workerNameFormat();
+    this.bossThreadCount = config.bossThreadCount();
+    this.workerThreadCount = config.workerThreadCount();
+    this.tls = new Tls(config.cert(), config.key());
+    this.MAX_PAYLOAD_SIZE = 1 * 1024 * 1024;
+  }
+
+  public Router(XConfig config, int maxPayload) {
+    this.config = config;
+    this.workerNameFormat = config.workerNameFormat();
+    this.bossThreadCount = config.bossThreadCount();
+    this.workerThreadCount = config.workerThreadCount();
+    this.tls = new Tls(config.cert(), config.key());
+    this.MAX_PAYLOAD_SIZE = maxPayload;
+  }
+
+  private static ThreadFactory threadFactory(String nameFormat) {
+    return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
 
   public void addRoute(String route, Handler handler) {
@@ -144,6 +128,7 @@ public class Router {
 
     ServerBootstrap b = new ServerBootstrap();
     UrlRouter router = new UrlRouter();
+    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router);
 
     if (Epoll.isAvailable()) {
       bossGroup = new EpollEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
@@ -169,9 +154,10 @@ public class Router {
             ChannelPipeline cp = ch.pipeline();
             cp.addLast("serverConnectionLimiter", globalConnectionLimiter);
             cp.addLast("serverRateLimiter", rateLimiter);
-            cp.addLast("encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs
+            cp.addLast(
+                "encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs
             //cp.addLast("messageLogger", new MessageLogger()); // TODO(JR): Do not think we need this
-            cp.addLast("codec", new Http2OrHttpHandler(router));
+            cp.addLast("codec", h1h2);
             cp.addLast(
                 "idleDisconnectHandler",
                 new IdleDisconnectHandler(
@@ -216,7 +202,7 @@ public class Router {
               @Override
               public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
-                  // log.log(Level.WARNING, "Error shutting down server", future.cause());
+                  log.warn("Error shutting down server", future.cause());
                 }
                 synchronized (Router.this) {
                   // listener.serverShutdown();
@@ -225,114 +211,12 @@ public class Router {
             });
   }
 
-  public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
-
-    private static final int MAX_CONTENT_LENGTH = 1024 * 100;
-    private UrlRouter router;
-
-    protected Http2OrHttpHandler(UrlRouter router) {
-      super(ApplicationProtocolNames.HTTP_1_1);
-      this.router = router;
-    }
-
-    @Override
-    protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
-      if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
-        log.info("Using Http/2");
-        ChannelPipeline cp = ctx.pipeline();
-        cp.addLast(new Http2HandlerBuilder().server(true).build());
-        cp.addLast("routingFiler", router);
-        return;
-      }
-
-      if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
-        log.info("Using Http/1.1");
-        ChannelPipeline cp = ctx.pipeline();
-        cp.addLast("codec", new HttpServerCodec());
-        cp.addLast("aggregator", new HttpObjectAggregator(1 * 1024 * 1024)); // Aggregate up to 1MB
-        //cp.addLast("authHandler", new NoOpHandler()); // TODO(JR): OAuth2.0 Impl needed
-        cp.addLast("routingFilter", router);
-        return;
-      }
-
-      throw new IllegalStateException("unknown protocol: " + protocol);
-    }
-  }
-
-
-
-
-  @ChannelHandler.Sharable
-  private class UrlRouter extends ChannelDuplexHandler {
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-      requests.mark();
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      log.info("Received Req");
-      if (msg instanceof HttpRequest) {
-        FullHttpRequest request = (FullHttpRequest) msg;
-        String uri = request.uri();
-        for (Route route : routes.keySet()) {
-          Map<String, String> groups = route.groups(uri);
-          if (groups != null) {
-            Context context = new Context(request, groups, ctx.alloc());
-            HttpResponse resp = routes.get(route).handle(context);
-
-            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-            ctx.fireChannelRead(msg);
-            return;
-          }
-        }
-        // No matching route.
-        FullHttpResponse response =
-            new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
-        response.headers().set(CONTENT_TYPE, "text/plain");
-        response.headers().setInt(CONTENT_LENGTH, 0);
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-      }
-
-      if (msg instanceof Http2Request) {
-        log.info("Is a Http2 Request");
-        Http2Request<Http2Headers> request = (Http2Request) msg;
-        String uri = request.payload.path().toString();
-        for (Route route : routes.keySet()) {
-          Map<String, String> groups = route.groups(uri);
-          if (groups != null) {
-            log.info("Applying uri to route");
-            Context context = new Context(request, groups, ctx.alloc());
-            FullHttpResponse h1_resp = (FullHttpResponse) routes.get(route).handle(context);
-            //ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-            Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1_resp, true);
-            Http2DataFrame dataFrame = new DefaultHttp2DataFrame(h1_resp.content(), true);
-            
-            ctx.write(Http2Response.build(request.streamId, headers));
-            ctx.write(Http2Response.build(request.streamId, dataFrame)).addListener(ChannelFutureListener.CLOSE);
-            ctx.fireChannelRead(msg);
-            return;
-          }
-        }
-      }
-
-      ctx.fireChannelRead(msg);
-    }
-
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-      ctx.fireChannelReadComplete();
-    }
-  }
-
   @ChannelHandler.Sharable
   private static class ServiceRateLimiter extends ChannelDuplexHandler {
+    private static Timer.Context context;
     private final RateLimiter limiter;
     private final Meter reqs;
     private final Timer timer;
-
-    private static Timer.Context context;
 
     public ServiceRateLimiter(MetricRegistry metrics, double rateLimit) {
       this.limiter = RateLimiter.create(rateLimit);
@@ -410,6 +294,101 @@ public class Router {
   }
 
   @ChannelHandler.Sharable
+  public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
+    private final UrlRouter router;
+
+    protected Http2OrHttpHandler(UrlRouter router) {
+      super(ApplicationProtocolNames.HTTP_1_1);
+      this.router = router;
+    }
+
+    @Override
+    protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
+      if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
+        ChannelPipeline cp = ctx.pipeline();
+        cp.addLast("codec", new Http2HandlerBuilder().build());
+        return;
+      }
+
+      if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
+        ChannelPipeline cp = ctx.pipeline();
+        cp.addLast("codec", new HttpServerCodec());
+        cp.addLast("aggregator", new HttpObjectAggregator(MAX_PAYLOAD_SIZE));
+        //cp.addLast("authHandler", new NoOpHandler()); // TODO(JR): OAuth2.0 Impl needed
+        cp.addLast("routingFilter", router);
+        return;
+      }
+
+      throw new IllegalStateException("unknown protocol: " + protocol);
+    }
+  }
+
+  public final class Http2HandlerBuilder
+      extends AbstractHttp2ConnectionHandlerBuilder<Http2Handler, Http2HandlerBuilder> {
+
+    private final Http2FrameLogger logger = new Http2FrameLogger(LogLevel.INFO, Http2Handler.class);
+
+    public Http2HandlerBuilder() {
+      frameLogger(logger);
+    }
+
+    @Override
+    public Http2Handler build() {
+      return super.build();
+    }
+
+    @Override
+    protected Http2Handler build(
+        Http2ConnectionDecoder decoder,
+        Http2ConnectionEncoder encoder,
+        Http2Settings initialSettings) {
+      Http2Handler handler = new Http2Handler(decoder, encoder, initialSettings);
+      frameListener(handler);
+      return handler;
+    }
+  }
+
+  @ChannelHandler.Sharable
+  private class UrlRouter extends ChannelDuplexHandler {
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      requests.mark();
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+      if (msg instanceof HttpRequest) {
+        FullHttpRequest request = (FullHttpRequest) msg;
+        String uri = request.uri();
+        for (Route route : routes.keySet()) {
+          Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
+          if (groups.isPresent()) {
+            XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.alloc());
+            HttpResponse resp = routes.get(route).handle(xrpcRequest);
+
+            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+            ctx.fireChannelRead(msg);
+            return;
+          }
+        }
+        // No matching route.
+        FullHttpResponse response =
+            new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
+        response.headers().set(CONTENT_TYPE, "text/plain");
+        response.headers().setInt(CONTENT_LENGTH, 0);
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+      }
+      ctx.fireChannelRead(msg);
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+      ctx.fireChannelReadComplete();
+    }
+  }
+
+  @ChannelHandler.Sharable
   class NoOpHandler extends ChannelDuplexHandler {
 
     @Override
@@ -430,5 +409,146 @@ public class Router {
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
       ctx.channel().close();
     }
+  }
+
+  public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
+
+    private XrpcRequest xrpcRequest;
+
+    Http2Handler(
+        Http2ConnectionDecoder decoder,
+        Http2ConnectionEncoder encoder,
+        Http2Settings initialSettings) {
+      super(decoder, encoder, initialSettings);
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {}
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+      super.exceptionCaught(ctx, cause);
+      cause.printStackTrace();
+      ctx.close();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      requests.mark();
+    }
+
+    @Override
+    public int onDataRead(
+        ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) {
+      int processed = data.readableBytes() + padding;
+
+      if (endOfStream) {
+        //        XrpcRequest xrpcRequest = ctx.channel().attr(STREAM_ID_CONTEXT).get();
+        xrpcRequest.setData(data);
+
+        //TODO(JR): This is terrible and should be changed prior to real use
+        // Specifically, we should not have to re-cycle over the routes again
+        for (Route route : routes.keySet()) {
+          Optional<Map<String, String>> groups =
+              Optional.ofNullable(route.groups(xrpcRequest.getH2Headers().path().toString()));
+          if (groups.isPresent()) {
+            FullHttpResponse h1Resp = (FullHttpResponse) routes.get(route).handle(xrpcRequest);
+            Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
+            Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
+            encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
+            encoder()
+                .writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
+          }
+        }
+      }
+      return processed;
+    }
+
+    @Override
+    public void onHeadersRead(
+        ChannelHandlerContext ctx,
+        int streamId,
+        Http2Headers headers,
+        int padding,
+        boolean endOfStream) {
+
+      String uri = headers.path().toString();
+      for (Route route : routes.keySet()) {
+        Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
+        if (groups.isPresent()) {
+          xrpcRequest = new XrpcRequest(headers, groups.get(), ctx.alloc());
+          Optional<CharSequence> contentLength = Optional.ofNullable(headers.get("content-length"));
+          if (contentLength.isPresent()) {
+          } else {
+            FullHttpResponse h1_resp = (FullHttpResponse) routes.get(route).handle(xrpcRequest);
+            Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1_resp, true);
+            Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1_resp.content(), true);
+            encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
+            encoder()
+                .writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
+          }
+        }
+      }
+    }
+
+    @Override
+    public void onHeadersRead(
+        ChannelHandlerContext ctx,
+        int streamId,
+        Http2Headers headers,
+        int streamDependency,
+        short weight,
+        boolean exclusive,
+        int padding,
+        boolean endOfStream) {
+      onHeadersRead(ctx, streamId, headers, padding, endOfStream);
+    }
+
+    @Override
+    public void onPriorityRead(
+        ChannelHandlerContext ctx,
+        int streamId,
+        int streamDependency,
+        short weight,
+        boolean exclusive) {}
+
+    @Override
+    public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {}
+
+    @Override
+    public void onSettingsAckRead(ChannelHandlerContext ctx) {}
+
+    @Override
+    public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {}
+
+    @Override
+    public void onPingRead(ChannelHandlerContext ctx, ByteBuf data) {}
+
+    @Override
+    public void onPingAckRead(ChannelHandlerContext ctx, ByteBuf data) {}
+
+    @Override
+    public void onPushPromiseRead(
+        ChannelHandlerContext ctx,
+        int streamId,
+        int promisedStreamId,
+        Http2Headers headers,
+        int padding) {}
+
+    @Override
+    public void onGoAwayRead(
+        ChannelHandlerContext ctx, int lastStreamId, long errorCode, ByteBuf debugData) {}
+
+    @Override
+    public void onWindowUpdateRead(
+        ChannelHandlerContext ctx, int streamId, int windowSizeIncrement) {}
+
+    @Override
+    public void onUnknownFrame(
+        ChannelHandlerContext ctx,
+        byte frameType,
+        int streamId,
+        Http2Flags flags,
+        ByteBuf payload) {}
   }
 }

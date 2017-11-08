@@ -16,12 +16,12 @@
 
 package com.nordstrom.xrpc.demo;
 
-import com.nordstrom.xrpc.demo.proto.Dino;
+//import com.nordstrom.xrpc.demo.proto.Dino;
 import java.io.IOException;
 
 public class DinoEncoder {
   public static void main(String[] args) throws IOException {
-    Dino dino = Dino.newBuilder().setName(args[0]).setFavColor(args[1]).build();
-    System.out.write(dino.toByteArray());
+    //    Dino dino = Dino.newBuilder().setName(args[0]).setFavColor(args[1]).build();
+    //    System.out.write(dino.toByteArray());
   }
 }

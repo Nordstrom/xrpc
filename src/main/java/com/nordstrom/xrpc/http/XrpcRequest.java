@@ -16,35 +16,35 @@
 
 package com.nordstrom.xrpc.http;
 
-import java.util.Map;
-
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2Headers;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Request context. */
-public class Context {
+/** Xprc specific Request object. */
+public class XrpcRequest {
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
-  @Getter private final Http2Request<Http2Headers> h2Request;
+
+  @Getter private final Http2Headers h2Headers;
   @Getter private final ByteBufAllocator alloc;
-  @Setter private Http2Request<Http2DataFrame> data;
+  @Setter private ByteBuf data;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
-  public Context(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
+  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
     this.h1Request = request;
-    this.h2Request = null;
+    this.h2Headers = null;
     this.groups = groups;
     this.alloc = alloc;
   }
 
-  public Context(Http2Request<Http2Headers> request, Map<String, String> groups, ByteBufAllocator alloc) {
+  public XrpcRequest(Http2Headers headers, Map<String, String> groups, ByteBufAllocator alloc) {
     this.h1Request = null;
-    this.h2Request = request;
+    this.h2Headers = headers;
     this.groups = groups;
     this.alloc = alloc;
   }
@@ -52,5 +52,10 @@ public class Context {
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
   public String variable(String name) {
     return groups.get(name);
+  }
+
+  /** Create a convenience function to prevent direct access too the Allocator */
+  public ByteBuf getByteBuf() {
+    return alloc.compositeDirectBuffer();
   }
 }

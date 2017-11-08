@@ -22,7 +22,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.demo.proto.Dino;
+//import com.nordstrom.xrpc.demo.proto.Dino;
 import com.nordstrom.xrpc.http.Handler;
 import com.nordstrom.xrpc.http.Recipes;
 import com.nordstrom.xrpc.http.Router;
@@ -57,7 +57,7 @@ public class Example {
 
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
-    final List<Dino> dinos = new ArrayList<>();
+//    final List<Dino> dinos = new ArrayList<>();
 
     // See https://github.com/square/moshi for the Moshi Magic.
     Moshi moshi = new Moshi.Builder().build();
@@ -92,59 +92,59 @@ public class Example {
         };
 
     // do some proto
-    Handler dinosHandler =
-        context -> {
-          // TODO(jkinkead): Clean this up; we should have a helper to handle this.
-          Dino output = dinos.get(0);
-          ByteBuf bb = context.getAlloc().compositeDirectBuffer();
-          bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
-          try {
-            output.writeTo(new ByteBufOutputStream(bb));
-            HttpResponse response =
-                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
-            response.headers().set(CONTENT_TYPE, "application/octet-stream");
-            response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-            return response;
-          } catch (IOException e) {
-            log.error("Dino Error", (Throwable) e);
-            HttpResponse response =
-                new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-            response.headers().set(CONTENT_TYPE, "text/plain");
-            response.headers().setInt(CONTENT_LENGTH, 0);
-            return response;
-          }
-        };
-
-    // Define a complex function call with Proto
-    Handler dinoHandler =
-        context -> {
-          try {
-            // TODO(jkinkead): Clean this up; we should have a helper to handle this.
-            Optional<Dino> d;
-            d =
-                Optional.of(
-                    Dino.parseFrom(
-                        CodedInputStream.newInstance(
-                            ((FullHttpRequest) context).content().nioBuffer())));
-            d.ifPresent(dinos::add);
-          } catch (IOException e) {
-            log.error("Dino Error", (Throwable) e);
-            HttpResponse response =
-                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
-            response.headers().set(CONTENT_TYPE, "text/plain");
-            response.headers().setInt(CONTENT_LENGTH, 0);
-
-            return response;
-          }
-
-          HttpResponse response =
-              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-          response.headers().set(CONTENT_TYPE, "text/plain");
-          response.headers().setInt(CONTENT_LENGTH, 0);
-
-          return response;
-        };
+//    Handler dinosHandler =
+//        context -> {
+//          // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+//          Dino output = dinos.get(0);
+//          ByteBuf bb = context.getAlloc().compositeDirectBuffer();
+//          bb.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(output), true);
+//          try {
+//            output.writeTo(new ByteBufOutputStream(bb));
+//            HttpResponse response =
+//                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, bb);
+//            response.headers().set(CONTENT_TYPE, "application/octet-stream");
+//            response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
+//            return response;
+//          } catch (IOException e) {
+//            log.error("Dino Error", (Throwable) e);
+//            HttpResponse response =
+//                new DefaultFullHttpResponse(
+//                    HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+//            response.headers().set(CONTENT_TYPE, "text/plain");
+//            response.headers().setInt(CONTENT_LENGTH, 0);
+//            return response;
+//          }
+//        };
+//
+//    // Define a complex function call with Proto
+//    Handler dinoHandler =
+//        context -> {
+//          try {
+//            // TODO(jkinkead): Clean this up; we should have a helper to handle this.
+//            Optional<Dino> d;
+//            d =
+//                Optional.of(
+//                    Dino.parseFrom(
+//                        CodedInputStream.newInstance(
+//                            ((FullHttpRequest) context).content().nioBuffer())));
+//            d.ifPresent(dinos::add);
+//          } catch (IOException e) {
+//            log.error("Dino Error", (Throwable) e);
+//            HttpResponse response =
+//                new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
+//            response.headers().set(CONTENT_TYPE, "text/plain");
+//            response.headers().setInt(CONTENT_LENGTH, 0);
+//
+//            return response;
+//          }
+//
+//          HttpResponse response =
+//              new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+//          response.headers().set(CONTENT_TYPE, "text/plain");
+//          response.headers().setInt(CONTENT_LENGTH, 0);
+//
+//          return response;
+//        };
 
     // Define a simple function call
     Handler healthCheckHandler =
@@ -156,9 +156,9 @@ public class Example {
     router.addRoute("/people/{person}", personHandler);
     router.addRoute("/people", peopleHandler);
 
-    // Create your route mapping
-    router.addRoute("/dinos/{dino}", dinoHandler);
-    router.addRoute("/dinos", dinosHandler);
+//    // Create your route mapping
+//    router.addRoute("/dinos/{dino}", dinoHandler);
+//    router.addRoute("/dinos", dinosHandler);
 
     // Health Check for k8s
     router.addRoute("/health", healthCheckHandler);
