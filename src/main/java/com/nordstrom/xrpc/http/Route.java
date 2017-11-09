@@ -44,10 +44,12 @@ public class Route {
   private final Pattern pathPattern;
 
   private final List<String> keywords;
+  private final String originalPath;
 
-  private Route(Pattern pathPattern, List<String> keywords) {
+  private Route(Pattern pathPattern, List<String> keywords, String originalPath) {
     this.pathPattern = pathPattern;
     this.keywords = keywords;
+    this.originalPath = originalPath;
   }
 
   /**
@@ -86,7 +88,7 @@ public class Route {
 
     Pattern compiledPattern = Pattern.compile(pathRegex.toString());
 
-    return new Route(compiledPattern, keywords);
+    return new Route(compiledPattern, keywords, pathPattern);
   }
 
   /** @return true if this route matches the given URL path */
@@ -113,5 +115,10 @@ public class Route {
     } else {
       return null;
     }
+  }
+
+  @Override
+  public String toString() {
+    return originalPath;
   }
 }

@@ -22,32 +22,22 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Map;
-
-/**
- * Xprc specific Request object.
- */
+/** Xprc specific Request object. */
 public class XrpcRequest {
-  /**
-   * The request to handle.
-   */
-  @Getter
-  private final FullHttpRequest h1Request;
+  /** The request to handle. */
+  @Getter private final FullHttpRequest h1Request;
 
-  @Getter
-  private final Http2Headers h2Headers;
-  @Getter
-  private final ByteBufAllocator alloc;
-  /**
-   * The variables captured from the route path.
-   */
+  @Getter private final Http2Headers h2Headers;
+  @Getter private final ByteBufAllocator alloc;
+  /** The variables captured from the route path. */
   private final Map<String, String> groups;
+
   private final int streamId;
-  @Setter
-  private ByteBuf data;
+  @Setter private ByteBuf data;
 
   public XrpcRequest(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
     this.h1Request = request;
@@ -57,7 +47,8 @@ public class XrpcRequest {
     this.streamId = -1;
   }
 
-  public XrpcRequest(Http2Headers headers, Map<String, String> groups, ByteBufAllocator alloc, int streamId) {
+  public XrpcRequest(
+      Http2Headers headers, Map<String, String> groups, ByteBufAllocator alloc, int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
     this.groups = groups;
@@ -65,21 +56,17 @@ public class XrpcRequest {
     this.streamId = streamId;
   }
 
-  /**
-   * Returns the variable with the given name, or null if that variable doesn't exist.
-   */
+  /** Returns the variable with the given name, or null if that variable doesn't exist. */
   public String variable(String name) {
     return groups.get(name);
   }
 
-  /**
-   * Create a convenience function to prevent direct access too the Allocator
-   */
+  /** Create a convenience function to prevent direct access to the Allocator */
   public ByteBuf getByteBuf() {
     return alloc.compositeDirectBuffer();
   }
 
-  public FullHttpRequest getRequest() {
+  public FullHttpRequest getHttpRequest() {
     if (h1Request != null) {
       return h1Request;
     }
@@ -98,6 +85,6 @@ public class XrpcRequest {
       }
     }
 
-    return null;
+    throw new IllegalStateException("Cannot get the http request for an empty XrpcRequest");
   }
 }

@@ -22,6 +22,8 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.codahale.metrics.*;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
@@ -43,7 +45,6 @@ import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -51,6 +52,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
@@ -71,9 +73,8 @@ public class Router {
 
   private final int bossThreadCount;
   private final int workerThreadCount;
-  // TODO(JR): Not sure why we would want to retain ordering here, but added a high
-  // performance hash map impl JIC.
-  private final Map<Route, Handler> routes = PlatformDependent.newConcurrentHashMap();
+  private final AtomicReference<ImmutableSortedMap<Route, Handler>> routes =
+      new AtomicReference<>();
   private final int MAX_PAYLOAD_SIZE;
   private final Meter requests = metrics.meter("requests");
   private final ConsoleReporter consoleReporter =
@@ -88,12 +89,7 @@ public class Router {
   private Class<? extends ServerChannel> channelClass;
 
   public Router(XConfig config) {
-    this.config = config;
-    this.workerNameFormat = config.workerNameFormat();
-    this.bossThreadCount = config.bossThreadCount();
-    this.workerThreadCount = config.workerThreadCount();
-    this.tls = new Tls(config.cert(), config.key());
-    this.MAX_PAYLOAD_SIZE = 1 * 1024 * 1024;
+    this(config, 1 * 1024 * 1024);
   }
 
   public Router(XConfig config, int maxPayload) {
@@ -110,7 +106,19 @@ public class Router {
   }
 
   public void addRoute(String route, Handler handler) {
-    routes.put(Route.build(route), handler);
+    ImmutableSortedMap.Builder<Route, Handler> routeMap =
+        new ImmutableSortedMap.Builder<Route, Handler>(Ordering.usingToString())
+            .put(Route.build(route), handler);
+
+    Optional<ImmutableSortedMap<Route, Handler>> routesOptional = Optional.ofNullable(routes.get());
+
+    routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
+    routes.set(routeMap.build());
+  }
+
+  protected AtomicReference<ImmutableSortedMap<Route, Handler>> getRoutes() {
+
+    return routes;
   }
 
   public MetricRegistry getMetrics() {
@@ -361,11 +369,11 @@ public class Router {
       if (msg instanceof HttpRequest) {
         FullHttpRequest request = (FullHttpRequest) msg;
         String uri = request.uri();
-        for (Route route : routes.keySet()) {
+        for (Route route : routes.get().descendingKeySet()) {
           Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
           if (groups.isPresent()) {
             XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.alloc());
-            HttpResponse resp = routes.get(route).handle(xrpcRequest);
+            HttpResponse resp = routes.get().get(route).handle(xrpcRequest);
 
             ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
             ctx.fireChannelRead(msg);
@@ -437,8 +445,9 @@ public class Router {
       requests.mark();
     }
 
-    private void writeResponse(ChannelHandlerContext ctx, int streamId, Route route) {
-      FullHttpResponse h1Resp = (FullHttpResponse) routes.get(route).handle(xrpcRequest);
+    private void writeResponse(ChannelHandlerContext ctx, int streamId, Route route)
+        throws IOException {
+      FullHttpResponse h1Resp = (FullHttpResponse) routes.get().get(route).handle(xrpcRequest);
       Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
       Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
       encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
@@ -455,11 +464,16 @@ public class Router {
 
         //TODO(JR): This is terrible and should be changed prior to real use
         // Specifically, we should not have to re-cycle over the routes again
-        for (Route route : routes.keySet()) {
+        for (Route route : routes.get().descendingKeySet()) {
           Optional<Map<String, String>> groups =
               Optional.ofNullable(route.groups(xrpcRequest.getH2Headers().path().toString()));
           if (groups.isPresent()) {
-            writeResponse(ctx, streamId, route);
+            try {
+              writeResponse(ctx, streamId, route);
+            } catch (IOException e) {
+              log.error("Error in handling Route", e);
+              //TODO(JR): Should we return a 500 here?
+            }
           }
         }
       }
@@ -475,14 +489,18 @@ public class Router {
         boolean endOfStream) {
 
       String uri = headers.path().toString();
-      for (Route route : routes.keySet()) {
+      for (Route route : routes.get().descendingKeySet()) {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
         if (groups.isPresent()) {
           xrpcRequest = new XrpcRequest(headers, groups.get(), ctx.alloc(), streamId);
           Optional<CharSequence> contentLength = Optional.ofNullable(headers.get("content-length"));
-          if (contentLength.isPresent()) {
-          } else {
-            writeResponse(ctx, streamId, route);
+          if (!contentLength.isPresent()) {
+            try {
+              writeResponse(ctx, streamId, route);
+            } catch (IOException e) {
+              log.error("Error in handling Route", e);
+              //TODO(JR): Should we return a 500 here?
+            }
           }
         }
       }
