@@ -20,104 +20,62 @@ Make .jar not .war ...
 
 Example.java
 ```java
-
 @Slf4j
 public class Example {
-
+  /** Example POJO for use in request / response. */
   @AllArgsConstructor
   private static class Person {
-
     private String name;
   }
-  
+
   public static void main(String[] args) {
     final List<Person> people = new ArrayList<>();
-    final List<Dino> dinos = new ArrayList<>();
 
-    // See https://github.com/square/moshi for the Moshi Magic
+    // See https://github.com/square/moshi for the Moshi Magic.
     Moshi moshi = new Moshi.Builder().build();
     Type type = Types.newParameterizedType(List.class, Person.class);
     JsonAdapter<List<Person>> adapter = moshi.adapter(type);
 
-    // Build your router
-    Router router = new Router();
+    // Load application config from jar resources. The 'load' method below also allows supports
+    // overrides from environment variables.
+    Config config = ConfigFactory.load("demo.conf");
 
-    // Define a simple function call
-    Function<HttpRequest, HttpResponse> peopleHandler = x -> {
-      ByteBuf bb = Unpooled.compositeBuffer();
+    // Build your router. This overrides the default configuration with values from
+    // src/main/resources/demo.conf.
+    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
+    Router router = new Router(xConfig);
 
-      bb.writeBytes(adapter.toJson(people).getBytes(Charset.forName("UTF-8")));
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK, bb);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-
-      return response;
-    };
-
+    // Define a simple function call.
+    Handler peopleHandler =
+        context -> {
+          return Recipes.newResponse(
+            HttpResponseStatus.OK,
+            context.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
+            Recipes.ContentType.Application_Json);
+        };
 
     // Define a complex function call
-    BiFunction<HttpRequest, Route, HttpResponse> personHandler = (x, y) -> {
-      Person p = new Person(y.groups(x.uri()).get("person"));
-      people.add(p);
+    Handler personHandler =
+        context -> {
+          Person p = new Person(context.variable("person"));
+          people.add(p);
 
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-
-      return response;
-    };
+          return Recipes.newResponseOk("");
+        };
 
 
-    // do some proto
-    Function<HttpRequest, HttpResponse> dinosHandler = x -> {
-      ByteBuf bb = Unpooled.compositeBuffer();
-
-      bb.writeBytes(dinos.get(0).encode());
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK, bb);
-      response.headers().set(CONTENT_TYPE, "application/octet-stream");
-      response.headers().setInt(CONTENT_LENGTH, bb.readableBytes());
-
-      return response;
-    };
-
-
-    // Define a complex function call with Proto
-    BiFunction<HttpRequest, Route, HttpResponse> dinoHandler = (x, y) -> {
-
-      try {
-        Optional<Dino> d = null;
-        d = Optional.of(Dino.ADAPTER.decode(ByteString.of(((FullHttpRequest) x).content().nioBuffer())));
-        d.ifPresent(dinos::add);
-      } catch (IOException e) {
-        log.error("Dino Error", (Throwable)e);
-        HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-            HttpResponseStatus.BAD_REQUEST);
-        response.headers().set(CONTENT_TYPE, "text/plain");
-        response.headers().setInt(CONTENT_LENGTH, 0);
-
-        return response;
-      }
-
-
-      HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-          HttpResponseStatus.OK);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-
-      return response;
-    };
-
+    // Define a simple function call
+    Handler healthCheckHandler =
+        context -> {
+          return Recipes.newResponseOk("");
+     };
 
     // Create your route mapping
     router.addRoute("/people/{person}", personHandler);
     router.addRoute("/people", peopleHandler);
 
-    // Create your route mapping
-    router.addRoute("/dinos/{dino}", dinoHandler);
-    router.addRoute("/dinos", dinosHandler);
+    // Health Check for k8s
+    router.addRoute("/health", healthCheckHandler);
 
     try {
       // Fire away
@@ -125,8 +83,8 @@ public class Example {
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
-
   }
+}
  
 ```
 
