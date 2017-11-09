@@ -2,3 +2,7 @@
 /.gradle/
 build/
 /app.jar
+.idea/
+demo/out/
+out/
+xrpc.iml

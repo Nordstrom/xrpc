@@ -16,24 +16,16 @@
 
 package com.nordstrom.xrpc.tls;
 
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.codec.http2.Http2SecurityUtil;
+import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
@@ -44,22 +36,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Tls {
   private static final String PASSWORD = "passwordsAreGood";
-
-  private final String cert;
-  private final String key;
   // TODO(JR): This should only be called if a cert is not provided
   private static final X509Certificate selfSignedCert = createSelfSigned();
-
+  private final String cert;
+  private final String key;
   private SslContext sslCtx;
-
-  public static X509Certificate createSelfSigned() {
-    try {
-      return SelfSignedX509CertGenerator.generate("*.nordstrom.com");
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return null;
-  }
 
   public Tls() {
     this.cert = null;
@@ -72,9 +53,18 @@ public class Tls {
     this.sslCtx = buildEncryptionHandler();
   }
 
-  public ChannelHandler getEncryptionHandler() {
+  public static X509Certificate createSelfSigned() {
+    try {
+      return SelfSignedX509CertGenerator.generate("*.nordstrom.com");
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
 
-    ChannelHandler handler = sslCtx.newHandler(new PooledByteBufAllocator());
+  public ChannelHandler getEncryptionHandler(ByteBufAllocator alloc) {
+
+    ChannelHandler handler = sslCtx.newHandler(alloc);
 
     String[] protocols = new String[] {"TLSv1.2"};
     ((SslHandler) handler).engine().setEnabledProtocols(protocols);
@@ -134,7 +124,19 @@ public class Tls {
       if (OpenSsl.isAvailable()) {
         log.info("Using OpenSSL");
         sslCtx =
-            SslContextBuilder.forServer(privateKey, chain).sslProvider(SslProvider.OPENSSL).build();
+            SslContextBuilder.forServer(privateKey, chain)
+                .sslProvider(SslProvider.OPENSSL)
+                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                .applicationProtocolConfig(
+                    new ApplicationProtocolConfig(
+                        Protocol.ALPN,
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectorFailureBehavior.NO_ADVERTISE,
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2,
+                        ApplicationProtocolNames.HTTP_1_1))
+                .build();
       } else {
         log.info("Using JSSE");
         final KeyStore keyStore = KeyStore.getInstance("JKS", "SUN");
@@ -144,7 +146,20 @@ public class Tls {
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 
         kmf.init(keyStore, PASSWORD.toCharArray());
-        sslCtx = SslContextBuilder.forServer(kmf).sslProvider(SslProvider.JDK).build();
+        sslCtx =
+            SslContextBuilder.forServer(kmf)
+                .sslProvider(SslProvider.JDK)
+                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                .applicationProtocolConfig(
+                    new ApplicationProtocolConfig(
+                        Protocol.ALPN,
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectorFailureBehavior.NO_ADVERTISE,
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2,
+                        ApplicationProtocolNames.HTTP_1_1))
+                .build();
       }
 
       return sslCtx;
