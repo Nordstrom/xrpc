@@ -445,9 +445,21 @@ public class Router {
       requests.mark();
     }
 
-    private void writeResponse(ChannelHandlerContext ctx, int streamId, Route route)
+    private void executeHandler(ChannelHandlerContext ctx, int streamId, Route route)
         throws IOException {
       FullHttpResponse h1Resp = (FullHttpResponse) routes.get().get(route).handle(xrpcRequest);
+      Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
+      Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
+      encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
+      encoder().writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
+    }
+
+    private void writeResponse(
+        ChannelHandlerContext ctx, int streamId, HttpResponseStatus status, ByteBuf buffer) {
+      FullHttpResponse h1Resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
+      h1Resp.headers().set(CONTENT_TYPE, "text/plain");
+      h1Resp.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+
       Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
       Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
       encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
@@ -469,10 +481,13 @@ public class Router {
               Optional.ofNullable(route.groups(xrpcRequest.getH2Headers().path().toString()));
           if (groups.isPresent()) {
             try {
-              writeResponse(ctx, streamId, route);
+              executeHandler(ctx, streamId, route);
             } catch (IOException e) {
               log.error("Error in handling Route", e);
-              //TODO(JR): Should we return a 500 here?
+              // Error
+              ByteBuf buf = ctx.channel().alloc().directBuffer();
+              buf.writeBytes("Error executing endpoint".getBytes());
+              writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
             }
           }
         }
@@ -496,14 +511,22 @@ public class Router {
           Optional<CharSequence> contentLength = Optional.ofNullable(headers.get("content-length"));
           if (!contentLength.isPresent()) {
             try {
-              writeResponse(ctx, streamId, route);
+              executeHandler(ctx, streamId, route);
+              return;
             } catch (IOException e) {
               log.error("Error in handling Route", e);
-              //TODO(JR): Should we return a 500 here?
+              // Error
+              ByteBuf buf = ctx.channel().alloc().directBuffer();
+              buf.writeBytes("Error executing endpoint".getBytes());
+              writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
             }
           }
         }
       }
+      // No Valid Route
+      ByteBuf buf = ctx.channel().alloc().directBuffer();
+      buf.writeBytes("Endpoint not found".getBytes());
+      writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
     }
 
     @Override
