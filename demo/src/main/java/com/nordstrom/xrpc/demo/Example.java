@@ -16,34 +16,23 @@
 
 package com.nordstrom.xrpc.demo;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 import com.nordstrom.xrpc.XConfig;
 //import com.nordstrom.xrpc.demo.proto.Dino;
-import com.nordstrom.xrpc.http.Handler;
-import com.nordstrom.xrpc.http.Recipes;
-import com.nordstrom.xrpc.http.Router;
+import com.nordstrom.xrpc.server.Handler;
+import com.nordstrom.xrpc.server.http.Recipes;
+import com.nordstrom.xrpc.server.Router;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

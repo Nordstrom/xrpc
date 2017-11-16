@@ -1,9 +1,12 @@
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server.http;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.server.Handler;
+import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import java.util.Map;
 import java.util.Optional;

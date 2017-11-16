@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server.http;
 
 import java.util.ArrayList;
 import java.util.Collections;
