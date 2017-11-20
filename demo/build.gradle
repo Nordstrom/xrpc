@@ -44,6 +44,14 @@ dependencies {
   runtimeOnly 'org.codehaus.groovy:groovy-all:2.4.1'
 }
 
+sourceSets {
+  main {
+    java {
+      srcDirs 'build/generated/source/proto/main/java'
+    }
+  }
+}
+
 // Configure protobuf build.
 protobuf {
   // Configure the protoc executable to use the official distribution.
