@@ -17,7 +17,6 @@ package com.nordstrom.xrpc.client.retry;
  */
 
 import com.google.common.annotations.VisibleForTesting;
-
 import java.util.concurrent.TimeUnit;
 
 abstract class SleepingRetry implements RetryPolicy {

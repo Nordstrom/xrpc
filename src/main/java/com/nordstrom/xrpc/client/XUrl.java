@@ -16,14 +16,10 @@ package com.nordstrom.xrpc.client;
  * limitations under the License.
  */
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -113,5 +109,4 @@ public class XUrl {
     }
     return url;
   }
-
 }
