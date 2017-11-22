@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;

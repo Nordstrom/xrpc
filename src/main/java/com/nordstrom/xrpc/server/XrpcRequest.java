@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
@@ -32,27 +36,34 @@ public class XrpcRequest {
   @Getter private final FullHttpRequest h1Request;
 
   @Getter private final Http2Headers h2Headers;
+  @Getter private final EventLoop eventLoop;
+  @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
   private final int streamId;
+
   @Setter private ByteBuf data;
 
-  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, ByteBufAllocator alloc) {
+  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, Channel channel) {
     this.h1Request = request;
     this.h2Headers = null;
     this.groups = groups;
-    this.alloc = alloc;
+    this.upstreamChannel = channel;
+    this.alloc = channel.alloc();
+    this.eventLoop = channel.eventLoop();
     this.streamId = -1;
   }
 
   public XrpcRequest(
-      Http2Headers headers, Map<String, String> groups, ByteBufAllocator alloc, int streamId) {
+      Http2Headers headers, Map<String, String> groups, Channel channel, int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
     this.groups = groups;
-    this.alloc = alloc;
+    this.upstreamChannel = channel;
+    this.alloc = channel.alloc();
+    this.eventLoop = channel.eventLoop();
     this.streamId = streamId;
   }
 
@@ -64,6 +75,11 @@ public class XrpcRequest {
   /** Create a convenience function to prevent direct access to the Allocator */
   public ByteBuf getByteBuf() {
     return alloc.compositeDirectBuffer();
+  }
+
+  public ListeningExecutorService getExecutor() {
+    // For more info see https://github.com/google/guava/wiki/ListenableFutureExplained
+    return MoreExecutors.listeningDecorator(eventLoop);
   }
 
   public FullHttpRequest getHttpRequest() {

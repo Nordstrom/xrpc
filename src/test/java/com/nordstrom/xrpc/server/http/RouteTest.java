@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,6 +80,18 @@ public class RouteTest {
   @Test
   public void testGroups_multipleVariables() {
     Route route = Route.build("/api/location/{country}/{city}");
+    String path = "/api/location/usa/seattle";
+    Map<String, String> groups = route.groups("/api/location/usa/seattle");
+    assertNotNull(groups, "null groups from route.groups");
+    assertEquals(2, groups.size(), "should have exactly two groups");
+    assertEquals("usa", groups.get("country"), "country variable should bind correctly");
+    assertEquals("seattle", groups.get("city"), "city variable should bind correctly");
+  }
+
+
+  @Test
+  public void testGroups_Q_Param() {
+    Route route = Route.build("/api/authinit");
     String path = "/api/location/usa/seattle";
     Map<String, String> groups = route.groups("/api/location/usa/seattle");
     assertNotNull(groups, "null groups from route.groups");

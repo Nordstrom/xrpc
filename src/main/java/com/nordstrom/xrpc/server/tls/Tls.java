@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.tls;
+package com.nordstrom.xrpc.server.tls;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;

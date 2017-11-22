@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.http;
+package com.nordstrom.xrpc.server;
 
 import io.netty.handler.codec.http.HttpResponse;
 import java.io.IOException;

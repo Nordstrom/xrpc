@@ -1,3 +1,5 @@
+package com.nordstrom.xrpc.client.retry;
+
 /*
  * Copyright 2017 Nordstrom, Inc.
  *
@@ -14,35 +16,24 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.tls;
+import java.util.concurrent.TimeUnit;
 
-import java.security.PrivateKey;
-import lombok.extern.slf4j.Slf4j;
-import sun.security.x509.X509CertImpl;
+/** Mechanism for timing methods and recording counters */
+public interface TracerDriver {
+  /**
+   * Record the given trace event
+   *
+   * @param name of the event
+   * @param time time event took
+   * @param unit time unit
+   */
+  void addTrace(String name, long time, TimeUnit unit);
 
-@Slf4j
-public final class X509Certificate {
-
-  private final String fqdn;
-  private final PrivateKey key;
-  private final X509CertImpl cert;
-
-  public X509Certificate(String fqdn, PrivateKey key, X509CertImpl cert) {
-
-    this.fqdn = fqdn;
-    this.key = key;
-    this.cert = cert;
-  }
-
-  public String getFqdn() {
-    return fqdn;
-  }
-
-  public PrivateKey getKey() {
-    return key;
-  }
-
-  public X509CertImpl getCert() {
-    return cert;
-  }
+  /**
+   * Add to a named counter
+   *
+   * @param name name of the counter
+   * @param increment amount to increment
+   */
+  void addCount(String name, int increment);
 }
