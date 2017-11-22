@@ -37,8 +37,12 @@ abstract class SleepingRetry implements RetryPolicy {
       try {
         sleeper.sleepFor(getSleepTimeMs(retryCount, elapsedTimeMs), TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        return false;
+        if (Thread.currentThread().isInterrupted()) {
+          // Non-spurious interrupt.
+          return false;
+        } else {
+          //Ignore
+        }
       }
       return true;
     }

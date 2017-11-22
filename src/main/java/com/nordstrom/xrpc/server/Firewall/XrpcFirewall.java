@@ -63,15 +63,15 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
 
     switch (evt) {
       case RATE_LIMIT:
-        log.info("Xio Firewall blocked based on rate limit req:" + ctx.channel());
+        log.info("Xrpc Firewall blocked based on rate limit req:" + ctx.channel());
         ctx.channel().deregister();
         break;
       case BLOCK_REQ_POLICY_BASED:
-        log.info("Xio Firewall blocked based on policy:" + ctx.channel());
+        log.info("Xrpc Firewall blocked based on policy:" + ctx.channel());
         ctx.channel().deregister();
         break;
       case BLOCK_REQ_BEHAVIORAL_BASED:
-        log.info("Xio Firewall blocked based on behavior:" + ctx.channel());
+        log.info("Xrpc Firewall blocked based on behavior:" + ctx.channel());
         ctx.channel().deregister();
         break;
       default:
@@ -82,7 +82,7 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
   @Override
   @SuppressWarnings("deprecated")
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-    log.error("Exception Caught in Xio Firewall: ", cause);
+    log.error("Exception Caught in Xrpc Firewall: ", cause);
   }
 
   @Override
@@ -97,7 +97,7 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
 
     if (!whitelist.contains(sourceAddress)) {
       if (blacklist.contains(sourceAddress)) {
-        log.info("Xio Firewall blocked blacklisted channel:" + ctx.channel());
+        log.info("Xrpc Firewall blocked blacklisted channel:" + ctx.channel());
         ctx.channel().deregister();
       } else {
         ctx.fireChannelActive();
@@ -115,7 +115,7 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
     if (msg instanceof ByteBuf) {
       packetSize = ((ByteBuf) msg).readableBytes();
     } else {
-      log.info("Xio Firewall blocked unreadable message :" + ctx.channel());
+      log.info("Xrpc Firewall blocked unreadable message :" + ctx.channel());
       ctx.channel().deregister();
     }
 

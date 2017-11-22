@@ -88,6 +88,16 @@ public class XUrl {
     }
   }
 
+  public static String stripQueryParameters(String url) {
+    Preconditions.checkNotNull(url);
+    int paramStartIndex = url.indexOf("?");
+    if (paramStartIndex == -1) {
+      return url;
+    } else {
+      return url.substring(paramStartIndex + 1, url.length());
+    }
+  }
+
   public static String stripUrlParameters(URL url) {
     return stripUrlParameters(url.toString());
   }
@@ -104,23 +114,4 @@ public class XUrl {
     return url;
   }
 
-  public static List<String> getDomainLevels(String host) {
-    Preconditions.checkNotNull(host);
-
-    // Automatically include www prefix if not present.
-    if (!host.startsWith("www")) {
-      host = "www." + host;
-    }
-
-    Joiner joiner = Joiner.on(".");
-    List<String> domainParts = Lists.newLinkedList(Arrays.asList(host.split("\\.")));
-    List<String> levels = Lists.newLinkedList();
-
-    while (!domainParts.isEmpty()) {
-      levels.add(joiner.join(domainParts));
-      domainParts.remove(0);
-    }
-
-    return levels;
-  }
 }

@@ -105,7 +105,7 @@ public class Router {
     routes.set(routeMap.build());
   }
 
-  protected AtomicReference<ImmutableSortedMap<Route, Handler>> getRoutes() {
+  public AtomicReference<ImmutableSortedMap<Route, Handler>> getRoutes() {
 
     return routes;
   }

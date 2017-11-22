@@ -54,6 +54,12 @@ public class XrpcClient {
     this.bootstrap = buildBootstrap();
   }
 
+  public XrpcClient(EventLoopGroup elg) {
+    this.workerGroup = elg;
+    this.sslCtx = buildSslCtx();
+    this.bootstrap = buildBootstrap();
+  }
+
   private static ThreadFactory threadFactory(String nameFormat) {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
@@ -87,12 +93,14 @@ public class XrpcClient {
 
   private Bootstrap buildBootstrap() {
     Bootstrap b = new Bootstrap();
-    if (Epoll.isAvailable()) {
-      workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
-      channelClass = EpollSocketChannel.class;
-    } else {
-      workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
-      channelClass = NioSocketChannel.class;
+    if (workerGroup == null) {
+      if (Epoll.isAvailable()) {
+        workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
+        channelClass = EpollSocketChannel.class;
+      } else {
+        workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
+        channelClass = NioSocketChannel.class;
+      }
     }
 
     b.group(workerGroup)

@@ -27,7 +27,7 @@ public interface TracerDriver {
    * @param time time event took
    * @param unit time unit
    */
-  public void addTrace(String name, long time, TimeUnit unit);
+  void addTrace(String name, long time, TimeUnit unit);
 
   /**
    * Add to a named counter
@@ -35,5 +35,5 @@ public interface TracerDriver {
    * @param name name of the counter
    * @param increment amount to increment
    */
-  public void addCount(String name, int increment);
+  void addCount(String name, int increment);
 }

@@ -35,14 +35,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ *
+ *
+ */
+
 @Slf4j
-public class Call {
+class Call {
   private final XrpcClient client;
   private final String uri;
 
   private FullHttpRequest request = null;
 
-  public Call(XrpcClient client, String uri) {
+  protected Call(XrpcClient client, String uri) {
 
     this.client = client;
     this.uri = uri;
@@ -58,9 +63,9 @@ public class Call {
     Preconditions.checkState(request != null);
     final SettableFuture<FullHttpResponse> error = SettableFuture.create();
     final SettableFuture<FullHttpResponse> response = SettableFuture.create();
-
-    ListenableFuture<ChannelFuture> connectFuture =
+    final ListenableFuture<ChannelFuture> connectFuture =
         connect(
+            //TODO(JR): This parses the URL twice, which is wasteful. Make a method that returns a InetSocketAddress from url string
             new InetSocketAddress(XUrl.getHost(uri), XUrl.getPort(uri)),
             client.getBootstrap(),
             buildRetryLoop());
@@ -98,6 +103,7 @@ public class Call {
   }
 
   private RetryLoop buildRetryLoop() {
+    //TODO(JR): Make these retry options configurable, perhaps from a client.conf?
     return buildRetryLoop(50, 500, 4);
   }
 
@@ -105,6 +111,10 @@ public class Call {
     BoundedExponentialBackoffRetry retry =
         new BoundedExponentialBackoffRetry(baseSleep, maxSleep, reties);
 
+    /**
+    * TODO(JR): This trace driver will be used in the future to allow for tracing of reties and will also be the entry point for a future
+    *  circuit breaker logic. As of now these features are not enabled yet, but this entrypoint should be maintained.
+    */
     TracerDriver tracerDriver =
         new TracerDriver() {
 
