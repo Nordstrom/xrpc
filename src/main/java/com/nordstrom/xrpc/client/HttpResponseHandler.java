@@ -26,8 +26,6 @@ import io.netty.handler.codec.http.FullHttpResponse;
 public class HttpResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
   SettableFuture<FullHttpResponse> responseFuture = SettableFuture.create();
 
-  public HttpResponseHandler() {}
-
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
     Preconditions.checkArgument(msg != null);

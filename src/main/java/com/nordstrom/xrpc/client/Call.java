@@ -48,7 +48,7 @@ public class Call {
     this.uri = uri;
   }
 
-  public Call get(FullHttpRequest request) {
+  protected Call get(FullHttpRequest request) {
     this.request = request;
 
     return this;

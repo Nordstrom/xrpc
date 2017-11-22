@@ -16,6 +16,8 @@ package com.nordstrom.xrpc.client.retry;
  * limitations under the License.
  */
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.util.concurrent.TimeUnit;
 
 abstract class SleepingRetry implements RetryPolicy {
@@ -25,8 +27,8 @@ abstract class SleepingRetry implements RetryPolicy {
     this.n = n;
   }
 
-  // made public for testing
-  public int getN() {
+  @VisibleForTesting
+  int getN() {
     return n;
   }
 
