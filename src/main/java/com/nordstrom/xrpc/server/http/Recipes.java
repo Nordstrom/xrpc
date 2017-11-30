@@ -29,7 +29,6 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.nio.charset.StandardCharsets;
@@ -92,11 +91,11 @@ public final class Recipes {
   // Request }}}
 
   // Response {{{
-  public static HttpResponse newResponse(HttpResponseStatus status) {
-    return new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+  public static FullHttpResponse newResponse(HttpResponseStatus status) {
+    return (FullHttpResponse) new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
   }
 
-  public static HttpResponse newResponse(
+  public static FullHttpResponse newResponse(
       HttpResponseStatus status, ByteBuf buffer, ContentType contentType) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
 
@@ -106,35 +105,35 @@ public final class Recipes {
     return response;
   }
 
-  public static HttpResponse newResponse(
+  public static FullHttpResponse newResponse(
       HttpResponseStatus status, String payload, ContentType contentType) {
     return newResponse(status, unpooledBuffer(payload), contentType);
   }
 
   // OK {{{
-  public static HttpResponse newResponseOk() {
+  public static FullHttpResponse newResponseOk() {
     return newResponse(HttpResponseStatus.OK);
   }
 
-  public static HttpResponse newResponseOk(String payload) {
+  public static FullHttpResponse newResponseOk(String payload) {
     return newResponse(HttpResponseStatus.OK, payload, ContentType.Text_Plain);
   }
 
-  public static HttpResponse newResponseOk(String payload, ContentType contentType) {
+  public static FullHttpResponse newResponseOk(String payload, ContentType contentType) {
     return newResponse(HttpResponseStatus.OK, payload, contentType);
   }
   // OK }}}
 
   // BAD_REQUEST {{{
-  public static HttpResponse newResponseBadRequest() {
+  public static FullHttpResponse newResponseBadRequest() {
     return newResponse(HttpResponseStatus.BAD_REQUEST);
   }
 
-  public static HttpResponse newResponseBadRequest(String payload) {
+  public static FullHttpResponse newResponseBadRequest(String payload) {
     return newResponse(HttpResponseStatus.BAD_REQUEST, payload, ContentType.Text_Plain);
   }
 
-  public static HttpResponse newResponseBadRequest(String payload, ContentType contentType) {
+  public static FullHttpResponse newResponseBadRequest(String payload, ContentType contentType) {
     return newResponse(HttpResponseStatus.BAD_REQUEST, payload, contentType);
   }
   // BAD_REQUEST }}}

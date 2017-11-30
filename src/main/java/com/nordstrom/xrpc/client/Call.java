@@ -49,7 +49,7 @@ class Call {
     this.uri = uri;
   }
 
-  protected Call get(FullHttpRequest request) {
+  public Call get(FullHttpRequest request) {
     this.request = request;
 
     return this;
