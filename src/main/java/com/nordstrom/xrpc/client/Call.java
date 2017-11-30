@@ -43,13 +43,13 @@ class Call {
 
   private FullHttpRequest request = null;
 
-  protected Call(XrpcClient client, String uri) {
+  public Call(XrpcClient client, String uri) {
 
     this.client = client;
     this.uri = uri;
   }
 
-  protected Call get(FullHttpRequest request) {
+  public Call get(FullHttpRequest request) {
     this.request = request;
 
     return this;
