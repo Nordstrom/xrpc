@@ -77,6 +77,7 @@ public class Example {
           return Recipes.newResponseOk("");
         };
 
+    // TODDO(JR): this is commented out until such a time that the demo's can be cleaned up
     // do some proto
     //    Handler dinosHandler =
     //        context -> {
@@ -132,32 +133,6 @@ public class Example {
     //          return response;
     //        };
 
-    Handler authHandler =
-        xrpcRequest -> {
-          FullHttpRequest req = xrpcRequest.getHttpRequest();
-          Optional<String> clientId = Optional.ofNullable(XUrl.stripQueryParameters(req.uri()));
-          Optional<String> trueClientIp = Optional.ofNullable(req.headers().get("True-Client-Ip"));
-          Optional<String> appId = Optional.ofNullable(req.headers().get("X-Nor-Appiidp"));
-          Optional<String> forwardedFor = Optional.ofNullable(req.headers().get("X-Forwarded-For"));
-          Optional<String> akamaiEndge =
-              Optional.ofNullable(req.headers().get("X-Akamai-Edgescape"));
-
-          // Will remove the entry from local data structure every 5 min
-          xrpcRequest
-              .getEventLoop()
-              .scheduleWithFixedDelay(
-                  (() -> {
-                    //TODO(JR): perform consistency check
-
-                  }),
-                  300,
-                  3,
-                  TimeUnit.SECONDS);
-
-          //Always return ok, will block by invalidating the redis cache
-          return Recipes.newResponseOk();
-        };
-
     // Define a simple function call
     Handler healthCheckHandler =
         context -> {
@@ -167,9 +142,6 @@ public class Example {
     // Create your route mapping
     router.addRoute("/people/{person}", personHandler);
     router.addRoute("/people", peopleHandler);
-
-    // Authinit Test
-    router.addRoute("/v1/{shopper_id}", authHandler);
 
     //    // Create your route mapping
     //    router.addRoute("/dinos/{dino}", dinoHandler);
