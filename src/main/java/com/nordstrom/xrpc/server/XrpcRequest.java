@@ -89,14 +89,16 @@ public class XrpcRequest {
 
     if (h2Headers != null) {
       try {
-        FullHttpRequest h1req = HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
+        // Fake out a full HTTP request.
+        FullHttpRequest synthesizedRequest =
+            HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
         if (data != null) {
-          h1req.replace(data);
+          synthesizedRequest.replace(data);
         }
 
-        return h1Request;
+        return synthesizedRequest;
       } catch (Http2Exception e) {
-        //TODO(JR): Do something more meaningful with this exception
+        // TODO(JR): Do something more meaningful with this exception
         e.printStackTrace();
       }
     }
