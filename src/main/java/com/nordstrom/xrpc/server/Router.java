@@ -42,6 +42,8 @@ import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
@@ -72,8 +74,10 @@ public class Router {
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
   private final Tls tls;
+  @Getter
   private Channel channel;
   private EventLoopGroup bossGroup;
+  @Getter
   private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
 

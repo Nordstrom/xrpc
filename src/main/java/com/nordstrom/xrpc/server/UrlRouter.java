@@ -5,6 +5,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableSortedMap;
+import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
@@ -36,9 +37,9 @@ public class UrlRouter extends ChannelDuplexHandler {
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
-      String uri = request.uri();
+      String path = XUrl.getPath(request.uri());
       for (Route route : routes.get().descendingKeySet()) {
-        Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
+        Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
           XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
           HttpResponse resp = routes.get().get(route).handle(xrpcRequest);
