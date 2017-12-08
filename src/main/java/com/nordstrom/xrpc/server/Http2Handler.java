@@ -6,6 +6,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -23,12 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
 
   private final Meter requests;
-  private final AtomicReference<ImmutableSortedMap<Route, Handler>> routes;
+  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes;
   private XrpcRequest xrpcRequest;
 
   Http2Handler(
       Meter requests,
-      AtomicReference<ImmutableSortedMap<Route, Handler>> routes,
+      AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes,
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
@@ -54,7 +55,21 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
   private void executeHandler(ChannelHandlerContext ctx, int streamId, Route route)
       throws IOException {
-    FullHttpResponse h1Resp = (FullHttpResponse) routes.get().get(route).handle(xrpcRequest);
+    XHttpMethod methodName =
+        routes
+            .get()
+            .get(route)
+            .keySet()
+            .stream()
+            .filter(
+                m ->
+                    m.compareTo(XHttpMethod.valueOf(xrpcRequest.getH2Headers().method().toString()))
+                        == 0)
+            .findFirst()
+            .orElse(XHttpMethod.ANY);
+
+    FullHttpResponse h1Resp =
+        (FullHttpResponse) routes.get().get(route).get(methodName).handle(xrpcRequest);
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
     Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
     encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
@@ -80,9 +95,6 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     if (endOfStream) {
       xrpcRequest.setData(data);
-
-      //TODO(JR): This is terrible and should be changed prior to real use
-      // Specifically, we should not have to re-cycle over the routes again
       for (Route route : routes.get().descendingKeySet()) {
         Optional<Map<String, String>> groups =
             Optional.ofNullable(route.groups(xrpcRequest.getH2Headers().path().toString()));

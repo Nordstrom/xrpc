@@ -17,7 +17,6 @@
 package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -26,14 +25,12 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -140,7 +137,7 @@ public class Example {
         };
 
     // Create your route mapping
-    router.addRoute("/people/{person}", personHandler);
+    router.addRoute("/people/{person}", personHandler, HttpMethod.GET);
     router.addRoute("/people", peopleHandler);
 
     //    // Create your route mapping

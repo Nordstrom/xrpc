@@ -31,6 +31,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
@@ -55,16 +56,12 @@ class Call {
     return this;
   }
 
-  public ListenableFuture<FullHttpResponse> execute() {
+  public ListenableFuture<FullHttpResponse> execute() throws URISyntaxException {
     Preconditions.checkState(request != null);
     final SettableFuture<FullHttpResponse> error = SettableFuture.create();
     final SettableFuture<FullHttpResponse> response = SettableFuture.create();
     final ListenableFuture<ChannelFuture> connectFuture =
-        connect(
-            //TODO(JR): This parses the URL twice, which is wasteful. Make a method that returns a InetSocketAddress from url string
-            new InetSocketAddress(XUrl.getHost(uri), XUrl.getPort(uri)),
-            client.getBootstrap(),
-            buildRetryLoop());
+        connect(XUrl.getInetSocket(uri), client.getBootstrap(), buildRetryLoop());
 
     Futures.addCallback(
         connectFuture,

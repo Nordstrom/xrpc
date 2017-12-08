@@ -17,12 +17,19 @@ package com.nordstrom.xrpc.client;
  */
 
 import com.google.common.base.Preconditions;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
+
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 public class XUrl {
@@ -108,5 +115,40 @@ public class XUrl {
       url = "http://" + url;
     }
     return url;
+  }
+
+  public static Map<String, List<String>> decodeQString(String url) {
+    return Arrays.stream(stripQueryParameters(url).split("&"))
+      .map(XUrl::splitQueryParameter)
+      .collect(Collectors.groupingBy(AbstractMap.SimpleImmutableEntry::getKey, LinkedHashMap::new, mapping(Map.Entry::getValue, toList())));
+  }
+
+  public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
+    final int idx = it.indexOf("=");
+    final String key = idx > 0 ? it.substring(0, idx) : it;
+    final String value = idx > 0 && it.length() > idx + 1 ? it.substring(idx + 1) : null;
+    return new AbstractMap.SimpleImmutableEntry<>(key, value);
+  }
+
+  public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
+    Preconditions.checkNotNull(url);
+    Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
+    url = addProtocol(url);
+    try {
+      URI uri = new URI(url);
+      if (uri.getPort() == -1) {
+        if (!matcher.find()) {
+          return new InetSocketAddress(uri.getHost(), 80);
+        } else {
+          return new InetSocketAddress(uri.getHost(), 443);
+        }
+      } else {
+        return new InetSocketAddress(uri.getHost(), uri.getPort());
+      }
+    } catch (URISyntaxException e) {
+      log.info("Malformed url: " + url);
+      //TODO(JR): Should this rethrow
+      throw e;
+    }
   }
 }

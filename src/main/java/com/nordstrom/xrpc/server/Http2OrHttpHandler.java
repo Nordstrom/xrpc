@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.server;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -10,6 +11,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ChannelHandler.Sharable
@@ -17,12 +19,12 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
   private static final int MAX_PAYLOAD_SIZE =
       1 * 1024 * 1024; //TODO(JR): This should be configurable
   private final UrlRouter router;
-  private final AtomicReference<ImmutableSortedMap<Route, Handler>> routes;
+  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes;
   private final Meter requests;
 
   protected Http2OrHttpHandler(
       UrlRouter router,
-      AtomicReference<ImmutableSortedMap<Route, Handler>> routes,
+      AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes,
       Meter requests) {
     super(ApplicationProtocolNames.HTTP_1_1);
     this.router = router;

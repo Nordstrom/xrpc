@@ -7,6 +7,7 @@ import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -19,10 +20,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
 
-  private final AtomicReference<ImmutableSortedMap<Route, Handler>> routes;
+  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes;
   private final Meter requests;
 
-  public UrlRouter(AtomicReference<ImmutableSortedMap<Route, Handler>> routes, Meter requests) {
+  public UrlRouter(
+      AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes,
+      Meter requests) {
 
     this.routes = routes;
     this.requests = requests;
@@ -42,7 +45,18 @@ public class UrlRouter extends ChannelDuplexHandler {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
           XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
-          HttpResponse resp = routes.get().get(route).handle(xrpcRequest);
+
+          XHttpMethod methodName =
+              routes
+                  .get()
+                  .get(route)
+                  .keySet()
+                  .stream()
+                  .filter(m -> m.compareTo(request.method()) == 0)
+                  .findFirst()
+                  .orElse(XHttpMethod.ANY);
+
+          HttpResponse resp = routes.get().get(route).get(methodName).handle(xrpcRequest);
 
           ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
           ctx.fireChannelRead(msg);
