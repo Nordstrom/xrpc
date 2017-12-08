@@ -6,12 +6,16 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.handler.codec.http.*;
+import java.net.URISyntaxException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class XrpcClientTest {
   XrpcClient client = new XrpcClient();
+  CountDownLatch latch = new CountDownLatch(1);
 
   @BeforeEach
   void setUp() {}
@@ -32,24 +36,33 @@ class XrpcClientTest {
     FullHttpRequest request =
         new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/people");
 
-    ListenableFuture<FullHttpResponse> response =
-        client.newCall("https://127.0.0.1:8080").get(request).execute();
+    ListenableFuture<FullHttpResponse> response = null;
+    try {
+      response = client.newCall("https://127.0.0.1:8080").get(request).execute();
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+    }
 
     Futures.addCallback(
         response,
         new FutureCallback<FullHttpResponse>() {
           @Override
           public void onSuccess(FullHttpResponse result) {
+            latch.countDown();
+            ;
             System.out.println(result);
             assertEquals(HttpResponseStatus.OK, result.status());
           }
 
           @Override
-          public void onFailure(Throwable t) {}
+          public void onFailure(Throwable t) {
+            latch.countDown();
+            assertEquals(true, false);
+          }
         });
 
     try {
-      Thread.sleep(500);
+      latch.await(500, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
