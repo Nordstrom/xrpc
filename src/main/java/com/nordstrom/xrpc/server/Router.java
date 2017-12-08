@@ -19,12 +19,15 @@ package com.nordstrom.xrpc.server;
 import static io.netty.channel.ChannelOption.*;
 
 import com.codahale.metrics.*;
+import com.codahale.metrics.json.MetricsModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
+import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
@@ -52,7 +55,6 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  // see http://metrics.dropwizard.io/3.2.2/getting-started.html for more on this
   private static final MetricRegistry metrics = new MetricRegistry();
   final Slf4jReporter slf4jReporter =
       Slf4jReporter.forRegistry(metrics)
@@ -81,6 +83,9 @@ public class Router {
   private EventLoopGroup bossGroup;
   @Getter private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
+
+  private MetricsModule metricsModule;
+  private ObjectMapper mapper;
 
   public Router(XConfig config) {
     this(config, 1 * 1024 * 1024);
@@ -129,6 +134,23 @@ public class Router {
   public MetricRegistry getMetrics() {
     return metrics;
   }
+
+  private Handler metricsHandler =
+      xrpcRequest -> {
+        return Recipes.newResponseOk(
+            xrpcRequest.getAlloc().directBuffer().writeBytes(mapper.writeValueAsBytes(metrics)),
+            Recipes.ContentType.Application_Json);
+      };
+
+  public void serveMetrics() {
+    metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
+    mapper = new ObjectMapper().registerModule(metricsModule);
+
+    addRoute("/metrics", metricsHandler, HttpMethod.GET);
+  }
+
+  //private Handler adminHandler = xrpcRequest -> {};
+  private Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
   public void listenAndServe() throws IOException {
     ConnectionLimiter globalConnectionLimiter =

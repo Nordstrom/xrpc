@@ -16,12 +16,10 @@ package com.nordstrom.xrpc.client;
  * limitations under the License.
  */
 
-import com.google.common.base.Preconditions;
-<<<<<<< HEAD
-import lombok.extern.slf4j.Slf4j;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
-=======
->>>>>>> 1a9dc24c11f2082e543c604827b6ba9de755c273
+import com.google.common.base.Preconditions;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,16 +28,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-<<<<<<< HEAD
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
-=======
 import lombok.extern.slf4j.Slf4j;
->>>>>>> 1a9dc24c11f2082e543c604827b6ba9de755c273
-
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 
 @Slf4j
 public class XUrl {
@@ -116,7 +105,7 @@ public class XUrl {
   }
 
   private static final Pattern URL_PROTOCOL_REGEX =
-    Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
 
   public static String addProtocol(String url) {
     Preconditions.checkNotNull(url);
@@ -129,8 +118,12 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     return Arrays.stream(stripQueryParameters(url).split("&"))
-      .map(XUrl::splitQueryParameter)
-      .collect(Collectors.groupingBy(AbstractMap.SimpleImmutableEntry::getKey, LinkedHashMap::new, mapping(Map.Entry::getValue, toList())));
+        .map(XUrl::splitQueryParameter)
+        .collect(
+            Collectors.groupingBy(
+                AbstractMap.SimpleImmutableEntry::getKey,
+                LinkedHashMap::new,
+                mapping(Map.Entry::getValue, toList())));
   }
 
   public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {

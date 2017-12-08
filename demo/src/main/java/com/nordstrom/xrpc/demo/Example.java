@@ -149,6 +149,7 @@ public class Example {
 
     try {
       // Fire away
+      router.serveMetrics();
       router.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
