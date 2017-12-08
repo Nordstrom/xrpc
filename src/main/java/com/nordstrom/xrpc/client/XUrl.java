@@ -17,12 +17,19 @@ package com.nordstrom.xrpc.client;
  */
 
 import com.google.common.base.Preconditions;
+import lombok.extern.slf4j.Slf4j;
+
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 public class XUrl {
@@ -99,7 +106,7 @@ public class XUrl {
   }
 
   private static final Pattern URL_PROTOCOL_REGEX =
-      Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
+    Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
 
   public static String addProtocol(String url) {
     Preconditions.checkNotNull(url);
@@ -108,5 +115,34 @@ public class XUrl {
       url = "http://" + url;
     }
     return url;
+  }
+
+  public static Map<String, List<String>> decodeQueryString(String url) {
+    return Arrays.stream(stripQueryParameters(url).split("&"))
+      .map(XUrl::splitQueryParameter)
+      .collect(Collectors.groupingBy(AbstractMap.SimpleImmutableEntry::getKey, LinkedHashMap::new, mapping(Map.Entry::getValue, toList())));
+  }
+
+  public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
+    final int idx = it.indexOf("=");
+    final String key = idx > 0 ? it.substring(0, idx) : it;
+    final String value = idx > 0 && it.length() > idx + 1 ? it.substring(idx + 1) : null;
+    return new AbstractMap.SimpleImmutableEntry<>(key, value);
+  }
+
+  public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
+    Preconditions.checkNotNull(url);
+    Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
+    url = addProtocol(url);
+    URI uri = new URI(url);
+    if (uri.getPort() == -1) {
+      if (!matcher.find()) {
+        return new InetSocketAddress(uri.getHost(), 80);
+      } else {
+        return new InetSocketAddress(uri.getHost(), 443);
+      }
+    } else {
+      return new InetSocketAddress(uri.getHost(), uri.getPort());
+    }
   }
 }

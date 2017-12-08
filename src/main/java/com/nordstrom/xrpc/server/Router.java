@@ -19,12 +19,14 @@ package com.nordstrom.xrpc.server;
 import static io.netty.channel.ChannelOption.*;
 
 import com.codahale.metrics.*;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -34,15 +36,16 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
@@ -64,7 +67,7 @@ public class Router {
 
   private final int bossThreadCount;
   private final int workerThreadCount;
-  private final AtomicReference<ImmutableSortedMap<Route, Handler>> routes =
+  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes =
       new AtomicReference<>();
   private final int MAX_PAYLOAD_SIZE;
   private final Meter requests = metrics.meter("requests");
@@ -74,11 +77,9 @@ public class Router {
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
   private final Tls tls;
-  @Getter
-  private Channel channel;
+  @Getter private Channel channel;
   private EventLoopGroup bossGroup;
-  @Getter
-  private EventLoopGroup workerGroup;
+  @Getter private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
 
   public Router(XConfig config) {
@@ -98,18 +99,29 @@ public class Router {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
 
-  public void addRoute(String route, Handler handler) {
-    ImmutableSortedMap.Builder<Route, Handler> routeMap =
-        new ImmutableSortedMap.Builder<Route, Handler>(Ordering.usingToString())
-            .put(Route.build(route), handler);
+  public void addRoute(String s, Handler handler) {
+    addRoute(s, handler, XHttpMethod.ANY);
+  }
 
-    Optional<ImmutableSortedMap<Route, Handler>> routesOptional = Optional.ofNullable(routes.get());
+  public void addRoute(String route, Handler handler, HttpMethod method) {
+    Preconditions.checkState(method != null);
+
+    ImmutableSortedMap.Builder<XHttpMethod, Handler> methodMap =
+        new ImmutableSortedMap.Builder<XHttpMethod, Handler>(Ordering.usingToString())
+            .put(new XHttpMethod(method.name()), handler);
+
+    ImmutableSortedMap.Builder<Route, Map<XHttpMethod, Handler>> routeMap =
+        new ImmutableSortedMap.Builder<Route, Map<XHttpMethod, Handler>>(Ordering.usingToString())
+            .put(Route.build(route), methodMap.build());
+
+    Optional<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routesOptional =
+        Optional.ofNullable(routes.get());
 
     routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
     routes.set(routeMap.build());
   }
 
-  public AtomicReference<ImmutableSortedMap<Route, Handler>> getRoutes() {
+  public AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> getRoutes() {
 
     return routes;
   }
