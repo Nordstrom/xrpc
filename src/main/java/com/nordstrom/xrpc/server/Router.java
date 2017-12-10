@@ -19,15 +19,19 @@ package com.nordstrom.xrpc.server;
 import static io.netty.channel.ChannelOption.*;
 
 import com.codahale.metrics.*;
+import com.codahale.metrics.health.HealthCheck;
+import com.codahale.metrics.health.HealthCheckRegistry;
+import com.codahale.metrics.json.HealthCheckModule;
 import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
-import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
@@ -40,12 +44,15 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,26 +62,25 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  private static final MetricRegistry metrics = new MetricRegistry();
+  private final XConfig config;
+  private final String workerNameFormat;
+  private final int bossThreadCount;
+  private final int workerThreadCount;
+  private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
+      routes = new AtomicReference<>();
+  private final int MAX_PAYLOAD_SIZE;
+  private final MetricRegistry metricRegistry = new MetricRegistry();
   final Slf4jReporter slf4jReporter =
-      Slf4jReporter.forRegistry(metrics)
+      Slf4jReporter.forRegistry(metricRegistry)
           .outputTo(LoggerFactory.getLogger(Router.class))
           .convertRatesTo(TimeUnit.SECONDS)
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
-  final JmxReporter jmxReporter = JmxReporter.forRegistry(metrics).build();
-  private final XConfig config;
-  /** Format to use for worker thread names. */
-  private final String workerNameFormat;
-
-  private final int bossThreadCount;
-  private final int workerThreadCount;
-  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes =
-      new AtomicReference<>();
-  private final int MAX_PAYLOAD_SIZE;
-  private final Meter requests = metrics.meter("requests");
+  final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
+  private final HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry(this.workerGroup);
+  private final Meter requests = metricRegistry.meter("requests");
   private final ConsoleReporter consoleReporter =
-      ConsoleReporter.forRegistry(metrics)
+      ConsoleReporter.forRegistry(metricRegistry)
           .convertRatesTo(TimeUnit.SECONDS)
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
@@ -86,6 +92,8 @@ public class Router {
 
   private MetricsModule metricsModule;
   private ObjectMapper mapper;
+  private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode =
+      new ConcurrentHashMap<>(6);
 
   public Router(XConfig config) {
     this(config, 1 * 1024 * 1024);
@@ -98,10 +106,51 @@ public class Router {
     this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
     this.MAX_PAYLOAD_SIZE = maxPayload;
+
+    configResponseCodeMeters();
   }
 
   private static ThreadFactory threadFactory(String nameFormat) {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
+  }
+
+  private void configResponseCodeMeters() {
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+
+    // Create the proper metrics containers
+    final String NAME_PREFIX = "responseCodes.";
+    meterNamesByStatusCode.put(HttpResponseStatus.OK, NAME_PREFIX + "ok");
+    meterNamesByStatusCode.put(HttpResponseStatus.CREATED, NAME_PREFIX + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, NAME_PREFIX + "noContent");
+    meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
+    meterNamesByStatusCode.put(
+        HttpResponseStatus.INTERNAL_SERVER_ERROR, NAME_PREFIX + "serverError");
+
+    for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
+      metersByStatusCode.put(entry.getKey(), metricRegistry.meter(entry.getValue()));
+    }
+  }
+
+  public void addHealthCheck(String s, HealthCheck check) {
+    healthCheckRegistry.register(s, check);
+  }
+
+  public void scheduleHealthChecks() {
+    scheduleHealthChecks(60, 60, TimeUnit.SECONDS);
+  }
+
+  public void scheduleHealthChecks(int initialDelay, int delay, TimeUnit timeUnit) {
+    workerGroup.scheduleWithFixedDelay(
+        new Runnable() {
+          @Override
+          public void run() {
+            healthCheckRegistry.runHealthChecks(workerGroup);
+          }
+        },
+        initialDelay,
+        delay,
+        timeUnit);
   }
 
   public void addRoute(String s, Handler handler) {
@@ -110,60 +159,82 @@ public class Router {
 
   public void addRoute(String route, Handler handler, HttpMethod method) {
     Preconditions.checkState(method != null);
+    Preconditions.checkState(handler != null);
 
-    ImmutableSortedMap.Builder<XHttpMethod, Handler> methodMap =
-        new ImmutableSortedMap.Builder<XHttpMethod, Handler>(Ordering.usingToString())
-            .put(new XHttpMethod(method.name()), handler);
+    ImmutableMap<XHttpMethod, Handler> handlerMap =
+        new ImmutableMap.Builder<XHttpMethod, Handler>()
+            .put(new XHttpMethod(method.name()), handler)
+            .build();
 
-    ImmutableSortedMap.Builder<Route, Map<XHttpMethod, Handler>> routeMap =
-        new ImmutableSortedMap.Builder<Route, Map<XHttpMethod, Handler>>(Ordering.usingToString())
-            .put(Route.build(route), methodMap.build());
-
-    Optional<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routesOptional =
+    Route _route = Route.build(route);
+    Optional<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routesOptional =
         Optional.ofNullable(routes.get());
 
-    routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
-    routes.set(routeMap.build());
+    if (routesOptional.isPresent()) {
+
+      if (routesOptional.get().containsKey(_route)) {
+        ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> _routes =
+            routesOptional.get();
+        _routes.get(_route).add(handlerMap);
+        routes.set(_routes);
+
+      } else {
+        ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
+            new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
+                    Ordering.usingToString())
+                .put(Route.build(route), Lists.newArrayList(handlerMap));
+
+        routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
+
+        routes.set(routeMap.build());
+      }
+    } else {
+      ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
+          new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
+                  Ordering.usingToString())
+              .put(Route.build(route), Lists.newArrayList(handlerMap));
+
+      routes.set(routeMap.build());
+    }
   }
 
-  public AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> getRoutes() {
+  public AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
+      getRoutes() {
 
     return routes;
   }
 
-  public MetricRegistry getMetrics() {
-    return metrics;
+  public MetricRegistry getMetricRegistry() {
+    return metricRegistry;
   }
 
-  private Handler metricsHandler =
-      xrpcRequest -> {
-        return Recipes.newResponseOk(
-            xrpcRequest.getAlloc().directBuffer().writeBytes(mapper.writeValueAsBytes(metrics)),
-            Recipes.ContentType.Application_Json);
-      };
+  public void serveAdmin() {
+    MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
+    ObjectMapper metricsMaapper = new ObjectMapper().registerModule(metricsModule);
+    ObjectMapper healthMaapper = new ObjectMapper();
 
-  public void serveMetrics() {
-    metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
-    mapper = new ObjectMapper().registerModule(metricsModule);
-
-    addRoute("/metrics", metricsHandler, HttpMethod.GET);
+    addRoute("/admin", AdminHandlers.adminHandler(), HttpMethod.GET);
+    addRoute("/ping", AdminHandlers.pingHandler(), HttpMethod.GET);
+    addRoute(
+        "/health",
+        AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMaapper),
+        HttpMethod.GET);
+    addRoute(
+        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMaapper), HttpMethod.GET);
   }
-
-  //private Handler adminHandler = xrpcRequest -> {};
-  private Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
   public void listenAndServe() throws IOException {
     ConnectionLimiter globalConnectionLimiter =
         new ConnectionLimiter(
-            metrics, config.maxConnections()); // All endpoints for a given service
+            metricRegistry, config.maxConnections()); // All endpoints for a given service
     ServiceRateLimiter rateLimiter =
         new ServiceRateLimiter(
-            metrics,
+            metricRegistry,
             config.rateLimit()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b = new ServerBootstrap();
-    UrlRouter router = new UrlRouter(routes, requests);
-    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, routes, requests);
+    UrlRouter router = new UrlRouter(routes, requests, metersByStatusCode);
+    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, routes, requests, metersByStatusCode);
 
     if (Epoll.isAvailable()) {
       bossGroup = new EpollEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));

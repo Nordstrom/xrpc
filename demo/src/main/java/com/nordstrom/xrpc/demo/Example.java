@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.demo;
 
+import com.codahale.metrics.health.HealthCheck;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
@@ -149,8 +150,10 @@ public class Example {
 
     try {
       // Fire away
-      router.serveMetrics();
+      router.addHealthCheck("simple", new SimpleHealthCheck());
+      router.serveAdmin();
       router.listenAndServe();
+      router.scheduleHealthChecks();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
@@ -160,5 +163,17 @@ public class Example {
   @AllArgsConstructor
   private static class Person {
     private String name;
+  }
+
+  public static class SimpleHealthCheck extends HealthCheck {
+
+    public SimpleHealthCheck() {
+    }
+
+    @Override
+    protected Result check() throws Exception {
+      System.out.println("Health Check Ran");
+      return Result.healthy();
+    }
   }
 }

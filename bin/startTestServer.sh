@@ -4,9 +4,8 @@ set -e
 
 PORT=8080
 
-
 ./gradlew clean shadowJar && \
-  mv demo/build/libs/xrpc-demo-0.1.0-SNAPSHOT-all.jar app.jar && \
+  mv demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar app.jar && \
 java -ea          \
   $JAVA_OPTS                      \
   -Djava.net.preferIPv4Stack=true \
