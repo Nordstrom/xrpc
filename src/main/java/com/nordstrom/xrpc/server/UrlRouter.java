@@ -3,9 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
-import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
@@ -14,48 +12,33 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
+  private final XrpcChannelContext xctx;
 
-  private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
-      routes;
-  private final Meter requests;
-  private ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode;
+  public UrlRouter(XrpcChannelContext ctx) {
 
-  public UrlRouter(
-      AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routes,
-      Meter requests,
-      ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode) {
-
-    this.routes = routes;
-    this.requests = requests;
-    this.metersByStatusCode = metersByStatusCode;
-  }
-
-  @Override
-  public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    requests.mark();
+    this.xctx = ctx;
   }
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    xctx.getRequestMeter().mark();
+
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
-      for (Route route : routes.get().descendingKeySet()) {
+      for (Route route : xctx.getRoutes().get().descendingKeySet()) {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
           XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
 
           HttpResponse resp;
           Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
-              routes
+              xctx.getRoutes()
                   .get()
                   .get(route)
                   .stream()
@@ -71,7 +54,7 @@ public class UrlRouter extends ChannelDuplexHandler {
                     .handle(xrpcRequest);
           } else {
             resp =
-                routes
+                xctx.getRoutes()
                     .get()
                     .get(route)
                     .stream()
@@ -82,7 +65,7 @@ public class UrlRouter extends ChannelDuplexHandler {
                     .handle(xrpcRequest);
           }
 
-          metersByStatusCode.get(resp.status()).mark();
+          xctx.getMetersByStatusCode().get(resp.status()).mark();
 
           ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
           ctx.fireChannelRead(msg);
@@ -95,7 +78,7 @@ public class UrlRouter extends ChannelDuplexHandler {
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, 0);
       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-      metersByStatusCode.get(HttpResponseStatus.NOT_FOUND).mark();
+      xctx.getMetersByStatusCode().get(HttpResponseStatus.NOT_FOUND).mark();
     }
     ctx.fireChannelRead(msg);
   }

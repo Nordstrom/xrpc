@@ -21,7 +21,6 @@ import static io.netty.channel.ChannelOption.*;
 import com.codahale.metrics.*;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.json.HealthCheckModule;
 import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -66,8 +65,6 @@ public class Router {
   private final String workerNameFormat;
   private final int bossThreadCount;
   private final int workerThreadCount;
-  private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
-      routes = new AtomicReference<>();
   private final int MAX_PAYLOAD_SIZE;
   private final MetricRegistry metricRegistry = new MetricRegistry();
   final Slf4jReporter slf4jReporter =
@@ -78,7 +75,6 @@ public class Router {
           .build();
   final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
   private final HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry(this.workerGroup);
-  private final Meter requests = metricRegistry.meter("requests");
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metricRegistry)
           .convertRatesTo(TimeUnit.SECONDS)
@@ -90,10 +86,7 @@ public class Router {
   @Getter private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
 
-  private MetricsModule metricsModule;
-  private ObjectMapper mapper;
-  private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode =
-      new ConcurrentHashMap<>(6);
+  private final XrpcChannelContext ctx;
 
   public Router(XConfig config) {
     this(config, 1 * 1024 * 1024);
@@ -106,6 +99,8 @@ public class Router {
     this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
     this.MAX_PAYLOAD_SIZE = maxPayload;
+
+    this.ctx = XrpcChannelContext.builder().requestMeter(metricRegistry.meter("requests")).build();
 
     configResponseCodeMeters();
   }
@@ -128,7 +123,7 @@ public class Router {
         HttpResponseStatus.INTERNAL_SERVER_ERROR, NAME_PREFIX + "serverError");
 
     for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
-      metersByStatusCode.put(entry.getKey(), metricRegistry.meter(entry.getValue()));
+      ctx.getMetersByStatusCode().put(entry.getKey(), metricRegistry.meter(entry.getValue()));
     }
   }
 
@@ -168,7 +163,7 @@ public class Router {
 
     Route _route = Route.build(route);
     Optional<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routesOptional =
-        Optional.ofNullable(routes.get());
+        Optional.ofNullable(ctx.getRoutes().get());
 
     if (routesOptional.isPresent()) {
 
@@ -176,7 +171,7 @@ public class Router {
         ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> _routes =
             routesOptional.get();
         _routes.get(_route).add(handlerMap);
-        routes.set(_routes);
+        ctx.getRoutes().set(_routes);
 
       } else {
         ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
@@ -186,7 +181,7 @@ public class Router {
 
         routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
 
-        routes.set(routeMap.build());
+        ctx.getRoutes().set(routeMap.build());
       }
     } else {
       ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
@@ -194,14 +189,14 @@ public class Router {
                   Ordering.usingToString())
               .put(Route.build(route), Lists.newArrayList(handlerMap));
 
-      routes.set(routeMap.build());
+      ctx.getRoutes().set(routeMap.build());
     }
   }
 
   public AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
       getRoutes() {
 
-    return routes;
+    return ctx.getRoutes();
   }
 
   public MetricRegistry getMetricRegistry() {
@@ -233,14 +228,16 @@ public class Router {
             config.rateLimit()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b = new ServerBootstrap();
-    UrlRouter router = new UrlRouter(routes, requests, metersByStatusCode);
-    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, routes, requests, metersByStatusCode);
+    UrlRouter router = new UrlRouter(ctx);
+    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, ctx);
 
     if (Epoll.isAvailable()) {
+      log.info("Using Epoll");
       bossGroup = new EpollEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
       workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
       channelClass = EpollServerSocketChannel.class;
     } else {
+      log.info("Using NIO");
       bossGroup = new NioEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
       workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
       channelClass = NioServerSocketChannel.class;

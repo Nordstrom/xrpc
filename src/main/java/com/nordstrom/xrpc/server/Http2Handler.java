@@ -3,9 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
-import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
@@ -13,33 +11,23 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
 
-  private final Meter requests;
-  private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
-      routes;
-  private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode;
+  private final XrpcChannelContext xctx;
   private XrpcRequest xrpcRequest;
 
   Http2Handler(
-      Meter requests,
-      AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routes,
-      ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode,
+      XrpcChannelContext xctx,
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
     super(decoder, encoder, initialSettings);
-    this.requests = requests;
-    this.routes = routes;
-    this.metersByStatusCode = metersByStatusCode;
+    this.xctx = xctx;
   }
 
   @Override
@@ -54,14 +42,14 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    requests.mark();
+    xctx.getRequestMeter().mark();
   }
 
   private void executeHandler(ChannelHandlerContext ctx, int streamId, Route route)
       throws IOException {
     FullHttpResponse h1Resp;
     Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
-        routes
+        xctx.getRoutes()
             .get()
             .get(route)
             .stream()
@@ -87,7 +75,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     } else {
       h1Resp =
           (FullHttpResponse)
-              routes
+              xctx.getRoutes()
                   .get()
                   .get(route)
                   .stream()
@@ -98,7 +86,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                   .handle(xrpcRequest);
     }
 
-    metersByStatusCode.get(h1Resp.status()).mark();
+    xctx.getMetersByStatusCode().get(h1Resp.status()).mark();
 
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
     Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
@@ -117,7 +105,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
     encoder().writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
 
-    metersByStatusCode.get(status).mark();
+    xctx.getMetersByStatusCode().get(status).mark();
   }
 
   @Override
@@ -127,7 +115,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     if (endOfStream) {
       xrpcRequest.setData(data);
-      for (Route route : routes.get().descendingKeySet()) {
+      for (Route route : xctx.getRoutes().get().descendingKeySet()) {
         Optional<Map<String, String>> groups =
             Optional.ofNullable(route.groups(xrpcRequest.getH2Headers().path().toString()));
         if (groups.isPresent()) {
@@ -155,7 +143,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       boolean endOfStream) {
 
     String uri = headers.path().toString();
-    for (Route route : routes.get().descendingKeySet()) {
+    for (Route route : xctx.getRoutes().get().descendingKeySet()) {
       Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
       if (groups.isPresent()) {
         xrpcRequest = new XrpcRequest(headers, groups.get(), ctx.channel(), streamId);

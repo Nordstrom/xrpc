@@ -167,8 +167,7 @@ public class Example {
 
   public static class SimpleHealthCheck extends HealthCheck {
 
-    public SimpleHealthCheck() {
-    }
+    public SimpleHealthCheck() {}
 
     @Override
     protected Result check() throws Exception {
