@@ -3,8 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
-import com.codahale.metrics.Meter;
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
@@ -15,48 +14,58 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
+  private final XrpcChannelContext xctx;
 
-  private final AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes;
-  private final Meter requests;
+  public UrlRouter(XrpcChannelContext ctx) {
 
-  public UrlRouter(
-      AtomicReference<ImmutableSortedMap<Route, Map<XHttpMethod, Handler>>> routes,
-      Meter requests) {
-
-    this.routes = routes;
-    this.requests = requests;
-  }
-
-  @Override
-  public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    requests.mark();
+    this.xctx = ctx;
   }
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    xctx.getRequestMeter().mark();
+
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
-      for (Route route : routes.get().descendingKeySet()) {
+      for (Route route : xctx.getRoutes().get().descendingKeySet()) {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
           XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
 
-          XHttpMethod methodName =
-              routes
+          HttpResponse resp;
+          Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
+              xctx.getRoutes()
                   .get()
                   .get(route)
-                  .keySet()
                   .stream()
-                  .filter(m -> m.compareTo(request.method()) == 0)
-                  .findFirst()
-                  .orElse(XHttpMethod.ANY);
+                  .filter(
+                      m -> m.keySet().stream().anyMatch(mx -> mx.compareTo(request.method()) == 0))
+                  .findFirst();
 
-          HttpResponse resp = routes.get().get(route).get(methodName).handle(xrpcRequest);
+          if (handlerMapOptional.isPresent()) {
+            resp =
+                handlerMapOptional
+                    .get()
+                    .get(handlerMapOptional.get().keySet().asList().get(0))
+                    .handle(xrpcRequest);
+          } else {
+            resp =
+                xctx.getRoutes()
+                    .get()
+                    .get(route)
+                    .stream()
+                    .filter(mx -> mx.containsKey(XHttpMethod.ANY))
+                    .findFirst()
+                    .get()
+                    .get(XHttpMethod.ANY)
+                    .handle(xrpcRequest);
+          }
+
+          xctx.getMetersByStatusCode().get(resp.status()).mark();
 
           ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
           ctx.fireChannelRead(msg);
@@ -69,6 +78,7 @@ public class UrlRouter extends ChannelDuplexHandler {
       response.headers().set(CONTENT_TYPE, "text/plain");
       response.headers().setInt(CONTENT_LENGTH, 0);
       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+      xctx.getMetersByStatusCode().get(HttpResponseStatus.NOT_FOUND).mark();
     }
     ctx.fireChannelRead(msg);
   }

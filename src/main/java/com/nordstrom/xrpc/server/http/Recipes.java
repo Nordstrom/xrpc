@@ -121,6 +121,10 @@ public final class Recipes {
     return newResponse(HttpResponseStatus.OK, payload, ContentType.Text_Plain);
   }
 
+  public static FullHttpResponse newResponseOk(ByteBuf payload, ContentType contentType) {
+    return newResponse(HttpResponseStatus.OK, payload, contentType);
+  }
+
   public static FullHttpResponse newResponseOk(String payload, ContentType contentType) {
     return newResponse(HttpResponseStatus.OK, payload, contentType);
   }
