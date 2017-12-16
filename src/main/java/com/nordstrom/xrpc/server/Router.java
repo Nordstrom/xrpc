@@ -205,17 +205,17 @@ public class Router {
 
   public void serveAdmin() {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
-    ObjectMapper metricsMaapper = new ObjectMapper().registerModule(metricsModule);
-    ObjectMapper healthMaapper = new ObjectMapper();
+    ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
+    ObjectMapper healthMapper = new ObjectMapper();
 
     addRoute("/admin", AdminHandlers.adminHandler(), HttpMethod.GET);
     addRoute("/ping", AdminHandlers.pingHandler(), HttpMethod.GET);
     addRoute(
         "/health",
-        AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMaapper),
+        AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper),
         HttpMethod.GET);
     addRoute(
-        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMaapper), HttpMethod.GET);
+        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper), HttpMethod.GET);
   }
 
   public void listenAndServe() throws IOException {
