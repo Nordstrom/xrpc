@@ -156,7 +156,19 @@ class Call {
           }
         };
 
-    bootstrap.connect(server).addListener(listener);
+    //TODO(JR): There should be a timeout here
+    try {
+      bootstrap.connect(server).addListener(listener).await(200, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      try {
+        retryLoop.takeException(e);
+      } catch (Exception e1) {
+        //TODO(JR): Throw proper exception for exceeding retry limit
+
+      }
+      log.info("==== Service connect failure (will retry)", e);
+      connect(server, bootstrap, retryLoop);
+    }
 
     return f;
   }

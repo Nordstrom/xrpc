@@ -26,6 +26,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -75,6 +78,7 @@ public class XrpcClient {
           .sslProvider(provider)
           .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
           .trustManager(InsecureTrustManagerFactory.INSTANCE)
+          // TODO(JR): Make a seperate Handler Class for http2 as opposed to autoneg
           //        .applicationProtocolConfig(new ApplicationProtocolConfig(
           //          ApplicationProtocolConfig.Protocol.ALPN,
           //          // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
@@ -97,6 +101,9 @@ public class XrpcClient {
       if (Epoll.isAvailable()) {
         workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
         channelClass = EpollSocketChannel.class;
+      } else if (KQueue.isAvailable()) {
+        workerGroup = new KQueueEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
+        channelClass = KQueueSocketChannel.class;
       } else {
         workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
         channelClass = NioSocketChannel.class;
@@ -105,7 +112,9 @@ public class XrpcClient {
 
     b.group(workerGroup)
         .channel(channelClass)
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 500)
+        .option(
+            ChannelOption.CONNECT_TIMEOUT_MILLIS,
+            500) //TODO(JR): This timeout value should be configurable
         .option(ChannelOption.SO_REUSEADDR, true)
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
         .option(ChannelOption.TCP_NODELAY, true)
