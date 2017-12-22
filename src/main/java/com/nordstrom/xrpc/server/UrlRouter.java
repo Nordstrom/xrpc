@@ -4,6 +4,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableMap;
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
@@ -17,15 +18,10 @@ import java.util.Optional;
 
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
-  private final XrpcChannelContext xctx;
-
-  public UrlRouter(XrpcChannelContext ctx) {
-
-    this.xctx = ctx;
-  }
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     xctx.getRequestMeter().mark();
 
     if (msg instanceof HttpRequest) {
