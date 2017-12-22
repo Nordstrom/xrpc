@@ -4,13 +4,13 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableMap;
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http2.*;
-import io.netty.util.AttributeKey;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
@@ -18,10 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
-  private static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
-      AttributeKey.valueOf("XrpcConnectionContext");
-  private static final AttributeKey<XrpcRequest> XRPC_REQUEST = AttributeKey.valueOf("XrpcRequest");
-
   Http2Handler(
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
@@ -41,12 +37,12 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    ctx.channel().attr(CONNECTION_CONTEXT).get().getRequestMeter().mark();
+    ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get().getRequestMeter().mark();
   }
 
   private void executeHandler(ChannelHandlerContext ctx, int streamId, Route route)
       throws IOException {
-    XrpcConnectionContext xctx = ctx.channel().attr(CONNECTION_CONTEXT).get();
+    XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     FullHttpResponse h1Resp;
 
     Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
@@ -63,7 +59,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                                 mx.compareTo(
                                         XHttpMethod.valueOf(
                                             ctx.channel()
-                                                .attr(XRPC_REQUEST)
+                                                .attr(XrpcConstants.XRPC_REQUEST)
                                                 .get()
                                                 .getH2Headers()
                                                 .method()
@@ -77,7 +73,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
               handlerMapOptional
                   .get()
                   .get(handlerMapOptional.get().keySet().asList().get(0))
-                  .handle(ctx.channel().attr(XRPC_REQUEST).get());
+                  .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     } else {
       h1Resp =
           (FullHttpResponse)
@@ -89,7 +85,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                   .findFirst()
                   .get()
                   .get(XHttpMethod.ANY)
-                  .handle(ctx.channel().attr(XRPC_REQUEST).get());
+                  .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     }
 
     xctx.getMetersByStatusCode().get(h1Resp.status()).mark();
@@ -111,7 +107,12 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     encoder().writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
     encoder().writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
 
-    ctx.channel().attr(CONNECTION_CONTEXT).get().getMetersByStatusCode().get(status).mark();
+    ctx.channel()
+        .attr(XrpcConstants.CONNECTION_CONTEXT)
+        .get()
+        .getMetersByStatusCode()
+        .get(status)
+        .mark();
   }
 
   @Override
@@ -120,13 +121,23 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     int processed = data.readableBytes() + padding;
 
     if (endOfStream) {
-      ctx.channel().attr(XRPC_REQUEST).get().setData(data);
+      ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get().setData(data);
       for (Route route :
-          ctx.channel().attr(CONNECTION_CONTEXT).get().getRoutes().get().descendingKeySet()) {
+          ctx.channel()
+              .attr(XrpcConstants.CONNECTION_CONTEXT)
+              .get()
+              .getRoutes()
+              .get()
+              .descendingKeySet()) {
         Optional<Map<String, String>> groups =
             Optional.ofNullable(
                 route.groups(
-                    ctx.channel().attr(XRPC_REQUEST).get().getH2Headers().path().toString()));
+                    ctx.channel()
+                        .attr(XrpcConstants.XRPC_REQUEST)
+                        .get()
+                        .getH2Headers()
+                        .path()
+                        .toString()));
         if (groups.isPresent()) {
           try {
             executeHandler(ctx, streamId, route);
@@ -153,11 +164,16 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     String uri = headers.path().toString();
     for (Route route :
-        ctx.channel().attr(CONNECTION_CONTEXT).get().getRoutes().get().descendingKeySet()) {
+        ctx.channel()
+            .attr(XrpcConstants.CONNECTION_CONTEXT)
+            .get()
+            .getRoutes()
+            .get()
+            .descendingKeySet()) {
       Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
       if (groups.isPresent()) {
         ctx.channel()
-            .attr(XRPC_REQUEST)
+            .attr(XrpcConstants.XRPC_REQUEST)
             .set(new XrpcRequest(headers, groups.get(), ctx.channel(), streamId));
         Optional<CharSequence> contentLength = Optional.ofNullable(headers.get("content-length"));
         if (!contentLength.isPresent()) {

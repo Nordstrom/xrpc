@@ -56,7 +56,6 @@ public class Router {
   private final int bossThreadCount;
   private final int workerThreadCount;
   private final int MAX_PAYLOAD_SIZE;
-  //private static final AttributeKey<XioConnectionContext> CONNECTION_CONTEXT = AttributeKey.valueOf("XioConnectionContext")
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
   final Slf4jReporter slf4jReporter =
@@ -93,7 +92,10 @@ public class Router {
     this.MAX_PAYLOAD_SIZE = maxPayload;
 
     this.ctx =
-        XrpcConnectionContext.builder().requestMeter(metricRegistry.meter("requests")).build();
+        XrpcConnectionContext.builder()
+            .requestMeter(metricRegistry.meter("requests"))
+            .maxPayloadSize(MAX_PAYLOAD_SIZE)
+            .build();
 
     configResponseCodeMeters();
   }
