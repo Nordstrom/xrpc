@@ -12,20 +12,20 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
+import io.netty.util.AttributeKey;
 import java.util.Map;
 import java.util.Optional;
 
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
-  private final XrpcChannelContext xctx;
+  private static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
+      AttributeKey.valueOf("XrpcConnectionContext");
 
-  public UrlRouter(XrpcChannelContext ctx) {
-
-    this.xctx = ctx;
-  }
+  public UrlRouter() {}
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    XrpcConnectionContext xctx = ctx.channel().attr(CONNECTION_CONTEXT).get();
     xctx.getRequestMeter().mark();
 
     if (msg instanceof HttpRequest) {

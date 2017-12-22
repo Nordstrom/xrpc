@@ -16,8 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import static io.netty.channel.ChannelOption.*;
-
 import com.codahale.metrics.*;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
@@ -28,24 +26,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollChannelOption;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.kqueue.KQueue;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
-import io.netty.channel.kqueue.KQueueServerSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -56,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
@@ -70,6 +56,8 @@ public class Router {
   private final int bossThreadCount;
   private final int workerThreadCount;
   private final int MAX_PAYLOAD_SIZE;
+  //private static final AttributeKey<XioConnectionContext> CONNECTION_CONTEXT = AttributeKey.valueOf("XioConnectionContext")
+
   private final MetricRegistry metricRegistry = new MetricRegistry();
   final Slf4jReporter slf4jReporter =
       Slf4jReporter.forRegistry(metricRegistry)
@@ -90,7 +78,7 @@ public class Router {
   @Getter private EventLoopGroup workerGroup;
   private Class<? extends ServerChannel> channelClass;
 
-  private final XrpcChannelContext ctx;
+  private final XrpcConnectionContext ctx;
 
   public Router(XConfig config) {
     this(config, 1 * 1024 * 1024);
@@ -104,13 +92,10 @@ public class Router {
     this.tls = new Tls(config.cert(), config.key());
     this.MAX_PAYLOAD_SIZE = maxPayload;
 
-    this.ctx = XrpcChannelContext.builder().requestMeter(metricRegistry.meter("requests")).build();
+    this.ctx =
+        XrpcConnectionContext.builder().requestMeter(metricRegistry.meter("requests")).build();
 
     configResponseCodeMeters();
-  }
-
-  private static ThreadFactory threadFactory(String nameFormat) {
-    return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
   }
 
   private void configResponseCodeMeters() {
@@ -231,38 +216,11 @@ public class Router {
             metricRegistry,
             config.rateLimit()); // RateLimit incomming connections in terms of req / second
 
-    ServerBootstrap b = new ServerBootstrap();
-    UrlRouter router = new UrlRouter(ctx);
+    ServerBootstrap b =
+        XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
+    UrlRouter router = new UrlRouter();
     Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, ctx);
 
-    if (Epoll.isAvailable()) {
-      log.info("Using Epoll");
-      bossGroup = new EpollEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
-      workerGroup = new EpollEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
-      channelClass = EpollServerSocketChannel.class;
-    } else if (KQueue.isAvailable()) {
-      log.info("Using KQueue");
-      bossGroup = new KQueueEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
-      workerGroup = new KQueueEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
-      channelClass = KQueueServerSocketChannel.class;
-      b.option(EpollChannelOption.SO_REUSEPORT, true);
-    } else {
-      log.info("Using NIO");
-      bossGroup = new NioEventLoopGroup(bossThreadCount, threadFactory(workerNameFormat));
-      workerGroup = new NioEventLoopGroup(workerThreadCount, threadFactory(workerNameFormat));
-      channelClass = NioServerSocketChannel.class;
-    }
-
-    b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
-    b.option(ChannelOption.SO_BACKLOG, 8192);
-    b.option(ChannelOption.SO_REUSEADDR, true);
-
-    b.childOption(ChannelOption.SO_REUSEADDR, true);
-    b.childOption(SO_KEEPALIVE, true);
-    b.childOption(TCP_NODELAY, true);
-
-    b.group(bossGroup, workerGroup);
-    b.channel(channelClass);
     b.childHandler(
         new ChannelInitializer<Channel>() {
           @Override

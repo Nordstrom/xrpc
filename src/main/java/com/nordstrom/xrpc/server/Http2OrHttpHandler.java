@@ -7,15 +7,17 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
+import io.netty.util.AttributeKey;
 
 @ChannelHandler.Sharable
 public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
-  private static final int MAX_PAYLOAD_SIZE =
-      1 * 1024 * 1024; //TODO(JR): This should be configurable
+  private static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
+      AttributeKey.valueOf("XrpcConnectionContext");
+  private static final int MAX_PAYLOAD_SIZE = 1024 * 1024; //TODO(JR): This should be configurable
   private final UrlRouter router;
-  private final XrpcChannelContext xctx;
+  private final XrpcConnectionContext xctx;
 
-  protected Http2OrHttpHandler(UrlRouter router, XrpcChannelContext xctx) {
+  protected Http2OrHttpHandler(UrlRouter router, XrpcConnectionContext xctx) {
     super(ApplicationProtocolNames.HTTP_1_1);
     this.router = router;
     this.xctx = xctx;
@@ -23,6 +25,8 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
   @Override
   protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
+    ctx.channel().attr(CONNECTION_CONTEXT).set(xctx);
+
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       ChannelPipeline cp = ctx.pipeline();
       cp.addLast("codec", new Http2HandlerBuilder(xctx).build());

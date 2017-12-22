@@ -7,11 +7,8 @@ public final class Http2HandlerBuilder
     extends AbstractHttp2ConnectionHandlerBuilder<Http2Handler, Http2HandlerBuilder> {
 
   private final Http2FrameLogger logger = new Http2FrameLogger(LogLevel.INFO, Http2Handler.class);
-  private final XrpcChannelContext xctx;
 
-  public Http2HandlerBuilder(XrpcChannelContext xctx) {
-    this.xctx = xctx;
-
+  public Http2HandlerBuilder(XrpcConnectionContext xctx) {
     frameLogger(logger);
   }
 
@@ -25,7 +22,7 @@ public final class Http2HandlerBuilder
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
-    Http2Handler handler = new Http2Handler(xctx, decoder, encoder, initialSettings);
+    Http2Handler handler = new Http2Handler(decoder, encoder, initialSettings);
     frameListener(handler);
     return handler;
   }

@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Builder
-public class XrpcChannelContext {
+public class XrpcConnectionContext {
   @Getter private Meter requestMeter;
 
   @Getter
