@@ -6,6 +6,7 @@ import io.netty.util.AttributeKey;
 
 public class XrpcConstants {
   public static final AttributeKey<XrpcRequest> XRPC_REQUEST = AttributeKey.valueOf("XrpcRequest");
+  public static final AttributeKey<Boolean> XRPC_RATE_LIMIT = AttributeKey.valueOf("XrpcRateLimit");
   public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
 }

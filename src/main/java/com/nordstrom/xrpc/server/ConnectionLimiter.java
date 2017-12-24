@@ -27,10 +27,10 @@ public class ConnectionLimiter extends ChannelDuplexHandler {
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     connections.inc();
 
+    //TODO(JR): Should this return a 429 or is the current logic of silently dropping the connection sufficient?
     if (maxConnections > 0) {
       if (numConnections.incrementAndGet() > maxConnections) {
         ctx.channel().close();
-        // numConnections will be decremented in channelClosed
         log.info("Accepted connection above limit (" + maxConnections + "). Dropping.");
       }
     }

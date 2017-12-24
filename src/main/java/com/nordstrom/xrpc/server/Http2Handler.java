@@ -162,6 +162,20 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       int padding,
       boolean endOfStream) {
 
+    // This object is being called without an Optional<Boolean> to limit object creation and thus reduce GC pressure
+    if (ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).get() != null) {
+      writeResponse(
+          ctx,
+          streamId,
+          HttpResponseStatus.TOO_MANY_REQUESTS,
+          ctx.alloc()
+              .directBuffer()
+              .writeBytes(
+                  "This respone is being send due to too many requests being sent to the server"
+                      .getBytes()));
+      return;
+    }
+
     String uri = headers.path().toString();
     for (Route route :
         ctx.channel()
