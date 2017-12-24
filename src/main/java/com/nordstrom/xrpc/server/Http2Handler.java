@@ -168,6 +168,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
           streamId,
           HttpResponseStatus.TOO_MANY_REQUESTS,
           XrpcConstants.RATE_LIMIT_RESPONSE);
+
       return;
     }
 
