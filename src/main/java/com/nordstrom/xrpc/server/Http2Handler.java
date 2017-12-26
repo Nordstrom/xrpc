@@ -5,6 +5,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
+import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
@@ -163,6 +164,8 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       boolean endOfStream) {
 
     String uri = headers.path().toString();
+    String path = XUrl.getPath(uri);
+
     for (Route route :
         ctx.channel()
             .attr(XrpcConstants.CONNECTION_CONTEXT)
@@ -170,7 +173,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
             .getRoutes()
             .get()
             .descendingKeySet()) {
-      Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(uri));
+      Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
       if (groups.isPresent()) {
         ctx.channel()
             .attr(XrpcConstants.XRPC_REQUEST)
