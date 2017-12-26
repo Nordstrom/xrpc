@@ -145,7 +145,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
             log.error("Error in handling Route", e);
             // Error
             ByteBuf buf = ctx.channel().alloc().directBuffer();
-            buf.writeBytes("Error executing endpoint".getBytes());
+            buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
             writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
           }
         }
@@ -163,7 +163,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       boolean endOfStream) {
 
     // This object is being called without an Optional<Boolean> to limit object creation and thus reduce GC pressure
-    if (ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).get() != null) {
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       writeResponse(
           ctx,
           streamId,
@@ -172,7 +172,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
               .directBuffer()
               .writeBytes(
                   "This respone is being send due to too many requests being sent to the server"
-                      .getBytes()));
+                      .getBytes(XrpcConstants.DEFAULT_CHARSET)));
       return;
     }
 
@@ -198,7 +198,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
             log.error("Error in handling Route", e);
             // Error
             ByteBuf buf = ctx.channel().alloc().directBuffer();
-            buf.writeBytes("Error executing endpoint".getBytes());
+            buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
             writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
           }
         }
@@ -206,7 +206,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     }
     // No Valid Route
     ByteBuf buf = ctx.channel().alloc().directBuffer();
-    buf.writeBytes("Endpoint not found".getBytes());
+    buf.writeBytes("Endpoint not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
     writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
   }
 

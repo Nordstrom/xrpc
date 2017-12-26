@@ -35,7 +35,7 @@ public class ServiceRateLimiter extends ChannelDuplexHandler {
     hardLimiter.acquire();
 
     if (!softLimiter.tryAcquire()) {
-      ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).set(true);
+      ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).set(Boolean.TRUE);
     }
 
     context = timer.time();

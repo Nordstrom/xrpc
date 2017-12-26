@@ -28,7 +28,7 @@ public class UrlRouter extends ChannelDuplexHandler {
     xctx.getRequestMeter().mark();
 
     // This object is being called without an Optional<Boolean> to limit object creation and thus reduce GC pressure
-    if (ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).get() != null) {
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       ctx.writeAndFlush(
               Recipes.newResponse(
                   HttpResponseStatus.TOO_MANY_REQUESTS,
@@ -36,7 +36,7 @@ public class UrlRouter extends ChannelDuplexHandler {
                       .directBuffer()
                       .writeBytes(
                           "This respone is being send due to too many requests being sent to the server"
-                              .getBytes()),
+                              .getBytes(XrpcConstants.DEFAULT_CHARSET)),
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
       xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();

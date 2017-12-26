@@ -54,10 +54,11 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
+  private static String workerNameFormat;
+  private static int bossThreadCount;
+  private static int workerThreadCount;
+
   private final XConfig config;
-  private final String workerNameFormat;
-  private final int bossThreadCount;
-  private final int workerThreadCount;
   private final int MAX_PAYLOAD_SIZE;
   private final Tls tls;
   private final XrpcConnectionContext ctx;
@@ -134,7 +135,6 @@ public class Router {
 
   public void scheduleHealthChecks(
       EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
-    healthCheckRegistry = new HealthCheckRegistry(workerGroup);
 
     for (String check : healthCheckMap.keySet()) {
       healthCheckRegistry.register(check, healthCheckMap.get(check));
@@ -227,6 +227,14 @@ public class Router {
     listenAndServe(true, true);
   }
 
+  /**
+   * The listenAndServe method is the primary entry point for the server and should only be called
+   * once and only from the main thread.
+   *
+   * @param serveAdmin
+   * @param scheduleHealthChecks
+   * @throws IOException
+   */
   public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
     ConnectionLimiter globalConnectionLimiter =
         new ConnectionLimiter(
@@ -234,8 +242,8 @@ public class Router {
     ServiceRateLimiter rateLimiter =
         new ServiceRateLimiter(
             metricRegistry,
-            config.softRateLimit(),
-            config.hardRateLimit()); // RateLimit incomming connections in terms of req / second
+            config.softReqPerSec(),
+            config.hardReqPerSec()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
@@ -264,7 +272,9 @@ public class Router {
         });
 
     if (scheduleHealthChecks) {
-      scheduleHealthChecks(b.config().childGroup());
+      final EventLoopGroup _workerGroup = b.config().childGroup();
+      healthCheckRegistry = new HealthCheckRegistry(_workerGroup);
+      scheduleHealthChecks(_workerGroup);
     }
 
     if (serveAdmin) {
@@ -316,7 +326,7 @@ public class Router {
   }
 
   @ChannelHandler.Sharable
-  class NoOpHandler extends ChannelDuplexHandler {
+  static class NoOpHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -325,7 +335,7 @@ public class Router {
     }
   }
 
-  class IdleDisconnectHandler extends IdleStateHandler {
+  static class IdleDisconnectHandler extends IdleStateHandler {
 
     public IdleDisconnectHandler(
         int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
