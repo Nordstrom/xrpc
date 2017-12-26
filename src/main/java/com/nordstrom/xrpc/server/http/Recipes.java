@@ -24,7 +24,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
@@ -94,7 +93,7 @@ public final class Recipes {
 
   // Response {{{
   public static FullHttpResponse newResponse(HttpResponseStatus status) {
-    return (FullHttpResponse) new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+    return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
   }
 
   public static FullHttpResponse newResponse(

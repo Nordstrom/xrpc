@@ -80,6 +80,7 @@ checkstyle {
 
 spotbugs {
   toolVersion = '3.1.0'
+  ignoreFailures = true
 }
 
 // Configure Maven upload.
@@ -98,6 +99,7 @@ artifacts {
 }
 
 tasks.withType(com.github.spotbugs.SpotBugsTask) {
+  extraArgs = ['-html:fancy-hist.xsl']
   reports {
     xml.enabled = false
     html.enabled = true
