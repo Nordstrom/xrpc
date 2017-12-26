@@ -6,6 +6,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
+import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.channel.ChannelDuplexHandler;
@@ -15,7 +16,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
 
@@ -23,6 +26,21 @@ public class UrlRouter extends ChannelDuplexHandler {
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     xctx.getRequestMeter().mark();
+
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
+      ctx.writeAndFlush(
+              Recipes.newResponse(
+                  HttpResponseStatus.TOO_MANY_REQUESTS,
+                  ctx.alloc()
+                      .directBuffer()
+                      .writeBytes(
+                          "This respone is being send due to too many requests being sent to the server"
+                              .getBytes(XrpcConstants.DEFAULT_CHARSET)),
+                  Recipes.ContentType.Text_Plain))
+          .addListener(ChannelFutureListener.CLOSE);
+      xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();
+      return;
+    }
 
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
