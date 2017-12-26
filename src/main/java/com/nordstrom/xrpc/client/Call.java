@@ -90,9 +90,9 @@ class Call {
 
     if (response.isCancelled()) {
       return error;
+    } else {
+      return response;
     }
-
-    return response;
   }
 
   private RetryLoop buildRetryLoop() {
@@ -138,7 +138,7 @@ class Call {
                 log.error("==== Service connect failure ", future.cause());
                 // Close the connection if the connection attempt has failed.
                 future.channel().close();
-                f.setException((Exception) e);
+                f.setException(e);
               }
             } else {
               log.debug("Xrpc connected to: " + server);

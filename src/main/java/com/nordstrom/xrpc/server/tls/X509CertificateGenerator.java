@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server.tls;
 
+import com.nordstrom.xrpc.XrpcConstants;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -23,11 +24,7 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
@@ -47,7 +44,8 @@ public final class X509CertificateGenerator {
   public static DerKeySpec parseDerKeySpec(Path path) {
     String rawKeyString = null;
     try {
-      rawKeyString = new String(Files.readAllBytes(path.toAbsolutePath()));
+      rawKeyString =
+          new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
       // TODO(JR): This is bad practice, we should fix this more elegantly
       throw new RuntimeException(
@@ -142,9 +140,17 @@ public final class X509CertificateGenerator {
           (java.security.cert.X509Certificate) cf.generateCertificate(certInputStream);
       X509CertImpl cert = (X509CertImpl) x509Certificate;
 
-      // TODO(JR): We should verify key after creation
-      //      cert.sign(privateKey, "SHA1withRSA");
-      //      cert.verify(publicKey);
+      try {
+        cert.sign(privateKey, "SHA2withRSA");
+        cert.verify(publicKey);
+
+      } catch (NoSuchAlgorithmException
+          | InvalidKeyException
+          | NoSuchProviderException
+          | SignatureException e) {
+        //TODO(JR): Do something more useful if the key cannot be verified
+        e.printStackTrace();
+      }
 
       return new X509Certificate(cert.getIssuerX500Principal().getName(), privateKey, cert);
     } catch (FileNotFoundException | CertificateException e) {
