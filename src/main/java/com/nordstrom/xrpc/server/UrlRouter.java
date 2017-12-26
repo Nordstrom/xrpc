@@ -27,7 +27,6 @@ public class UrlRouter extends ChannelDuplexHandler {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     xctx.getRequestMeter().mark();
 
-    // This object is being called without an Optional<Boolean> to limit object creation and thus reduce GC pressure
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       ctx.writeAndFlush(
               Recipes.newResponse(

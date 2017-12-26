@@ -162,7 +162,6 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       int padding,
       boolean endOfStream) {
 
-    // This object is being called without an Optional<Boolean> to limit object creation and thus reduce GC pressure
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       writeResponse(
           ctx,
