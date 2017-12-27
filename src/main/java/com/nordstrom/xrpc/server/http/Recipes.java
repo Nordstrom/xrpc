@@ -32,6 +32,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /** Container for utility methods and helpers. */
 public final class Recipes {
@@ -55,11 +56,11 @@ public final class Recipes {
 
   // Request {{{
   public static FullHttpRequest newFullRequest(
-      HttpMethod method, String urlPath, ByteBuf buffer, ContentType contentType) {
+      HttpMethod method, String urlPath, ByteBuf payload, ContentType contentType) {
     FullHttpRequest request =
-        new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, buffer);
+        new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, payload);
     request.headers().set(CONTENT_TYPE, contentType.value);
-    request.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+    request.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
     return request;
   }
 
@@ -72,8 +73,8 @@ public final class Recipes {
   }
 
   public static FullHttpRequest newRequestPost(
-      String urlPath, ByteBuf buffer, ContentType contentType) {
-    return newFullRequest(HttpMethod.POST, urlPath, buffer, contentType);
+      String urlPath, ByteBuf payload, ContentType contentType) {
+    return newFullRequest(HttpMethod.POST, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPost(
@@ -82,8 +83,8 @@ public final class Recipes {
   }
 
   public static FullHttpRequest newRequestPut(
-      String urlPath, ByteBuf buffer, ContentType contentType) {
-    return newFullRequest(HttpMethod.PUT, urlPath, buffer, contentType);
+      String urlPath, ByteBuf payload, ContentType contentType) {
+    return newFullRequest(HttpMethod.PUT, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPut(
@@ -98,11 +99,11 @@ public final class Recipes {
   }
 
   public static FullHttpResponse newResponse(
-      HttpResponseStatus status, ByteBuf buffer, ContentType contentType) {
-    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
+      HttpResponseStatus status, ByteBuf payload, ContentType contentType) {
+    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     response.headers().set(CONTENT_TYPE, contentType.value);
-    response.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
 
     return response;
   }
@@ -115,11 +116,11 @@ public final class Recipes {
    *     "access-control-allow-origin", "http://foo.example"
    */
   public static FullHttpResponse newResponse(
-    HttpResponseStatus status, ByteBuf buffer, ContentType contentType, Map<String, String> customHeaders) {
-    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
+    HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
+    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     response.headers().set(CONTENT_TYPE, contentType.value);
-    response.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
 
     for (String header : customHeaders.keySet()) {
       response.headers().set(header, customHeaders.get(header));
