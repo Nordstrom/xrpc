@@ -231,9 +231,9 @@ public class Router {
    * The listenAndServe method is the primary entry point for the server and should only be called
    * once and only from the main thread.
    *
-   * @param serveAdmin
-   * @param scheduleHealthChecks
-   * @throws IOException
+   * @param serveAdmin pass true to serve the admin handlers, false if not
+   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health checks will be run every time the health endpoint is hit
+   * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
   public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
     ConnectionLimiter globalConnectionLimiter =

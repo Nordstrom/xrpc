@@ -167,11 +167,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
           ctx,
           streamId,
           HttpResponseStatus.TOO_MANY_REQUESTS,
-          ctx.alloc()
-              .directBuffer()
-              .writeBytes(
-                  "This respone is being send due to too many requests being sent to the server"
-                      .getBytes(XrpcConstants.DEFAULT_CHARSET)));
+          XrpcConstants.RATE_LIMIT_RESPONSE);
       return;
     }
 
