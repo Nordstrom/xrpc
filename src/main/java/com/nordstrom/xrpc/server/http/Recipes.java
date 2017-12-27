@@ -107,6 +107,27 @@ public final class Recipes {
     return response;
   }
 
+  /*
+   * Returns a full HTTP response with the specified status, content type, and custom headers.
+   *
+   * Headers should be specified as a map of strings. For example, to allow CORS, add the
+   * following key and value:
+   *     "access-control-allow-origin", "*"
+   */
+  public static FullHttpResponse newResponse(
+    HttpResponseStatus status, ByteBuf buffer, ContentType contentType, Map<String, String> customHeaders) {
+    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
+
+    response.headers().set(CONTENT_TYPE, contentType.value);
+    response.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+
+    for (String header : customHeaders.keySet()) {
+      response.headers().set(header, customHeaders.get(header));
+    }
+
+    return response;
+  }
+
   public static FullHttpResponse newResponse(
       HttpResponseStatus status, String payload, ContentType contentType) {
     return newResponse(status, unpooledBuffer(payload), contentType);
