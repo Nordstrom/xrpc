@@ -145,7 +145,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
             log.error("Error in handling Route", e);
             // Error
             ByteBuf buf = ctx.channel().alloc().directBuffer();
-            buf.writeBytes("Error executing endpoint".getBytes());
+            buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
             writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
           }
         }
@@ -161,6 +161,15 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       Http2Headers headers,
       int padding,
       boolean endOfStream) {
+
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
+      writeResponse(
+          ctx,
+          streamId,
+          HttpResponseStatus.TOO_MANY_REQUESTS,
+          XrpcConstants.RATE_LIMIT_RESPONSE);
+      return;
+    }
 
     String uri = headers.path().toString();
     for (Route route :
@@ -184,7 +193,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
             log.error("Error in handling Route", e);
             // Error
             ByteBuf buf = ctx.channel().alloc().directBuffer();
-            buf.writeBytes("Error executing endpoint".getBytes());
+            buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
             writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
           }
         }
@@ -192,7 +201,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     }
     // No Valid Route
     ByteBuf buf = ctx.channel().alloc().directBuffer();
-    buf.writeBytes("Endpoint not found".getBytes());
+    buf.writeBytes("Endpoint not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
     writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
   }
 

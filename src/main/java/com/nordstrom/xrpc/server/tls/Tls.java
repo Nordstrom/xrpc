@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server.tls;
 
+import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -102,7 +103,7 @@ public class Tls {
           java.security.cert.X509Certificate x509Certificate =
               (java.security.cert.X509Certificate)
                   cf.generateCertificate(
-                      new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes()));
+                      new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes(XrpcConstants.DEFAULT_CHARSET)));
           certList.add(x509Certificate);
         }
 

@@ -35,7 +35,8 @@ public class XConfig {
   private final int bossThreadCount;
   private final int workerThreadCount;
   private final int maxConnections;
-  private final double rateLimit;
+  private final double softReqPerSec;
+  private final double hardReqPerSec;
   private final String cert;
   private final String key;
   private final int port;
@@ -64,7 +65,8 @@ public class XConfig {
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
     maxConnections = config.getInt("max_connections");
-    rateLimit = config.getDouble("req_per_sec");
+    softReqPerSec = config.getDouble("soft_req_per_sec");
+    hardReqPerSec = config.getDouble("hard_req_per_sec");
     cert = config.getString("cert");
     key = config.getString("key");
     port = config.getInt("server.port");
@@ -98,8 +100,12 @@ public class XConfig {
     return maxConnections;
   }
 
-  public double rateLimit() {
-    return rateLimit;
+  public double softReqPerSec() {
+    return softReqPerSec;
+  }
+
+  public double hardReqPerSec() {
+    return hardReqPerSec;
   }
 
   public String cert() {
