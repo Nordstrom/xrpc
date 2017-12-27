@@ -107,12 +107,12 @@ public final class Recipes {
     return response;
   }
 
-  /*
+  /**
    * Returns a full HTTP response with the specified status, content type, and custom headers.
    *
    * Headers should be specified as a map of strings. For example, to allow CORS, add the
    * following key and value:
-   *     "access-control-allow-origin", "*"
+   *     "access-control-allow-origin", "http://foo.example"
    */
   public static FullHttpResponse newResponse(
     HttpResponseStatus status, ByteBuf buffer, ContentType contentType, Map<String, String> customHeaders) {
