@@ -9,9 +9,6 @@ import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.buffer.UnpooledDirectByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -33,7 +30,8 @@ public class UrlRouter extends ChannelDuplexHandler {
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       ctx.writeAndFlush(
               Recipes.newResponse(
-                  HttpResponseStatus.TOO_MANY_REQUESTS, XrpcConstants.RATE_LIMIT_RESPONSE,
+                  HttpResponseStatus.TOO_MANY_REQUESTS,
+                  XrpcConstants.RATE_LIMIT_RESPONSE,
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
       xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();

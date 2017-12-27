@@ -164,10 +164,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
       writeResponse(
-          ctx,
-          streamId,
-          HttpResponseStatus.TOO_MANY_REQUESTS,
-          XrpcConstants.RATE_LIMIT_RESPONSE);
+          ctx, streamId, HttpResponseStatus.TOO_MANY_REQUESTS, XrpcConstants.RATE_LIMIT_RESPONSE);
 
       return;
     }

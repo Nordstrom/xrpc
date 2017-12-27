@@ -234,7 +234,8 @@ public class Router {
    * once and only from the main thread.
    *
    * @param serveAdmin pass true to serve the admin handlers, false if not
-   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health checks will be run every time the health endpoint is hit
+   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health
+   *     checks will be run every time the health endpoint is hit
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
   public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
