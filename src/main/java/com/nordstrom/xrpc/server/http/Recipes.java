@@ -114,17 +114,21 @@ public final class Recipes {
    * Headers should be specified as a map of strings. For example, to allow CORS, add the
    * following key and value:
    *     "access-control-allow-origin", "http://foo.example"
+   *
+   * If content type or content length are passed in as custom headers, they will be ignored.
+   * Instead, content type will be as specified by the parameter contentType and content
+   * length will be the length of the parameter contentLength.
    */
   public static FullHttpResponse newResponse(
     HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
-    response.headers().set(CONTENT_TYPE, contentType.value);
-    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
-
     for (String header : customHeaders.keySet()) {
       response.headers().set(header, customHeaders.get(header));
     }
+
+    response.headers().set(CONTENT_TYPE, contentType.value);
+    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
 
     return response;
   }
