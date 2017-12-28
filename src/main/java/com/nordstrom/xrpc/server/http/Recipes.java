@@ -19,20 +19,15 @@ package com.nordstrom.xrpc.server.http;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
+
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 /** Container for utility methods and helpers. */
 public final class Recipes {
@@ -100,12 +95,7 @@ public final class Recipes {
 
   public static FullHttpResponse newResponse(
       HttpResponseStatus status, ByteBuf payload, ContentType contentType) {
-    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
-
-    response.headers().set(CONTENT_TYPE, contentType.value);
-    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
-
-    return response;
+    return newResponse(status, payload, contentType, Collections.emptyMap());
   }
 
   /**
@@ -123,8 +113,10 @@ public final class Recipes {
     HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
-    for (String header : customHeaders.keySet()) {
-      response.headers().set(header, customHeaders.get(header));
+    if (customHeaders != null) {
+      for (String header : customHeaders.keySet()) {
+        response.headers().set(header, customHeaders.get(header));
+      }
     }
 
     response.headers().set(CONTENT_TYPE, contentType.value);
