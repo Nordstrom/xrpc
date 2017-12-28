@@ -33,6 +33,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 //import com.nordstrom.xrpc.demo.proto.Dino;
@@ -72,7 +73,7 @@ public class Example {
           Person p = new Person(context.variable("person"));
           people.add(p);
 
-          return Recipes.newResponseOk("");
+          return Recipes.newResponseOk(String.format("Hello %s", p.getName()));
         };
 
     // TODDO(JR): this is commented out until such a time that the demo's can be cleaned up
@@ -162,6 +163,7 @@ public class Example {
   /** Example POJO for use in request / response. */
   @AllArgsConstructor
   private static class Person {
+    @Getter
     private String name;
   }
 
