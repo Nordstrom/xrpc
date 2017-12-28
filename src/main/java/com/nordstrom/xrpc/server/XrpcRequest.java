@@ -43,8 +43,7 @@ public class XrpcRequest {
   private final Map<String, String> groups;
 
   private final int streamId;
-
-  @Setter private ByteBuf data;
+  private ByteBuf data;
 
   public XrpcRequest(FullHttpRequest request, Map<String, String> groups, Channel channel) {
     this.h1Request = request;
@@ -75,6 +74,30 @@ public class XrpcRequest {
   /** Create a convenience function to prevent direct access to the Allocator */
   public ByteBuf getByteBuf() {
     return alloc.compositeDirectBuffer();
+  }
+
+  public void setData(byte[] bytes) {
+    if (data == null) {
+      data = getByteBuf();
+    }
+
+    data.writeBytes(bytes);
+  }
+
+  public void setData(ByteBuf buff) {
+    if (data == null) {
+      data = getByteBuf();
+    }
+
+    data.writeBytes(buff);
+  }
+
+  public ByteBuf getData() {
+    if (data == null) {
+      return getByteBuf();
+    }
+
+    return data;
   }
 
   public ListeningExecutorService getExecutor() {

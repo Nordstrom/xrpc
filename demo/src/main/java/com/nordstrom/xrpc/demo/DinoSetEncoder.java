@@ -17,13 +17,14 @@
 package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.demo.proto.Dino;
+import com.nordstrom.xrpc.demo.proto.DinoSetRequest;
+
 import java.io.IOException;
 
-public class DinoDecoder {
+public class DinoSetEncoder {
   public static void main(String[] args) throws IOException {
-    byte[] bytes = new byte[System.in.available()];
-    System.in.read(bytes, 0, bytes.length);
-    Dino dino = Dino.parseFrom(bytes);
-    System.out.println(dino);
+    Dino dino = Dino.newBuilder().setName(args[0]).setFavColor(args[1]).build();
+    DinoSetRequest dinoSetRequest = DinoSetRequest.newBuilder().setDino(dino).build();
+    System.out.write(dinoSetRequest.toByteArray());
   }
 }

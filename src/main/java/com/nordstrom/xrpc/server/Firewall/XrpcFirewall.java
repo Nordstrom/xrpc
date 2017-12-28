@@ -61,24 +61,25 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
       evt = Optional.empty();
     }
 
-    if (evt.isPresent()) {
-      switch (evt.get()) {
-        case RATE_LIMIT:
-          log.info("Xrpc Firewall blocked based on rate limit req:" + ctx.channel());
-          ctx.channel().deregister();
-          break;
-        case BLOCK_REQ_POLICY_BASED:
-          log.info("Xrpc Firewall blocked based on policy:" + ctx.channel());
-          ctx.channel().deregister();
-          break;
-        case BLOCK_REQ_BEHAVIORAL_BASED:
-          log.info("Xrpc Firewall blocked based on behavior:" + ctx.channel());
-          ctx.channel().deregister();
-          break;
-        default:
-          break;
-      }
-    }
+    evt.ifPresent(
+        e -> {
+          switch (e) {
+            case RATE_LIMIT:
+              log.info("Xrpc Firewall blocked based on rate limit req:" + ctx.channel());
+              ctx.channel().deregister();
+              break;
+            case BLOCK_REQ_POLICY_BASED:
+              log.info("Xrpc Firewall blocked based on policy:" + ctx.channel());
+              ctx.channel().deregister();
+              break;
+            case BLOCK_REQ_BEHAVIORAL_BASED:
+              log.info("Xrpc Firewall blocked based on behavior:" + ctx.channel());
+              ctx.channel().deregister();
+              break;
+            default:
+              break;
+          }
+        });
   }
 
   @Override

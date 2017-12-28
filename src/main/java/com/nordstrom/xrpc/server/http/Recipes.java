@@ -38,6 +38,7 @@ public final class Recipes {
 
   public static enum ContentType {
     Application_Json("application/json"),
+    Application_Octet_Stream("application/octet-stream"),
     Text_Plain("text/plain"),
     Text_Html("text/html");
 

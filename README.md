@@ -1,93 +1,10 @@
 xrpc
 ====
 
-Simple, production ready Java API server built on top of functional composition.
-
-What you get:
-1) Openssl Native TLS w/ direct x509 pem support (vs keytool)
-2) Epoll native
-3) RateLimiting
-4) Connection Limiting
-5) Log forwarder Integration
-6) Metrics & Logs
-7) Binary Debug for packet level inspection
-8) Protobuf support
-9) Docker
-10) k8s
-11) Many Much more
-
-Make .jar not .war ...
-
-Example.java
-```java
-@Slf4j
-public class Example {
-  /** Example POJO for use in request / response. */
-  @AllArgsConstructor
-  private static class Person {
-    private String name;
-  }
-
-  public static void main(String[] args) {
-    final List<Person> people = new ArrayList<>();
-
-    // See https://github.com/square/moshi for the Moshi Magic.
-    Moshi moshi = new Moshi.Builder().build();
-    Type type = Types.newParameterizedType(List.class, Person.class);
-    JsonAdapter<List<Person>> adapter = moshi.adapter(type);
-
-    // Load application config from jar resources. The 'load' method below also allows supports
-    // overrides from environment variables.
-    Config config = ConfigFactory.load("demo.conf");
-
-    // Build your router. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
-    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
-    Router router = new Router(xConfig);
-
-    // Define a simple function call.
-    Handler peopleHandler =
-        context -> {
-          return Recipes.newResponse(
-            HttpResponseStatus.OK,
-            context.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
-            Recipes.ContentType.Application_Json);
-        };
-
-    // Define a complex function call
-    Handler personHandler =
-        context -> {
-          Person p = new Person(context.variable("person"));
-          people.add(p);
-
-          return Recipes.newResponseOk("");
-        };
-
-
-    // Define a simple function call
-    Handler healthCheckHandler =
-        context -> {
-          return Recipes.newResponseOk("");
-     };
-
-    // Create your route mapping
-    router.addRoute("/people/{person}", personHandler);
-    router.addRoute("/people", peopleHandler);
-
-    // Health Check for k8s
-    router.addRoute("/health", healthCheckHandler);
-
-    try {
-      // Fire away
-      router.listenAndServe();
-    } catch (IOException e) {
-      log.error("Failed to start people server", e);
-    }
-  }
-}
+xrpc is a production quality server that is capable of serving public facing APIs (read: sitting on the edge) and has an appropriate level of enterprise operationalization. It currently supports the http/1.1 and the http/2 protocols. It does so interchangeably, i.e your implementation does not need to change and it will automatically respond to a http/1.1 and a http/2 client the same way. The user is free to determine whatever payload they would like, but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do
  
+## Testing with the Example class  
 ```
-
 # Building the jar
 
 ```shell
@@ -97,7 +14,7 @@ $ ./gradlew shadowJar
 # Running the jar
 
 ```shell
-$ java -jar build/libs/xrpc-0.1.0-SNAPSHOT-all.jar
+$ java -jar app.jar
 ```
 
 # Basic http set
@@ -106,31 +23,30 @@ $ java -jar build/libs/xrpc-0.1.0-SNAPSHOT-all.jar
 $ curl -k  https://localhost:8080/people/bob
 ```
 
-# Basic http get
-
+# Basic http/2 get
+--! This demo requires curl with http/2 !--
+(see https://simonecarletti.com/blog/2016/01/http2-curl-macosx/)
 ```shell
 $ curl -k  https://localhost:8080/people
 [{"name":"bob"}]
 ```
 
-# Proto encode/decode
-
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue > out
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder < out
-Dino{name=trex, fav_color=blue}
+$ curl -k  https://localhost:8080/people --http/1.1
+[{"name":"bob"}]
 ```
 
 # Proto http set
-
+--! This demo requires curl with http/2 !--
+(see https://simonecarletti.com/blog/2016/01/http2-curl-macosx/)
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue | curl -k  https://localhost:8080/dinos/trex --data-binary @-
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoSetEncoder trex blue | curl -k  https://localhost:8080/dinos/SetDino --data-binary @- -vv
 ```
 
 # Proto http get
 
 ```shell
-$ curl -k -s   https://localhost:8080/dinos/ | java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/dinos/GetDino | java -cp app.jar com.nordstrom.xrpc.demo.DinoGetResponseDecoder
 Dino{name=trex, fav_color=blue}
 ```
 
