@@ -70,6 +70,7 @@ dependencies {
     compile 'com.github.spotbugs:spotbugs:3.1.0'
     testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
     testCompile 'org.apiguardian:apiguardian-api:1.0.0'
+    testCompile 'org.mockito:mockito-core:2.13.0'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.0.1'
 }
 
