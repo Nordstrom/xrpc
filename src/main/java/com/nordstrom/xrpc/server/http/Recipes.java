@@ -22,8 +22,15 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.*;
-
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
@@ -90,7 +97,7 @@ public final class Recipes {
 
   // Response {{{
   public static FullHttpResponse newResponse(HttpResponseStatus status) {
-    return (FullHttpResponse) new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+    return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
   }
 
   public static FullHttpResponse newResponse(

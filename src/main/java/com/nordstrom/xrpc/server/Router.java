@@ -16,10 +16,9 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Slf4jReporter;
+import static com.codahale.metrics.MetricRegistry.name;
+
+import com.codahale.metrics.*;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.json.MetricsModule;
@@ -29,7 +28,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.google.common.util.concurrent.RateLimiter;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -54,9 +56,9 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  private static String workerNameFormat;
-  private static int bossThreadCount;
-  private static int workerThreadCount;
+  private final String workerNameFormat;
+  private final int bossThreadCount;
+  private final int workerThreadCount;
 
   private final XConfig config;
   private final int MAX_PAYLOAD_SIZE;
@@ -64,19 +66,6 @@ public class Router {
   private final XrpcConnectionContext ctx;
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
-
-  final Slf4jReporter slf4jReporter =
-      Slf4jReporter.forRegistry(metricRegistry)
-          .outputTo(LoggerFactory.getLogger(Router.class))
-          .convertRatesTo(TimeUnit.SECONDS)
-          .convertDurationsTo(TimeUnit.MILLISECONDS)
-          .build();
-  final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
-  private final ConsoleReporter consoleReporter =
-      ConsoleReporter.forRegistry(metricRegistry)
-          .convertRatesTo(TimeUnit.SECONDS)
-          .convertDurationsTo(TimeUnit.MILLISECONDS)
-          .build();
 
   @Getter private Channel channel;
   @Getter private HealthCheckRegistry healthCheckRegistry;
@@ -136,8 +125,8 @@ public class Router {
   public void scheduleHealthChecks(
       EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
 
-    for (String check : healthCheckMap.keySet()) {
-      healthCheckRegistry.register(check, healthCheckMap.get(check));
+    for (Map.Entry<String, HealthCheck> entry : healthCheckMap.entrySet()) {
+      healthCheckRegistry.register(entry.getKey(), entry.getValue());
     }
 
     workerGroup.scheduleWithFixedDelay(
@@ -232,7 +221,8 @@ public class Router {
    * once and only from the main thread.
    *
    * @param serveAdmin pass true to serve the admin handlers, false if not
-   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health checks will be run every time the health endpoint is hit
+   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health
+   *     checks will be run every time the health endpoint is hit
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
   public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
@@ -284,11 +274,31 @@ public class Router {
     ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
 
     try {
-      // Get some loggy logs
-      consoleReporter.start(30, TimeUnit.SECONDS);
-      // This is too noisy right now, re-enable prior to shipping.
-      //slf4jReporter.start(30, TimeUnit.SECONDS);
-      jmxReporter.start();
+      // Build out the loggers that are specified in the config
+
+      if (config.slf4jReporter()) {
+        final Slf4jReporter slf4jReporter =
+            Slf4jReporter.forRegistry(metricRegistry)
+                .outputTo(LoggerFactory.getLogger(Router.class))
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .build();
+        slf4jReporter.start(config.slf4jReporterPollingRate(), TimeUnit.SECONDS);
+      }
+
+      if (config.jmxReporter()) {
+        final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
+        jmxReporter.start();
+      }
+
+      if (config.consoleReporter()) {
+        final ConsoleReporter consoleReporter =
+            ConsoleReporter.forRegistry(metricRegistry)
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .build();
+        consoleReporter.start(config.consoleReporterPollingRate(), TimeUnit.SECONDS);
+      }
 
       future.await();
 
@@ -319,22 +329,107 @@ public class Router {
                   log.warn("Error shutting down server", future.cause());
                 }
                 synchronized (Router.this) {
-                  // listener.serverShutdown();
+                  //TODO(JR): We should probably be more thoughtful here.
+                  shutdown();
                 }
               }
             });
   }
 
+  /*
+   * This section of classes have been added as Static inner classes to reduce GC pressure. As these
+   * classes are only instantiated once and only from the Router class, this seems to be a more
+   * appropriate class def than these objects living in their own public classes.
+   */
   @ChannelHandler.Sharable
-  static class NoOpHandler extends ChannelDuplexHandler {
+  static class ConnectionLimiter extends ChannelDuplexHandler {
+    private final AtomicInteger numConnections;
+    private final int maxConnections;
+    private final Counter connections;
+
+    public ConnectionLimiter(MetricRegistry metrics, int maxConnections) {
+      this.maxConnections = maxConnections;
+      this.numConnections = new AtomicInteger(0);
+      this.connections = metrics.counter(name(Router.class, "Active Connections"));
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-      ctx.pipeline().remove(this);
+      connections.inc();
+
+      //TODO(JR): Should this return a 429 or is the current logic of silently dropping the connection sufficient?
+      if (maxConnections > 0) {
+        if (numConnections.incrementAndGet() > maxConnections) {
+          ctx.channel().close();
+          log.info("Accepted connection above limit (" + maxConnections + "). Dropping.");
+        }
+      }
       ctx.fireChannelActive();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+      connections.dec();
+
+      if (maxConnections > 0) {
+        if (numConnections.decrementAndGet() < 0) {
+          log.error("BUG in ConnectionLimiter");
+        }
+      }
+      ctx.fireChannelInactive();
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+      ctx.fireChannelRead(msg);
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+      ctx.fireChannelReadComplete();
     }
   }
 
+  @ChannelHandler.Sharable
+  static class ServiceRateLimiter extends ChannelDuplexHandler {
+    private final RateLimiter softLimiter;
+    private final RateLimiter hardLimiter;
+    private final Meter reqs;
+    private final Timer timer;
+
+    private Timer.Context context;
+
+    public ServiceRateLimiter(MetricRegistry metrics, double softRateLimit, double hardRateLimit) {
+      this.softLimiter = RateLimiter.create(softRateLimit);
+      this.hardLimiter = RateLimiter.create(hardRateLimit);
+      this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
+      this.timer = metrics.timer("Request Latency");
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      reqs.mark();
+
+      double timeSlept = hardLimiter.acquire();
+      log.debug("Hard Rate limit fired and slept for " + timeSlept + " seconds");
+
+      if (!softLimiter.tryAcquire()) {
+        ctx.channel().attr(XrpcConstants.XRPC_RATE_LIMIT).set(Boolean.TRUE);
+      }
+
+      context = timer.time();
+      ctx.fireChannelActive();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+      context.stop();
+
+      ctx.fireChannelInactive();
+    }
+  }
+
+  @ChannelHandler.Sharable
   static class IdleDisconnectHandler extends IdleStateHandler {
 
     public IdleDisconnectHandler(
@@ -345,6 +440,16 @@ public class Router {
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
       ctx.channel().close();
+    }
+  }
+
+  @ChannelHandler.Sharable
+  static class NoOpHandler extends ChannelDuplexHandler {
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      ctx.pipeline().remove(this);
+      ctx.fireChannelActive();
     }
   }
 }

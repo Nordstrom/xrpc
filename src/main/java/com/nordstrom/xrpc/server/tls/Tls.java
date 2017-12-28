@@ -79,14 +79,14 @@ public class Tls {
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
       final String rawCertString = cert;
       PrivateKey privateKey;
-      PublicKey publicKey;
+      //PublicKey publicKey; //TODO(JR): Leave code in, we should really validate the signature with the public key
       X509Certificate selfSignedCert = null;
 
       if (key != null) {
         X509CertificateGenerator.DerKeySpec derKeySpec =
             X509CertificateGenerator.parseDerKeySpec(key);
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
-        publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
+        //publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec); //TODO(JR): Leave code in, we should really validate the signature with the public key
       } else {
         selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
         privateKey = selfSignedCert.getKey();
@@ -103,7 +103,9 @@ public class Tls {
           java.security.cert.X509Certificate x509Certificate =
               (java.security.cert.X509Certificate)
                   cf.generateCertificate(
-                      new ByteArrayInputStream((cert + "-----END CERTIFICATE-----\n").getBytes(XrpcConstants.DEFAULT_CHARSET)));
+                      new ByteArrayInputStream(
+                          (cert + "-----END CERTIFICATE-----\n")
+                              .getBytes(XrpcConstants.DEFAULT_CHARSET)));
           certList.add(x509Certificate);
         }
 

@@ -46,8 +46,9 @@ public class XrpcClient {
 
   @Getter private final Bootstrap bootstrap;
   private final SslContext sslCtx;
-  private final String workerNameFormat = "xrpc-client-%d";
-  private final int workerThreadCount = 4;
+  //TODO(JR): These should be configurable
+  private static final String workerNameFormat = "xrpc-client-%d";
+  private static final int workerThreadCount = 4;
 
   private EventLoopGroup workerGroup;
   private Class<? extends SocketChannel> channelClass;
