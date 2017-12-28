@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import io.netty.handler.codec.http.QueryStringDecoder;
 
 @Slf4j
 public class XUrl {
@@ -71,10 +72,10 @@ public class XUrl {
 
   public static String getPath(String url) {
     Preconditions.checkNotNull(url);
-    url = addProtocol(url);
     try {
-      return new URI(url).getPath();
-    } catch (URISyntaxException e) {
+      String decodedUrl = QueryStringDecoder.decodeComponent(url);
+      return new QueryStringDecoder(decodedUrl).path();
+    } catch (IllegalArgumentException e) {
       log.info("Malformed url: " + url);
       return null;
     }
