@@ -40,6 +40,11 @@ public class XConfig {
   private final String cert;
   private final String key;
   private final int port;
+  private boolean slf4jReporter;
+  private boolean jmxReporter;
+  private boolean consoleReporter;
+  private int slf4jReporterPollingRate;
+  private int consoleReporterPollingRate;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -70,6 +75,11 @@ public class XConfig {
     cert = config.getString("cert");
     key = config.getString("key");
     port = config.getInt("server.port");
+    slf4jReporter = config.getBoolean("slf4j_reporter");
+    jmxReporter = config.getBoolean("jmx_reporter");
+    consoleReporter = config.getBoolean("console_reporter");
+    slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
+    consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
   }
 
   public int readerIdleTimeout() {
@@ -118,5 +128,25 @@ public class XConfig {
 
   public int port() {
     return port;
+  }
+
+  public boolean slf4jReporter() {
+    return slf4jReporter;
+  }
+
+  public boolean jmxReporter() {
+    return jmxReporter;
+  }
+
+  public boolean consoleReporter() {
+    return consoleReporter;
+  }
+
+  public long slf4jReporterPollingRate() {
+    return (long) slf4jReporterPollingRate;
+  }
+
+  public long consoleReporterPollingRate() {
+    return (long) consoleReporterPollingRate;
   }
 }

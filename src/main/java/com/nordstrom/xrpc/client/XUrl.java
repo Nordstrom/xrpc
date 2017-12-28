@@ -109,6 +109,7 @@ public class XUrl {
 
   public static String addProtocol(String url) {
     Preconditions.checkNotNull(url);
+
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
     if (!matcher.find()) {
       url = "http://" + url;
