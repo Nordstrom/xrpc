@@ -148,12 +148,12 @@ public class Example {
     // Health Check for k8s
     router.addRoute("/health", healthCheckHandler);
 
+    // Add a service specific health check
+    router.addHealthCheck("simple", new SimpleHealthCheck());
+
     try {
       // Fire away
-      router.addHealthCheck("simple", new SimpleHealthCheck());
-      router.serveAdmin();
       router.listenAndServe();
-      router.scheduleHealthChecks();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }

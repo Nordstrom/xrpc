@@ -16,7 +16,10 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.codahale.metrics.*;
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.json.MetricsModule;
@@ -51,13 +54,17 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
+  private static String workerNameFormat;
+  private static int bossThreadCount;
+  private static int workerThreadCount;
+
   private final XConfig config;
-  private final String workerNameFormat;
-  private final int bossThreadCount;
-  private final int workerThreadCount;
   private final int MAX_PAYLOAD_SIZE;
+  private final Tls tls;
+  private final XrpcConnectionContext ctx;
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
+
   final Slf4jReporter slf4jReporter =
       Slf4jReporter.forRegistry(metricRegistry)
           .outputTo(LoggerFactory.getLogger(Router.class))
@@ -65,19 +72,15 @@ public class Router {
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
   final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
-  private final HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry(this.workerGroup);
   private final ConsoleReporter consoleReporter =
       ConsoleReporter.forRegistry(metricRegistry)
           .convertRatesTo(TimeUnit.SECONDS)
           .convertDurationsTo(TimeUnit.MILLISECONDS)
           .build();
-  private final Tls tls;
-  @Getter private Channel channel;
-  private EventLoopGroup bossGroup;
-  @Getter private EventLoopGroup workerGroup;
-  private Class<? extends ServerChannel> channelClass;
 
-  private final XrpcConnectionContext ctx;
+  @Getter private Channel channel;
+  @Getter private HealthCheckRegistry healthCheckRegistry;
+  private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
 
   public Router(XConfig config) {
     this(config, 1 * 1024 * 1024);
@@ -111,6 +114,8 @@ public class Router {
     meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
     meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
     meterNamesByStatusCode.put(
+        HttpResponseStatus.TOO_MANY_REQUESTS, NAME_PREFIX + "tooManyRequests");
+    meterNamesByStatusCode.put(
         HttpResponseStatus.INTERNAL_SERVER_ERROR, NAME_PREFIX + "serverError");
 
     for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
@@ -119,14 +124,22 @@ public class Router {
   }
 
   public void addHealthCheck(String s, HealthCheck check) {
-    healthCheckRegistry.register(s, check);
+    Preconditions.checkState(
+        !healthCheckMap.containsKey(s), "A Health Check by that name has already been registered");
+    healthCheckMap.put(s, check);
   }
 
-  public void scheduleHealthChecks() {
-    scheduleHealthChecks(60, 60, TimeUnit.SECONDS);
+  public void scheduleHealthChecks(EventLoopGroup workerGroup) {
+    scheduleHealthChecks(workerGroup, 60, 60, TimeUnit.SECONDS);
   }
 
-  public void scheduleHealthChecks(int initialDelay, int delay, TimeUnit timeUnit) {
+  public void scheduleHealthChecks(
+      EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
+
+    for (String check : healthCheckMap.keySet()) {
+      healthCheckRegistry.register(check, healthCheckMap.get(check));
+    }
+
     workerGroup.scheduleWithFixedDelay(
         new Runnable() {
           @Override
@@ -139,13 +152,14 @@ public class Router {
         timeUnit);
   }
 
-  public void addRoute(String s, Handler handler) {
-    addRoute(s, handler, XHttpMethod.ANY);
+  public void addRoute(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.ANY);
   }
 
   public void addRoute(String route, Handler handler, HttpMethod method) {
-    Preconditions.checkState(method != null);
+    Preconditions.checkState(!route.isEmpty());
     Preconditions.checkState(handler != null);
+    Preconditions.checkState(method != null);
 
     ImmutableMap<XHttpMethod, Handler> handlerMap =
         new ImmutableMap.Builder<XHttpMethod, Handler>()
@@ -210,13 +224,26 @@ public class Router {
   }
 
   public void listenAndServe() throws IOException {
+    listenAndServe(true, true);
+  }
+
+  /**
+   * The listenAndServe method is the primary entry point for the server and should only be called
+   * once and only from the main thread.
+   *
+   * @param serveAdmin pass true to serve the admin handlers, false if not
+   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health checks will be run every time the health endpoint is hit
+   * @throws IOException throws in the event the network services, as specified, cannot be accessed
+   */
+  public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
     ConnectionLimiter globalConnectionLimiter =
         new ConnectionLimiter(
             metricRegistry, config.maxConnections()); // All endpoints for a given service
     ServiceRateLimiter rateLimiter =
         new ServiceRateLimiter(
             metricRegistry,
-            config.rateLimit()); // RateLimit incomming connections in terms of req / second
+            config.softReqPerSec(),
+            config.hardReqPerSec()); // RateLimit incomming connections in terms of req / second
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
@@ -244,6 +271,16 @@ public class Router {
           }
         });
 
+    if (scheduleHealthChecks) {
+      final EventLoopGroup _workerGroup = b.config().childGroup();
+      healthCheckRegistry = new HealthCheckRegistry(_workerGroup);
+      scheduleHealthChecks(_workerGroup);
+    }
+
+    if (serveAdmin) {
+      serveAdmin();
+    }
+
     ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
 
     try {
@@ -254,6 +291,7 @@ public class Router {
       jmxReporter.start();
 
       future.await();
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("Interrupted waiting for bind");
@@ -288,7 +326,7 @@ public class Router {
   }
 
   @ChannelHandler.Sharable
-  class NoOpHandler extends ChannelDuplexHandler {
+  static class NoOpHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -297,7 +335,7 @@ public class Router {
     }
   }
 
-  class IdleDisconnectHandler extends IdleStateHandler {
+  static class IdleDisconnectHandler extends IdleStateHandler {
 
     public IdleDisconnectHandler(
         int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
