@@ -18,7 +18,6 @@ package com.nordstrom.xrpc.server.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -31,6 +30,8 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
 
 /** Container for utility methods and helpers. */
 public final class Recipes {
@@ -54,11 +55,11 @@ public final class Recipes {
 
   // Request {{{
   public static FullHttpRequest newFullRequest(
-      HttpMethod method, String urlPath, ByteBuf buffer, ContentType contentType) {
+      HttpMethod method, String urlPath, ByteBuf payload, ContentType contentType) {
     FullHttpRequest request =
-        new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, buffer);
+        new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, payload);
     request.headers().set(CONTENT_TYPE, contentType.value);
-    request.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+    request.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
     return request;
   }
 
@@ -71,8 +72,8 @@ public final class Recipes {
   }
 
   public static FullHttpRequest newRequestPost(
-      String urlPath, ByteBuf buffer, ContentType contentType) {
-    return newFullRequest(HttpMethod.POST, urlPath, buffer, contentType);
+      String urlPath, ByteBuf payload, ContentType contentType) {
+    return newFullRequest(HttpMethod.POST, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPost(
@@ -81,8 +82,8 @@ public final class Recipes {
   }
 
   public static FullHttpRequest newRequestPut(
-      String urlPath, ByteBuf buffer, ContentType contentType) {
-    return newFullRequest(HttpMethod.PUT, urlPath, buffer, contentType);
+      String urlPath, ByteBuf payload, ContentType contentType) {
+    return newFullRequest(HttpMethod.PUT, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPut(
@@ -97,11 +98,33 @@ public final class Recipes {
   }
 
   public static FullHttpResponse newResponse(
-      HttpResponseStatus status, ByteBuf buffer, ContentType contentType) {
-    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
+      HttpResponseStatus status, ByteBuf payload, ContentType contentType) {
+    return newResponse(status, payload, contentType, Collections.emptyMap());
+  }
+
+  /**
+   * Returns a full HTTP response with the specified status, content type, and custom headers.
+   *
+   * Headers should be specified as a map of strings. For example, to allow CORS, add the
+   * following key and value:
+   *     "access-control-allow-origin", "http://foo.example"
+   *
+   * If content type or content length are passed in as custom headers, they will be ignored.
+   * Instead, content type will be as specified by the parameter contentType and content
+   * length will be the length of the parameter contentLength.
+   */
+  public static FullHttpResponse newResponse(
+    HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
+    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
+
+    if (customHeaders != null) {
+      for (String header : customHeaders.keySet()) {
+        response.headers().set(header, customHeaders.get(header));
+      }
+    }
 
     response.headers().set(CONTENT_TYPE, contentType.value);
-    response.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+    response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
 
     return response;
   }
