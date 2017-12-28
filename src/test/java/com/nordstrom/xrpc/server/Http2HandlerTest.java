@@ -13,13 +13,21 @@ import org.junit.jupiter.api.Test;
 
 public class Http2HandlerTest {
   @Test
-  public void getPathFromHeaders () {
+  public void getPathFromHeaders_withQueryString () {
     Http2Headers mockHeaders = mock(Http2Headers.class);
     when(mockHeaders.path()).thenReturn("/foo/extracted?query1=abc&query2=123");
 
-    Http2Handler testHandler = new Http2Handler(mock(Http2ConnectionDecoder.class), mock(Http2ConnectionEncoder.class), new Http2Settings());
+    String path = Http2Handler.getPathFromHeaders(mockHeaders);
 
-    String path = testHandler.getPathFromHeaders(mockHeaders);
+    assertEquals("/foo/extracted", path);
+  }
+
+  @Test
+  public void getPathFromHeaders_withNoQueryString () {
+    Http2Headers mockHeaders = mock(Http2Headers.class);
+    when(mockHeaders.path()).thenReturn("/foo/extracted");
+
+    String path = Http2Handler.getPathFromHeaders(mockHeaders);
 
     assertEquals("/foo/extracted", path);
   }

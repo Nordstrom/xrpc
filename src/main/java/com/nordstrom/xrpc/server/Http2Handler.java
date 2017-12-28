@@ -207,7 +207,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
   }
 
-  protected String getPathFromHeaders (Http2Headers headers) {
+  static String getPathFromHeaders (Http2Headers headers) {
     String uri = headers.path().toString();
     return XUrl.getPath(uri);
   }
