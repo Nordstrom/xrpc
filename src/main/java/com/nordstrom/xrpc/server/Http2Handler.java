@@ -163,8 +163,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       int padding,
       boolean endOfStream) {
 
-    String uri = headers.path().toString();
-    String path = XUrl.getPath(uri);
+    String path = getPathFromHeaders(headers);
 
     for (Route route :
         ctx.channel()
@@ -197,6 +196,11 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     ByteBuf buf = ctx.channel().alloc().directBuffer();
     buf.writeBytes("Endpoint not found".getBytes());
     writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
+  }
+
+  protected String getPathFromHeaders (Http2Headers headers) {
+    String uri = headers.path().toString();
+    return XUrl.getPath(uri);
   }
 
   @Override
