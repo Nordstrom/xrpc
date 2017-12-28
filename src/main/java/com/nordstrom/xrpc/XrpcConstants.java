@@ -13,8 +13,9 @@ public class XrpcConstants {
   public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
   public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
-  public static final ByteBuf RATE_LIMIT_RESPONSE = Unpooled.directBuffer()
-    .writeBytes(
-      "This response is being send due to too many requests being sent to the server"
-        .getBytes(DEFAULT_CHARSET));
+  public static final ByteBuf RATE_LIMIT_RESPONSE =
+      Unpooled.directBuffer()
+          .writeBytes(
+              "This response is being send due to too many requests being sent to the server"
+                  .getBytes(DEFAULT_CHARSET));
 }

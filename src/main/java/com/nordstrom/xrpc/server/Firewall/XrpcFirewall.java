@@ -5,6 +5,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -52,30 +53,31 @@ public abstract class XrpcFirewall extends ChannelDuplexHandler {
 
   @Override
   public void userEventTriggered(ChannelHandlerContext ctx, Object _evt) {
-    XrpcEvent evt;
+    Optional<XrpcEvent> evt;
 
     if (_evt instanceof XrpcEvent) {
-      evt = (XrpcEvent) _evt;
+      evt = Optional.of((XrpcEvent) _evt);
     } else {
-      evt = null;
-      //TODO(JR): Throw probably?
+      evt = Optional.empty();
     }
 
-    switch (evt) {
-      case RATE_LIMIT:
-        log.info("Xrpc Firewall blocked based on rate limit req:" + ctx.channel());
-        ctx.channel().deregister();
-        break;
-      case BLOCK_REQ_POLICY_BASED:
-        log.info("Xrpc Firewall blocked based on policy:" + ctx.channel());
-        ctx.channel().deregister();
-        break;
-      case BLOCK_REQ_BEHAVIORAL_BASED:
-        log.info("Xrpc Firewall blocked based on behavior:" + ctx.channel());
-        ctx.channel().deregister();
-        break;
-      default:
-        break;
+    if (evt.isPresent()) {
+      switch (evt.get()) {
+        case RATE_LIMIT:
+          log.info("Xrpc Firewall blocked based on rate limit req:" + ctx.channel());
+          ctx.channel().deregister();
+          break;
+        case BLOCK_REQ_POLICY_BASED:
+          log.info("Xrpc Firewall blocked based on policy:" + ctx.channel());
+          ctx.channel().deregister();
+          break;
+        case BLOCK_REQ_BEHAVIORAL_BASED:
+          log.info("Xrpc Firewall blocked based on behavior:" + ctx.channel());
+          ctx.channel().deregister();
+          break;
+        default:
+          break;
+      }
     }
   }
 
