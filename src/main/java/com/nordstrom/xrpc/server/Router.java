@@ -67,19 +67,6 @@ public class Router {
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
 
-  final Slf4jReporter slf4jReporter =
-      Slf4jReporter.forRegistry(metricRegistry)
-          .outputTo(LoggerFactory.getLogger(Router.class))
-          .convertRatesTo(TimeUnit.SECONDS)
-          .convertDurationsTo(TimeUnit.MILLISECONDS)
-          .build();
-  final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
-  private final ConsoleReporter consoleReporter =
-      ConsoleReporter.forRegistry(metricRegistry)
-          .convertRatesTo(TimeUnit.SECONDS)
-          .convertDurationsTo(TimeUnit.MILLISECONDS)
-          .build();
-
   @Getter private Channel channel;
   @Getter private HealthCheckRegistry healthCheckRegistry;
   private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
@@ -287,11 +274,31 @@ public class Router {
     ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
 
     try {
-      // Get some loggy logs
-      consoleReporter.start(30, TimeUnit.SECONDS);
-      // This is too noisy right now, re-enable prior to shipping.
-      //slf4jReporter.start(30, TimeUnit.SECONDS);
-      jmxReporter.start();
+      // Build out the loggers that are specified in the config
+
+      if (config.slf4jReporter()) {
+        final Slf4jReporter slf4jReporter =
+            Slf4jReporter.forRegistry(metricRegistry)
+                .outputTo(LoggerFactory.getLogger(Router.class))
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .build();
+        slf4jReporter.start(config.slf4jReporterPollingRate(), TimeUnit.SECONDS);
+      }
+
+      if (config.jmxReporter()) {
+        final JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
+        jmxReporter.start();
+      }
+
+      if (config.consoleReporter()) {
+        final ConsoleReporter consoleReporter =
+            ConsoleReporter.forRegistry(metricRegistry)
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .build();
+        consoleReporter.start(config.consoleReporterPollingRate(), TimeUnit.SECONDS);
+      }
 
       future.await();
 
@@ -329,7 +336,7 @@ public class Router {
             });
   }
 
-  /**
+  /*
    * This section of classes have been added as Static inner classes to reduce GC pressure. As these
    * classes are only instantiated once and only from the Router class, this seems to be a more
    * appropriate class def than these objects living in their own public classes.

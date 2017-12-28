@@ -31,7 +31,7 @@ public class UrlRouter extends ChannelDuplexHandler {
       ctx.writeAndFlush(
               Recipes.newResponse(
                   HttpResponseStatus.TOO_MANY_REQUESTS,
-                  XrpcConstants.RATE_LIMIT_RESPONSE,
+                  XrpcConstants.RATE_LIMIT_RESPONSE.retain(),
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
       xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();

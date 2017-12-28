@@ -5,7 +5,6 @@ buildscript {
   }
   dependencies {
     classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.1'
-    classpath "com.uber:infer-plugin:0.7.4"
   }
 }
 
