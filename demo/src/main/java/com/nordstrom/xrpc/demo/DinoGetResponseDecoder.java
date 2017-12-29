@@ -18,7 +18,6 @@ package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.demo.proto.Dino;
 import com.nordstrom.xrpc.demo.proto.DinoGetReply;
-
 import java.io.IOException;
 
 public class DinoGetResponseDecoder {

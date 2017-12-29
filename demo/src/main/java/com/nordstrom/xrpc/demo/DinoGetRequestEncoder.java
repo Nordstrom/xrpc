@@ -17,12 +17,11 @@
 package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.demo.proto.DinoGetRequest;
-
 import java.io.IOException;
 
 public class DinoGetRequestEncoder {
   public static void main(String[] args) throws IOException {
-    DinoGetRequest dino = DinoGetRequest.newBuilder().setName(args[0]).build();
-    System.out.write(dino.toByteArray());
+    DinoGetRequest dinoGetRequest = DinoGetRequest.newBuilder().setName(args[0]).build();
+    System.out.write(dinoGetRequest.toByteArray());
   }
 }

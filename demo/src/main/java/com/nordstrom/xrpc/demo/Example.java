@@ -17,8 +17,7 @@
 package com.nordstrom.xrpc.demo;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.CodedInputStream;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.demo.proto.*;
@@ -31,6 +30,7 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -73,14 +73,14 @@ public class Example {
 
     // Define a complex function call
     Handler personPostHandler =
-      request -> {
-      byte[] _p = new byte[request.getData().readableBytes()];
-      request.getData().readBytes(_p, 0, request.getData().readableBytes());
-        Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
-        people.add(p);
+        request -> {
+          byte[] _p = new byte[request.getData().readableBytes()];
+          request.getData().readBytes(_p, 0, request.getData().readableBytes());
+          Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
+          people.add(p);
 
-        return Recipes.newResponseOk("");
-      };
+          return Recipes.newResponseOk("");
+        };
 
     // Define a complex function call
     Handler personHandler =
@@ -124,23 +124,25 @@ public class Example {
     }
   }
 
-  private static HttpResponse getDino(XrpcRequest request, List<Dino> dinos) {
+  private static FullHttpResponse getDino(XrpcRequest request, List<Dino> dinos) {
     try {
       DinoGetRequest getRequest =
-          DinoGetRequest.parseFrom(ByteString.copyFrom(request.getData().nioBuffer()));
+          DinoGetRequest.parseFrom(CodedInputStream.newInstance(request.getData().nioBuffer()));
       Optional<Dino> dinoOptional =
           dinos.stream().filter(xs -> xs.getName().equals(getRequest.getName())).findFirst();
-      dinoOptional.ifPresent(
-          dino ->
-              Recipes.newResponse(
-                  HttpResponseStatus.OK,
-                  request
-                      .getByteBuf()
-                      .writeBytes(DinoGetReply.newBuilder().setDino(dino).build().toByteArray()),
-                  Recipes.ContentType.Application_Octet_Stream));
 
-    } catch (InvalidProtocolBufferException e) {
-      return Recipes.newResponseBadRequest("Malformed GetDino Request");
+      if (dinoOptional.isPresent()) {
+        return Recipes.newResponse(
+            HttpResponseStatus.OK,
+            request
+                .getByteBuf()
+                .writeBytes(
+                    DinoGetReply.newBuilder().setDino(dinoOptional.get()).build().toByteArray()),
+            Recipes.ContentType.Application_Octet_Stream);
+      }
+
+    } catch (IOException e) {
+      return Recipes.newResponseBadRequest("Malformed GetDino Request: " + e.getMessage());
     }
 
     return Recipes.newResponseOk("Dino not Found");
@@ -148,18 +150,21 @@ public class Example {
 
   private static HttpResponse setDino(XrpcRequest request, List<Dino> dinos) {
     try {
-      DinoSetRequest setRequest =
-          DinoSetRequest.parseFrom(ByteString.copyFrom(request.getData().nioBuffer()));
-      dinos.add(setRequest.getDino());
-      System.out.println(setRequest.getDino().toString());
+
+      Optional<DinoSetRequest> setRequest =
+          Optional.of(
+              DinoSetRequest.parseFrom(
+                  CodedInputStream.newInstance(request.getData().nioBuffer())));
+      setRequest.ifPresent(req -> dinos.add(req.getDino()));
+
       return Recipes.newResponse(
           HttpResponseStatus.OK,
           request
               .getByteBuf()
               .writeBytes(DinoSetReply.newBuilder().setResponseCode("OK").build().toByteArray()),
           Recipes.ContentType.Application_Octet_Stream);
-    } catch (InvalidProtocolBufferException e) {
-      return Recipes.newResponseBadRequest("Malformed SetDino Request");
+    } catch (IOException e) {
+      return Recipes.newResponseBadRequest("Malformed SetDino Request: " + e.getMessage());
     }
 
     //return Recipes.newResponseBadRequest("Could not SetDino");

@@ -18,7 +18,6 @@ package com.nordstrom.xrpc.demo;
 
 import com.nordstrom.xrpc.demo.proto.Dino;
 import com.nordstrom.xrpc.demo.proto.DinoSetRequest;
-
 import java.io.IOException;
 
 public class DinoSetEncoder {

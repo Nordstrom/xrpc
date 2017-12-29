@@ -28,7 +28,6 @@ import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.HttpConversionUtil;
 import java.util.Map;
 import lombok.Getter;
-import lombok.Setter;
 
 /** Xprc specific Request object. */
 public class XrpcRequest {

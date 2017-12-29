@@ -46,8 +46,8 @@ $ java -cp app.jar com.nordstrom.xrpc.demo.DinoSetEncoder trex blue | curl -k  h
 # Proto http get
 
 ```shell
-$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/dinos/GetDino | java -cp app.jar com.nordstrom.xrpc.demo.DinoGetResponseDecoder
-Dino{name=trex, fav_color=blue}
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/dinos/GetDino --data-binary @-
+trexblue
 ```
 
 # Contributing
