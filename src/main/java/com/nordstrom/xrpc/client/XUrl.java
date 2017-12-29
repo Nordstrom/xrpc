@@ -119,13 +119,8 @@ public class XUrl {
   }
 
   public static Map<String, List<String>> decodeQueryString(String url) {
-    return Arrays.stream(stripQueryParameters(url).split("&"))
-        .map(XUrl::splitQueryParameter)
-        .collect(
-            Collectors.groupingBy(
-                AbstractMap.SimpleImmutableEntry::getKey,
-                LinkedHashMap::new,
-                mapping(Map.Entry::getValue, toList())));
+      QueryStringDecoder decoder = new QueryStringDecoder(url);
+      return decoder.parameters();
   }
 
   public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {

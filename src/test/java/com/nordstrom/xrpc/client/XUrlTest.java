@@ -8,6 +8,7 @@ class XUrlTest {
 
   String url1 = "https://api.nordstrom.com/foo/v1?foo=bar";
   String url2 = "https://api.nordstrom.com:8080/foo/v1?foo=bar";
+  String url3 = "https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar";
 
   @Test
   void getHost() {
@@ -26,6 +27,12 @@ class XUrlTest {
   @Test
   void getPath() {
     assertEquals("/foo/v1", XUrl.getPath(url1));
+  }
+
+  @Test
+  void getPath_withUrlEncoding() {
+    String path = XUrl.getPath(url3);
+    assertEquals("/foo/bar baz", path);
   }
 
   @Test
@@ -56,9 +63,18 @@ class XUrlTest {
   void decodeQString2() {
     String qString = "https://n.com?param1=value1&param2=&param3=value3&param3";
     assertEquals("value1", XUrl.decodeQueryString(qString).get("param1").get(0));
-    assertEquals(null, XUrl.decodeQueryString(qString).get("param2").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
     assertEquals("value3", XUrl.decodeQueryString(qString).get("param3").get(0));
-    assertEquals(null, XUrl.decodeQueryString(qString).get("param3").get(1));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
+  }
+
+  @Test
+  void decodeQString_withUrlEncoding() {
+    String qString = "https://n.com?param1=value%201&param2=&param3=value%203&param3";
+    assertEquals("value 1", XUrl.decodeQueryString(qString).get("param1").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
+    assertEquals("value 3", XUrl.decodeQueryString(qString).get("param3").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
   }
 
   @Test
