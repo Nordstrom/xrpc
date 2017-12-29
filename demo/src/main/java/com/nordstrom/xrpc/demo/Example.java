@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.demo;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.demo.proto.*;
@@ -30,17 +31,20 @@ import com.squareup.moshi.Moshi;
 import com.squareup.moshi.Types;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Example {
@@ -64,46 +68,46 @@ public class Example {
 
     // Define a simple function call.
     Handler peopleHandler =
-        request -> {
-          return Recipes.newResponse(
-              HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
-              Recipes.ContentType.Application_Json);
-        };
+      request -> {
+        return Recipes.newResponse(
+          HttpResponseStatus.OK,
+          request.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
+          Recipes.ContentType.Application_Json);
+      };
 
     // Define a complex function call
     Handler personPostHandler =
-        request -> {
-          byte[] _p = new byte[request.getData().readableBytes()];
-          request.getData().readBytes(_p, 0, request.getData().readableBytes());
-          Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
-          people.add(p);
+      request -> {
+        byte[] _p = new byte[request.getData().readableBytes()];
+        request.getData().readBytes(_p, 0, request.getData().readableBytes());
+        Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
+        people.add(p);
 
-          return Recipes.newResponseOk("");
-        };
+        return Recipes.newResponseOk("");
+      };
 
     // Define a complex function call
     Handler personHandler =
-        request -> {
-          Person p = new Person(request.variable("person"));
-          people.add(p);
+      request -> {
+        Person p = new Person(request.variable("person"));
+        people.add(p);
 
-          return Recipes.newResponseOk("");
-        };
+        return Recipes.newResponseOk("");
+      };
 
     // RPC style endpoint
     Handler dinoHandler =
-        request -> {
-          String path = request.variable("method");
-          switch (path) {
-            case "SetDino":
-              return setDino(request, dinos);
-            case "GetDino":
-              return getDino(request, dinos);
-            default:
-              return Recipes.newResponseBadRequest("Method not found in Dino Service");
-          }
-        };
+      request -> {
+        String path = request.variable("method");
+        switch (path) {
+          case "SetDino":
+            return setDino(request, dinos);
+          case "GetDino":
+            return getDino(request, dinos);
+          default:
+            return Recipes.newResponseBadRequest("Method not found in Dino Service");
+        }
+      };
 
     // Create your route mapping for the JSON requests
     router.addRoute("/people/{person}", personHandler, HttpMethod.GET);
@@ -127,18 +131,22 @@ public class Example {
   private static FullHttpResponse getDino(XrpcRequest request, List<Dino> dinos) {
     try {
       DinoGetRequest getRequest =
-          DinoGetRequest.parseFrom(CodedInputStream.newInstance(request.getData().nioBuffer()));
+        DinoGetRequest.parseFrom(CodedInputStream.newInstance(request.getData().nioBuffer()));
       Optional<Dino> dinoOptional =
-          dinos.stream().filter(xs -> xs.getName().equals(getRequest.getName())).findFirst();
+        dinos.stream().filter(xs -> xs.getName().equals(getRequest.getName())).findFirst();
 
       if (dinoOptional.isPresent()) {
+        DinoGetReply getReply = DinoGetReply.newBuilder().setDino(dinoOptional.get()).build();
+        ByteBuf resp = request.getByteBuf();
+        resp.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(getReply), true);
+        getReply.writeTo(new ByteBufOutputStream(resp));
+        
         return Recipes.newResponse(
-            HttpResponseStatus.OK,
-            request
-                .getByteBuf()
-                .writeBytes(
-                    DinoGetReply.newBuilder().setDino(dinoOptional.get()).build().toByteArray()),
-            Recipes.ContentType.Application_Octet_Stream);
+          HttpResponseStatus.OK,
+          request
+            .getByteBuf()
+            .writeBytes(resp),
+          Recipes.ContentType.Application_Octet_Stream);
       }
 
     } catch (IOException e) {
@@ -152,17 +160,17 @@ public class Example {
     try {
 
       Optional<DinoSetRequest> setRequest =
-          Optional.of(
-              DinoSetRequest.parseFrom(
-                  CodedInputStream.newInstance(request.getData().nioBuffer())));
+        Optional.of(
+          DinoSetRequest.parseFrom(
+            CodedInputStream.newInstance(request.getData().nioBuffer())));
       setRequest.ifPresent(req -> dinos.add(req.getDino()));
 
       return Recipes.newResponse(
-          HttpResponseStatus.OK,
-          request
-              .getByteBuf()
-              .writeBytes(DinoSetReply.newBuilder().setResponseCode("OK").build().toByteArray()),
-          Recipes.ContentType.Application_Octet_Stream);
+        HttpResponseStatus.OK,
+        request
+          .getByteBuf()
+          .writeBytes(DinoSetReply.newBuilder().setResponseCode("OK").build().toByteArray()),
+        Recipes.ContentType.Application_Octet_Stream);
     } catch (IOException e) {
       return Recipes.newResponseBadRequest("Malformed SetDino Request: " + e.getMessage());
     }
@@ -170,7 +178,9 @@ public class Example {
     //return Recipes.newResponseBadRequest("Could not SetDino");
   }
 
-  /** Example POJO for use in request / response. */
+  /**
+   * Example POJO for use in request / response.
+   */
   @AllArgsConstructor
   private static class Person {
     private String name;
@@ -178,7 +188,8 @@ public class Example {
 
   public static class SimpleHealthCheck extends HealthCheck {
 
-    public SimpleHealthCheck() {}
+    public SimpleHealthCheck() {
+    }
 
     @Override
     protected Result check() throws Exception {
