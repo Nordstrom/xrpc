@@ -86,13 +86,12 @@ class XUrlTest {
     String withPathTrailingSlashNoQuery = "https://api.nordstrom.com/v1/";
     String withPathTrailingSlash = "https://api.nordstrom.com/v1/?foo=bar";
 
-    //TODO(JR): These use cases currently throw NPEs. We need to do a better job of making these edges less sharp
-    //    assertEquals("value1", XUrl.decodeQueryString(noPath).get("param1").get(0));
-    //    assertEquals(null, XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
-    //    assertEquals("value3", XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
-
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPath).get("param1").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
   }
 }

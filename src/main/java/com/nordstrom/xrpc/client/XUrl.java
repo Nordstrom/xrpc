@@ -120,8 +120,11 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
       QueryStringDecoder decoder = new QueryStringDecoder(url);
-      return decoder.parameters();
+      Map<String, List<String>> params = new QueryStringMap<>(new ArrayList<String>());
+      params.putAll(decoder.parameters());
+      return params;
   }
+
 
   public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
     final int idx = it.indexOf("=");
