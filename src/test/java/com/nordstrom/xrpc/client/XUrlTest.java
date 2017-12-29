@@ -16,13 +16,15 @@ class XUrlTest {
   }
 
   @Test
+  void getHost_withPort() {
+    assertEquals("api.nordstrom.com", XUrl.getHost(url2));
+  }
+
+  @Test
   void getPort() {
     assertEquals(443, XUrl.getPort(url1));
     assertEquals(8080, XUrl.getPort(url2));
   }
-
-  @Test
-  void getDomainChecked() {}
 
   @Test
   void getPath() {

@@ -31,16 +31,29 @@ import lombok.extern.slf4j.Slf4j;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
 
+//    Stopwatch stopwatch = Stopwatch.createStarted();
+//    // codes
+//    stopwatch.stop();
+//    stopwatch.elapsed(TimeUnit.MILLISECONDS);
+//    log.info("My Code took this much time " + stopwatch );
+
 @Slf4j
 public class XUrl {
 
   public static String getHost(String url) {
-    try {
-      return getDomainChecked(url);
-    } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
-      return null;
+    Preconditions.checkNotNull(url);
+
+    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    String intermediaryHost = decoder.path();
+    intermediaryHost = stripProtocol(intermediaryHost);
+
+    int portStart = intermediaryHost.indexOf(":");
+    if (portStart != -1) {
+      return intermediaryHost.substring(0, portStart);
     }
+
+    int pathStart = intermediaryHost.indexOf("/");
+    return intermediaryHost.substring(0, pathStart);
   }
 
   public static int getPort(String url) {
