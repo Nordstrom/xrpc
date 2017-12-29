@@ -45,7 +45,7 @@ public class UrlRouter extends ChannelDuplexHandler {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
           XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
-
+          xrpcRequest.setData(request.content());
           HttpResponse resp;
           Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
               xctx.getRoutes()

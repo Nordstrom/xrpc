@@ -20,6 +20,7 @@ import com.codahale.metrics.health.HealthCheck;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.demo.proto.*;
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
@@ -71,6 +72,17 @@ public class Example {
         };
 
     // Define a complex function call
+    Handler personPostHandler =
+      request -> {
+      byte[] _p = new byte[request.getData().readableBytes()];
+      request.getData().readBytes(_p, 0, request.getData().readableBytes());
+        Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
+        people.add(p);
+
+        return Recipes.newResponseOk("");
+      };
+
+    // Define a complex function call
     Handler personHandler =
         request -> {
           Person p = new Person(request.variable("person"));
@@ -95,7 +107,8 @@ public class Example {
 
     // Create your route mapping for the JSON requests
     router.addRoute("/people/{person}", personHandler, HttpMethod.GET);
-    router.addRoute("/people", peopleHandler);
+    router.addRoute("/people", personPostHandler, HttpMethod.POST);
+    router.addRoute("/people", peopleHandler, HttpMethod.GET);
 
     // Create your route mapping
     router.addRoute("/dinos/{method}", dinoHandler);

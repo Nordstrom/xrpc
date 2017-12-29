@@ -122,7 +122,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     int processed = data.readableBytes() + padding;
 
     if (endOfStream) {
-      ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get().setData(data.unwrap());
+      ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get().setData(data);
       for (Route route :
           ctx.channel()
               .attr(XrpcConstants.CONNECTION_CONTEXT)
