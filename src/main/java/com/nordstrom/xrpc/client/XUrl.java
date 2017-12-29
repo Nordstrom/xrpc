@@ -27,6 +27,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import static java.lang.Integer.parseInt;
 import lombok.extern.slf4j.Slf4j;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -59,28 +60,22 @@ public class XUrl {
   public static int getPort(String url) {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
-    url = addProtocol(url);
-    try {
-      URI uri = new URI(url);
-      if (uri.getPort() == -1) {
-        if (!matcher.find()) {
-          return 80;
-        } else {
-          return 443;
-        }
-      } else {
-        return uri.getPort();
-      }
-    } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
-      return -1;
-    }
-  }
 
-  public static String getDomainChecked(String url) throws URISyntaxException {
-    Preconditions.checkNotNull(url);
-    url = addProtocol(url);
-    return new URI(url).getHost();
+    url = stripProtocol(url);
+    url = stripUrlParameters(url);
+
+    int portStart = url.indexOf(":");
+    int pathStart = url.indexOf("/");
+
+    if (portStart == -1) {
+      if (!matcher.find()) {
+        return 80;
+      } else {
+        return 443;
+      }
+    } else {
+      return parseInt(url.substring(portStart + 1, pathStart));
+    }
   }
 
   public static String getPath(String url) {
