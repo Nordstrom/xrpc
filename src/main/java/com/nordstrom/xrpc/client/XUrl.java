@@ -27,8 +27,8 @@ import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+
 import io.netty.handler.codec.http.QueryStringDecoder;
 
 @Slf4j
@@ -72,13 +72,11 @@ public class XUrl {
 
   public static String getPath(String url) {
     Preconditions.checkNotNull(url);
-    try {
-      String decodedUrl = QueryStringDecoder.decodeComponent(url);
-      return new QueryStringDecoder(decodedUrl).path();
-    } catch (IllegalArgumentException e) {
-      log.info("Malformed url: " + url);
-      return null;
-    }
+    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    String intermediaryPath = decoder.path();
+    intermediaryPath = stripProtocol(intermediaryPath);
+    int pathStart = intermediaryPath.indexOf("/");
+    return intermediaryPath.substring(pathStart);
   }
 
   public static String stripUrlParameters(String url) {
@@ -116,6 +114,16 @@ public class XUrl {
       url = "http://" + url;
     }
     return url;
+  }
+
+  public static String stripProtocol(String url) {
+    Preconditions.checkNotNull(url);
+
+    Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
+    if (!matcher.find()) {
+      return url;
+    }
+    return matcher.replaceFirst("");
   }
 
   public static Map<String, List<String>> decodeQueryString(String url) {
