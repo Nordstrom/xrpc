@@ -39,12 +39,12 @@ class XUrlTest {
 
   @Test
   void stripUrlParameters() {
-    assertEquals("https://api.nordstrom.com/foo/v1", XUrl.stripUrlParameters(url1));
+    assertEquals("https://api.nordstrom.com/foo/v1", XUrl.stripQueryString(url1));
   }
 
   @Test
   void stripQueryParameters() {
-    assertEquals("foo=bar", XUrl.stripQueryParameters(url1));
+    assertEquals("foo=bar", XUrl.getRawQueryString(url1));
   }
 
   @Test
