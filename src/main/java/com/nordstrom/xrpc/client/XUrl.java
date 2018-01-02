@@ -22,32 +22,29 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.lang.Integer.parseInt;
+import java.lang.Integer;
 
+import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
+import okhttp3.HttpUrl;
 
 @Slf4j
 public class XUrl {
 
   public static String getHost(String url) {
     Preconditions.checkNotNull(url);
+    url = XUrl.addProtocol(url);
+    HttpUrl parsedUrl = HttpUrl.parse(url);
+    String host = url != null ? parsedUrl.host() : null;
 
-    QueryStringDecoder decoder = new QueryStringDecoder(url);
-    String intermediaryHost = decoder.path();
-    intermediaryHost = stripProtocol(intermediaryHost);
-
-    int portStart = intermediaryHost.indexOf(":");
-    if (portStart != -1) {
-      return intermediaryHost.substring(0, portStart);
-    }
-
-    int pathStart = intermediaryHost.indexOf("/");
-    return intermediaryHost.substring(0, pathStart);
+    return host;
   }
 
   public static int getPort(String url) {
@@ -68,7 +65,7 @@ public class XUrl {
         return 443;
       }
     } else {
-      return parseInt(url.substring(portStart + 1, portStop));
+      return Integer.parseInt(url.substring(portStart + 1, portStop));
     }
   }
 
