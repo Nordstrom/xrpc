@@ -18,8 +18,6 @@ package com.nordstrom.xrpc.client;
 
 import com.google.common.base.Preconditions;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,7 +59,8 @@ public class XUrl {
     url = stripQueryString(url);
 
     int portStart = url.indexOf(":");
-    int pathStart = url.indexOf("/");
+    int portStop = url.indexOf("/");
+    portStop = portStop == -1 ? url.length() : portStop;
 
     if (portStart == -1) {
       if (!matcher.find()) {
@@ -70,7 +69,7 @@ public class XUrl {
         return 443;
       }
     } else {
-      return parseInt(url.substring(portStart + 1, pathStart));
+      return parseInt(url.substring(portStart + 1, portStop));
     }
   }
 
@@ -133,19 +132,18 @@ public class XUrl {
     return matcher.replaceFirst("");
   }
 
-  public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
+  public static InetSocketAddress getInetSocket(String url) {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
-    url = addProtocol(url);
-    URI uri = new URI(url);
-    if (uri.getPort() == -1) {
+
+    if (XUrl.getPort(url) == -1) {
       if (!matcher.find()) {
-        return new InetSocketAddress(uri.getHost(), 80);
+        return new InetSocketAddress(XUrl.getHost(url), 80);
       } else {
-        return new InetSocketAddress(uri.getHost(), 443);
+        return new InetSocketAddress(XUrl.getHost(url), 443);
       }
     } else {
-      return new InetSocketAddress(uri.getHost(), uri.getPort());
+      return new InetSocketAddress(XUrl.getHost(url), XUrl.getPort(url));
     }
   }
 }

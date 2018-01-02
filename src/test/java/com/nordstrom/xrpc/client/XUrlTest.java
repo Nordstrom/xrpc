@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.InetSocketAddress;
+
 class XUrlTest {
 
   String url1 = "https://api.nordstrom.com/foo/v1?foo=bar";
@@ -24,6 +26,7 @@ class XUrlTest {
   void getPort() {
     assertEquals(443, XUrl.getPort(url1));
     assertEquals(8080, XUrl.getPort(url2));
+    assertEquals(8080, XUrl.getPort("https://api.nordstrom.com:8080"));
   }
 
   @Test
@@ -95,5 +98,26 @@ class XUrlTest {
     assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
     assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
     assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
+  }
+
+  @Test
+  void getInetSocket() {
+    InetSocketAddress result = XUrl.getInetSocket(url2);
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(8080, result.getPort());
+  }
+
+  @Test
+  void getInetSocket_withNoPort() {
+    InetSocketAddress result = XUrl.getInetSocket(url1);
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(443, result.getPort());
+  }
+
+  @Test
+  void getInetSocket_withNoProtocol() {
+    InetSocketAddress result = XUrl.getInetSocket("api.nordstrom.com/foo/v1?foo=bar");
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(80, result.getPort());
   }
 }
