@@ -17,20 +17,19 @@ package com.nordstrom.xrpc.client;
  */
 
 import com.google.common.base.Preconditions;
+
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import static java.lang.Integer.parseInt;
+
 import lombok.extern.slf4j.Slf4j;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
-
-//    Stopwatch stopwatch = Stopwatch.createStarted();
-//    // codes
-//    stopwatch.stop();
-//    stopwatch.elapsed(TimeUnit.MILLISECONDS);
-//    log.info("My Code took this much time " + stopwatch );
 
 @Slf4j
 public class XUrl {
@@ -110,7 +109,7 @@ public class XUrl {
   }
 
   private static final Pattern URL_PROTOCOL_REGEX =
-      Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
+    Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
 
   public static String addProtocol(String url) {
     Preconditions.checkNotNull(url);
