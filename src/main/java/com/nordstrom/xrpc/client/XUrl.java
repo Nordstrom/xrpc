@@ -103,7 +103,7 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     QueryStringDecoder decoder = new QueryStringDecoder(url);
-    Map<String, List<String>> params = new QueryStringMap<>(new ArrayList<String>());
+    Map<String, List<String>> params = new DefaultValueMap<>(new ArrayList<String>());
     params.putAll(decoder.parameters());
     return params;
   }
