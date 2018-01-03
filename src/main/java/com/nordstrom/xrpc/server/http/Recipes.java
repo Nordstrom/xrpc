@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server.http;
 
+import static com.sun.tools.doclets.formats.html.markup.HtmlStyle.header;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
@@ -122,8 +123,8 @@ public final class Recipes {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     if (customHeaders != null) {
-      for (String header : customHeaders.keySet()) {
-        response.headers().set(header, customHeaders.get(header));
+      for (Map.Entry<String, String> entry : customHeaders.entrySet()) {
+        response.headers().set(entry.getKey(), entry.getValue());
       }
     }
 

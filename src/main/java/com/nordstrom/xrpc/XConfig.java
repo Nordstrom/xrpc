@@ -18,6 +18,8 @@ package com.nordstrom.xrpc;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -40,6 +42,10 @@ public class XConfig {
   private final String cert;
   private final String key;
   private final int port;
+  private final double gloablSoftReqPerSec;
+  private final double globalHardReqPerSec;
+  private final List<String> ipBlackList;
+  private final List<String> ipWhiteList;
   private boolean slf4jReporter;
   private boolean jmxReporter;
   private boolean consoleReporter;
@@ -72,6 +78,8 @@ public class XConfig {
     maxConnections = config.getInt("max_connections");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
+    gloablSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
+    globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
     cert = config.getString("cert");
     key = config.getString("key");
     port = config.getInt("server.port");
@@ -80,6 +88,9 @@ public class XConfig {
     consoleReporter = config.getBoolean("console_reporter");
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
+
+    ipBlackList = config.getStringList("ip_black_list");
+    ipWhiteList = config.getStringList("ip_black_list");
   }
 
   public int readerIdleTimeout() {
@@ -148,5 +159,21 @@ public class XConfig {
 
   public long consoleReporterPollingRate() {
     return (long) consoleReporterPollingRate;
+  }
+
+  public double globalHardReqPerSec() {
+    return globalHardReqPerSec;
+  }
+
+  public double globalSoftReqPerSec() {
+    return gloablSoftReqPerSec;
+  }
+
+  public HashSet<String> ipBlacklist() {
+    return new HashSet<>(ipBlackList);
+  }
+
+  public HashSet<String> ipWhitelist() {
+    return new HashSet<>(ipWhiteList);
   }
 }
