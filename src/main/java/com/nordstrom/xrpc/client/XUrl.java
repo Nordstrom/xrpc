@@ -122,8 +122,7 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     Preconditions.checkNotNull(url);
-    // TODO(pdent): This should only operate on the path. Fix.
-    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    QueryStringDecoder decoder = new QueryStringDecoder(stripQueryParameters(url));
     Map<String, List<String>> params = new DefaultValueMap<>(ImmutableList.of());
     params.putAll(decoder.parameters());
     return params;
