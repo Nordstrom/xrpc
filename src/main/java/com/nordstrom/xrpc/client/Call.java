@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
-/** */
 @Slf4j
 class Call {
   private final XrpcClient client;
@@ -104,7 +103,7 @@ class Call {
     BoundedExponentialBackoffRetry retry =
         new BoundedExponentialBackoffRetry(baseSleep, maxSleep, reties);
 
-    /**
+    /*
      * TODO(JR): This trace driver will be used in the future to allow for tracing of reties and
      * will also be the entry point for a future circuit breaker logic. As of now these features are
      * not enabled yet, but this entrypoint should be maintained.
@@ -156,7 +155,7 @@ class Call {
           }
         };
 
-    //TODO(JR): There should be a timeout here
+    //TODO(JR): There should be a configurable timeout here
     try {
       bootstrap.connect(server).addListener(listener).await(200, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {

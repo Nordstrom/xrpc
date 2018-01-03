@@ -1,8 +1,14 @@
 xrpc
 ====
 
-xrpc is a production quality server that is capable of serving public facing APIs (read: sitting on the edge) and has an appropriate level of enterprise operationalization. It currently supports the http/1.1 and the http/2 protocols. It does so interchangeably, i.e your implementation does not need to change and it will automatically respond to a http/1.1 and a http/2 client the same way. The user is free to determine whatever payload they would like, but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do
- 
+Xrpc is a framework for creating production quality API services on top of Netty. The framework helps to encapsulate our
+best practices and provides sane (ans safe) defaults.
+
+It currently supports the http/1.1 and the http/2 protocols. It does so interchangeably, 
+i.e your implementation does not need to change and it will automatically respond to a http/1.1 
+and a http/2 client the same way. The user is free to determine whatever payload they would like, 
+but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do
+
 ## Testing with the Example class  
 ```
 # Building the jar
@@ -15,6 +21,12 @@ $ ./gradlew shadowJar
 
 ```shell
 $ java -jar app.jar
+```
+
+# Running the demo app in a test server
+
+```shell
+$ ./bin/startTestServer.sh
 ```
 
 # Basic http set
@@ -40,13 +52,13 @@ $ curl -k  https://localhost:8080/people --http/1.1
 --! This demo requires curl with http/2 !--
 (see https://simonecarletti.com/blog/2016/01/http2-curl-macosx/)
 ```shell
-$ java -cp app.jar com.nordstrom.xrpc.demo.DinoSetEncoder trex blue | curl -k  https://localhost:8080/dinos/SetDino --data-binary @- -vv
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoSetEncoder trex blue | curl -k  https://localhost:8080/DinoService/SetDino --data-binary @- -vv
 ```
 
 # Proto http get
 
 ```shell
-$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/dinos/GetDino --data-binary @-
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/DinoService/GetDino --data-binary @-
 trexblue
 ```
 
