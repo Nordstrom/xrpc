@@ -10,7 +10,6 @@ class XUrlTest {
 
   String url1 = "https://api.nordstrom.com/foo/v1?foo=bar";
   String url2 = "https://api.nordstrom.com:8080/foo/v1?foo=bar";
-  String url3 = "https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar";
 
   @Test
   void getHost() {
@@ -36,7 +35,7 @@ class XUrlTest {
 
   @Test
   void getPath_withUrlEncoding() {
-    String path = XUrl.getPath(url3);
+    String path = XUrl.getPath("https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar");
     assertEquals("/foo/bar baz", path);
   }
 

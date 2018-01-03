@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -121,8 +122,9 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     Preconditions.checkNotNull(url);
+    // TODO(pdent): This should only operate on the path. Fix.
     QueryStringDecoder decoder = new QueryStringDecoder(url);
-    Map<String, List<String>> params = new DefaultValueMap<>(new ArrayList<String>());
+    Map<String, List<String>> params = new DefaultValueMap<>(ImmutableList.of());
     params.putAll(decoder.parameters());
     return params;
   }
