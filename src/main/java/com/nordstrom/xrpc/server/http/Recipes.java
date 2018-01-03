@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -39,6 +40,7 @@ public final class Recipes {
 
   public static enum ContentType {
     Application_Json("application/json"),
+    Application_Octet_Stream("application/octet-stream"),
     Text_Plain("text/plain"),
     Text_Html("text/html");
 
@@ -105,16 +107,18 @@ public final class Recipes {
   /**
    * Returns a full HTTP response with the specified status, content type, and custom headers.
    *
-   * Headers should be specified as a map of strings. For example, to allow CORS, add the
-   * following key and value:
-   *     "access-control-allow-origin", "http://foo.example"
+   * <p>Headers should be specified as a map of strings. For example, to allow CORS, add the
+   * following key and value: "access-control-allow-origin", "http://foo.example"
    *
-   * If content type or content length are passed in as custom headers, they will be ignored.
-   * Instead, content type will be as specified by the parameter contentType and content
-   * length will be the length of the parameter contentLength.
+   * <p>If content type or content length are passed in as custom headers, they will be ignored.
+   * Instead, content type will be as specified by the parameter contentType and content length will
+   * be the length of the parameter contentLength.
    */
   public static FullHttpResponse newResponse(
-    HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
+      HttpResponseStatus status,
+      ByteBuf payload,
+      ContentType contentType,
+      Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     if (customHeaders != null) {
