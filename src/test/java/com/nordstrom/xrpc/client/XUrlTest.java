@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.InetSocketAddress;
+
 class XUrlTest {
 
   String url1 = "https://api.nordstrom.com/foo/v1?foo=bar";
   String url2 = "https://api.nordstrom.com:8080/foo/v1?foo=bar";
+  String url3 = "https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar";
 
   @Test
   void getHost() {
@@ -15,13 +18,16 @@ class XUrlTest {
   }
 
   @Test
-  void getPort() {
-    assertEquals(443, XUrl.getPort(url1));
-    assertEquals(8080, XUrl.getPort(url2));
+  void getHost_withPort() {
+    assertEquals("api.nordstrom.com", XUrl.getHost(url2));
   }
 
   @Test
-  void getDomainChecked() {}
+  void getPort() {
+    assertEquals(443, XUrl.getPort(url1));
+    assertEquals(8080, XUrl.getPort(url2));
+    assertEquals(8080, XUrl.getPort("https://api.nordstrom.com:8080"));
+  }
 
   @Test
   void getPath() {
@@ -29,13 +35,19 @@ class XUrlTest {
   }
 
   @Test
+  void getPath_withUrlEncoding() {
+    String path = XUrl.getPath(url3);
+    assertEquals("/foo/bar baz", path);
+  }
+
+  @Test
   void stripUrlParameters() {
-    assertEquals("https://api.nordstrom.com/foo/v1", XUrl.stripUrlParameters(url1));
+    assertEquals("https://api.nordstrom.com/foo/v1", XUrl.stripQueryString(url1));
   }
 
   @Test
   void stripQueryParameters() {
-    assertEquals("foo=bar", XUrl.stripQueryParameters(url1));
+    assertEquals("foo=bar", XUrl.getRawQueryString(url1));
   }
 
   @Test
@@ -56,9 +68,18 @@ class XUrlTest {
   void decodeQString2() {
     String qString = "https://n.com?param1=value1&param2=&param3=value3&param3";
     assertEquals("value1", XUrl.decodeQueryString(qString).get("param1").get(0));
-    assertEquals(null, XUrl.decodeQueryString(qString).get("param2").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
     assertEquals("value3", XUrl.decodeQueryString(qString).get("param3").get(0));
-    assertEquals(null, XUrl.decodeQueryString(qString).get("param3").get(1));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
+  }
+
+  @Test
+  void decodeQString_withUrlEncoding() {
+    String qString = "https://n.com?param1=value%201&param2=&param3=value%203&param3";
+    assertEquals("value 1", XUrl.decodeQueryString(qString).get("param1").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
+    assertEquals("value 3", XUrl.decodeQueryString(qString).get("param3").get(0));
+    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
   }
 
   @Test
@@ -70,13 +91,33 @@ class XUrlTest {
     String withPathTrailingSlashNoQuery = "https://api.nordstrom.com/v1/";
     String withPathTrailingSlash = "https://api.nordstrom.com/v1/?foo=bar";
 
-    //TODO(JR): These use cases currently throw NPEs. We need to do a better job of making these edges less sharp
-    //    assertEquals("value1", XUrl.decodeQueryString(noPath).get("param1").get(0));
-    //    assertEquals(null, XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
-    //    assertEquals("value3", XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
-    //    assertEquals(null, XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPath).get("param1").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
+    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
+  }
 
+  @Test
+  void getInetSocket() {
+    InetSocketAddress result = XUrl.getInetSocket(url2);
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(8080, result.getPort());
+  }
+
+  @Test
+  void getInetSocket_withNoPort() {
+    InetSocketAddress result = XUrl.getInetSocket(url1);
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(443, result.getPort());
+  }
+
+  @Test
+  void getInetSocket_withNoProtocol() {
+    InetSocketAddress result = XUrl.getInetSocket("api.nordstrom.com/foo/v1?foo=bar");
+    assertEquals("api.nordstrom.com", result.getHostString());
+    assertEquals(80, result.getPort());
   }
 }

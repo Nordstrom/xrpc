@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -82,7 +83,7 @@ public class Example {
           Person p = new Person(new String(postData, XrpcConstants.DEFAULT_CHARSET));
           people.add(p);
 
-          return Recipes.newResponseOk("");
+          return Recipes.newResponseOk(String.format("Hello %s", p.getName()));
         };
 
     // Define a complex function call
@@ -176,6 +177,7 @@ public class Example {
   // Example POJO for use in request / response.
   @AllArgsConstructor
   private static class Person {
+    @Getter
     private String name;
   }
 

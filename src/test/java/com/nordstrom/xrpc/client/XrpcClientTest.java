@@ -27,8 +27,8 @@ class XrpcClientTest {
   void testURIString() throws Exception {
     String uriString =
         "https://localhost:8888/v1/authinit?client_id=ios&scope=REGISTERED&code=-S1l05-YI9a3yfaw5CcbxKedtiyPXkSwBBgCMzw14VQ*&method=s256&redirect_uri=nothing";
-    String qs = XUrl.stripUrlParameters(uriString);
-    System.out.println(XUrl.stripUrlParameters(uriString));
+    String qs = XUrl.stripQueryString(uriString);
+    System.out.println(XUrl.stripQueryString(uriString));
   }
 
   @Test

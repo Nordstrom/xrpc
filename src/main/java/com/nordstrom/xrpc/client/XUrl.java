@@ -16,71 +16,62 @@ package com.nordstrom.xrpc.client;
  * limitations under the License.
  */
 
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
-
 import com.google.common.base.Preconditions;
+
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.lang.Integer;
+
 import lombok.extern.slf4j.Slf4j;
+
+import io.netty.handler.codec.http.QueryStringDecoder;
+import okhttp3.HttpUrl;
 
 @Slf4j
 public class XUrl {
-
   public static String getHost(String url) {
-    try {
-      return getDomainChecked(url);
-    } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
-      return null;
-    }
+    Preconditions.checkNotNull(url);
+    url = XUrl.addProtocol(url);
+    HttpUrl parsedUrl = HttpUrl.parse(url);
+    String host = parsedUrl != null ? parsedUrl.host() : null;
+
+    return host;
   }
 
   public static int getPort(String url) {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
-    url = addProtocol(url);
-    try {
-      URI uri = new URI(url);
-      if (uri.getPort() == -1) {
-        if (!matcher.find()) {
-          return 80;
-        } else {
-          return 443;
-        }
-      } else {
-        return uri.getPort();
-      }
-    } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
-      return -1;
-    }
-  }
 
-  public static String getDomainChecked(String url) throws URISyntaxException {
-    Preconditions.checkNotNull(url);
-    url = addProtocol(url);
-    return new URI(url).getHost();
+    url = stripProtocol(url);
+    url = stripQueryString(url);
+
+    int portStart = url.indexOf(":");
+    int portStop = url.indexOf("/");
+    portStop = portStop == -1 ? url.length() : portStop;
+
+    if (portStart == -1) {
+      if (!matcher.find()) {
+        return 80;
+      } else {
+        return 443;
+      }
+    } else {
+      return Integer.parseInt(url.substring(portStart + 1, portStop));
+    }
   }
 
   public static String getPath(String url) {
     Preconditions.checkNotNull(url);
-    url = addProtocol(url);
-    try {
-      return new URI(url).getPath();
-    } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
-      return null;
-    }
+    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    String intermediaryPath = decoder.path();
+    intermediaryPath = stripProtocol(intermediaryPath);
+    int pathStart = intermediaryPath.indexOf("/");
+    return intermediaryPath.substring(pathStart);
   }
 
-  public static String stripUrlParameters(String url) {
+  public static String stripQueryString(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
     if (paramStartIndex == -1) {
@@ -90,7 +81,7 @@ public class XUrl {
     }
   }
 
-  public static String stripQueryParameters(String url) {
+  public static String getRawQueryString(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
     if (paramStartIndex == -1) {
@@ -100,12 +91,16 @@ public class XUrl {
     }
   }
 
-  public static String stripUrlParameters(URL url) {
-    return stripUrlParameters(url.toString());
+  public static Map<String, List<String>> decodeQueryString(String url) {
+    Preconditions.checkNotNull(url);
+    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    Map<String, List<String>> params = new DefaultValueMap<>(new ArrayList<String>());
+    params.putAll(decoder.parameters());
+    return params;
   }
 
   private static final Pattern URL_PROTOCOL_REGEX =
-      Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
+    Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
 
   public static String addProtocol(String url) {
     Preconditions.checkNotNull(url);
@@ -117,36 +112,28 @@ public class XUrl {
     return url;
   }
 
-  public static Map<String, List<String>> decodeQueryString(String url) {
-    return Arrays.stream(stripQueryParameters(url).split("&"))
-        .map(XUrl::splitQueryParameter)
-        .collect(
-            Collectors.groupingBy(
-                AbstractMap.SimpleImmutableEntry::getKey,
-                LinkedHashMap::new,
-                mapping(Map.Entry::getValue, toList())));
+  public static String stripProtocol(String url) {
+    Preconditions.checkNotNull(url);
+
+    Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
+    if (!matcher.find()) {
+      return url;
+    }
+    return matcher.replaceFirst("");
   }
 
-  public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
-    final int idx = it.indexOf("=");
-    final String key = idx > 0 ? it.substring(0, idx) : it;
-    final String value = idx > 0 && it.length() > idx + 1 ? it.substring(idx + 1) : null;
-    return new AbstractMap.SimpleImmutableEntry<>(key, value);
-  }
-
-  public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
+  public static InetSocketAddress getInetSocket(String url) {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
-    url = addProtocol(url);
-    URI uri = new URI(url);
-    if (uri.getPort() == -1) {
+
+    if (XUrl.getPort(url) == -1) {
       if (!matcher.find()) {
-        return new InetSocketAddress(uri.getHost(), 80);
+        return new InetSocketAddress(XUrl.getHost(url), 80);
       } else {
-        return new InetSocketAddress(uri.getHost(), 443);
+        return new InetSocketAddress(XUrl.getHost(url), 443);
       }
     } else {
-      return new InetSocketAddress(uri.getHost(), uri.getPort());
+      return new InetSocketAddress(XUrl.getHost(url), XUrl.getPort(url));
     }
   }
 }
