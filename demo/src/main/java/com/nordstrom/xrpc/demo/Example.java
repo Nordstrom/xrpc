@@ -77,9 +77,9 @@ public class Example {
     // Define a complex function call
     Handler personPostHandler =
         request -> {
-          byte[] _p = new byte[request.getData().readableBytes()];
-          request.getData().readBytes(_p, 0, request.getData().readableBytes());
-          Person p = new Person(new String(_p, XrpcConstants.DEFAULT_CHARSET));
+          byte[] postData = new byte[request.getData().readableBytes()];
+          request.getData().readBytes(postData, 0, request.getData().readableBytes());
+          Person p = new Person(new String(postData, XrpcConstants.DEFAULT_CHARSET));
           people.add(p);
 
           return Recipes.newResponseOk("");

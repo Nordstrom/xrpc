@@ -21,7 +21,7 @@ package nordstrom.dino;
 option java_package = "com.nordstrom.xrpc.demo.proto";
 option java_multiple_files = true;
 
-// The greeting service definition.
+// The Dino service definition.
 service DinoService {
   // Adds a Dino to a list of Dinos
   rpc SetDino (DinoSetRequest) returns (DinoSetReply) {}
@@ -50,6 +50,7 @@ message DinoGetReply {
   Dino dino = 1;
 }
 
+// The Dino Object definition.
 message Dino {
   // Name of the Person
   string name = 1;

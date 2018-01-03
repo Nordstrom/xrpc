@@ -2,14 +2,14 @@ xrpc
 ====
 
 Xrpc is a framework for creating production quality API services on top of Netty. The framework helps to encapsulate our
-best practices and provides sane (ans safe) defaults.
+best practices and provides sane (and safe) defaults.
 
 It currently supports the http/1.1 and the http/2 protocols. It does so interchangeably, 
 i.e your implementation does not need to change and it will automatically respond to a http/1.1 
 and a http/2 client the same way. The user is free to determine whatever payload they would like, 
-but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do
+but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do.
 
-## Testing with the Example class  
+# Testing with the Example class  
 ```
 # Building the jar
 
