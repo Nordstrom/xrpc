@@ -19,17 +19,11 @@ package com.nordstrom.xrpc.client;
 import com.google.common.base.Preconditions;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import java.lang.Integer;
 
-import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -37,12 +31,11 @@ import okhttp3.HttpUrl;
 
 @Slf4j
 public class XUrl {
-
   public static String getHost(String url) {
     Preconditions.checkNotNull(url);
     url = XUrl.addProtocol(url);
     HttpUrl parsedUrl = HttpUrl.parse(url);
-    String host = url != null ? parsedUrl.host() : null;
+    String host = parsedUrl != null ? parsedUrl.host() : null;
 
     return host;
   }
@@ -99,6 +92,7 @@ public class XUrl {
   }
 
   public static Map<String, List<String>> decodeQueryString(String url) {
+    Preconditions.checkNotNull(url);
     QueryStringDecoder decoder = new QueryStringDecoder(url);
     Map<String, List<String>> params = new DefaultValueMap<>(new ArrayList<String>());
     params.putAll(decoder.parameters());
