@@ -28,6 +28,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import io.netty.handler.codec.http.QueryStringDecoder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -118,13 +120,11 @@ public class XUrl {
   }
 
   public static Map<String, List<String>> decodeQueryString(String url) {
-    return Arrays.stream(stripQueryParameters(url).split("&"))
-        .map(XUrl::splitQueryParameter)
-        .collect(
-            Collectors.groupingBy(
-                AbstractMap.SimpleImmutableEntry::getKey,
-                LinkedHashMap::new,
-                mapping(Map.Entry::getValue, toList())));
+    Preconditions.checkNotNull(url);
+    QueryStringDecoder decoder = new QueryStringDecoder(url);
+    Map<String, List<String>> params = new DefaultValueMap<>(new ArrayList<String>());
+    params.putAll(decoder.parameters());
+    return params;
   }
 
   public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
