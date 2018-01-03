@@ -16,7 +16,6 @@
 
 package com.nordstrom.xrpc.server.http;
 
-import static com.sun.tools.doclets.formats.html.markup.HtmlStyle.header;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 

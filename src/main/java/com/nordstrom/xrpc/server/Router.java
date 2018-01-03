@@ -227,7 +227,7 @@ public class Router {
             metricRegistry, config.maxConnections()); // All endpoints for a given service
     ServiceRateLimiter rateLimiter = new ServiceRateLimiter(metricRegistry, config);
 
-    Firewall firewall = new Firewall(metricRegistry, config);
+    Firewall firewall = new Firewall(metricRegistry);
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
