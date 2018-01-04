@@ -229,6 +229,9 @@ public class Router {
 
     Firewall firewall = new Firewall(metricRegistry);
 
+    WhiteListFilter whiteListFilter = new WhiteListFilter(metricRegistry, config.ipWhiteList());
+    BlackListFilter blackListFilter = new BlackListFilter(metricRegistry, config.ipBlackList());
+
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
     UrlRouter router = new UrlRouter();
@@ -247,6 +250,13 @@ public class Router {
                     config.allIdleTimeout()));
             cp.addLast("serverConnectionLimiter", globalConnectionLimiter);
             cp.addLast("serverRateLimiter", rateLimiter);
+
+            if (config.enableWhiteList()) {
+              cp.addLast("whiteList", whiteListFilter);
+            } else if (config.enableBlackList()) {
+              cp.addLast("blackList", blackListFilter);
+            }
+
             cp.addLast("firewall", firewall);
             cp.addLast(
                 "encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs

@@ -20,9 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
 import io.netty.util.internal.PlatformDependent;
-
 import java.util.*;
 
 /**
@@ -56,7 +54,10 @@ public class XConfig {
   private final int slf4jReporterPollingRate;
   private final int consoleReporterPollingRate;
 
-  private final Map<String, List<Double>> clientRateLimitOverride = PlatformDependent.newConcurrentHashMap();
+  private final Map<String, List<Double>> clientRateLimitOverride =
+      PlatformDependent.newConcurrentHashMap();
+  private final boolean enableWhiteList;
+  private final boolean enableBlackList;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -95,22 +96,29 @@ public class XConfig {
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
 
-    ipBlackList = ImmutableSet.<String>builder().addAll(config.getStringList("ip_black_list")).build();
-    ipWhiteList = ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
+    enableWhiteList = config.getBoolean("enable_white_list");
+    enableBlackList = config.getBoolean("enable_black_list");
+
+    ipBlackList =
+        ImmutableSet.<String>builder().addAll(config.getStringList("ip_black_list")).build();
+    ipWhiteList =
+        ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
   }
 
   private void populateClientOverrideList(List<? extends ConfigObject> req_per_second_override) {
-    req_per_second_override.forEach(xs -> {
-      xs.forEach((key, value) -> {
-        List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
-        List<Double> val = new ArrayList();
-        valString.forEach(v -> val.add(Double.parseDouble(v)));
+    req_per_second_override.forEach(
+        xs -> {
+          xs.forEach(
+              (key, value) -> {
+                List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
+                List<Double> val = new ArrayList();
+                valString.forEach(v -> val.add(Double.parseDouble(v)));
 
-        clientRateLimitOverride.put(key, val);
-      });
-    });
+                clientRateLimitOverride.put(key, val);
+              });
+        });
   }
 
   public Map<String, List<Double>> getClientRateLimitOverride() {
@@ -199,5 +207,13 @@ public class XConfig {
 
   public ImmutableSet<String> ipWhiteList() {
     return ipWhiteList;
+  }
+
+  public boolean enableWhiteList() {
+    return enableWhiteList;
+  }
+
+  public boolean enableBlackList() {
+    return enableBlackList;
   }
 }

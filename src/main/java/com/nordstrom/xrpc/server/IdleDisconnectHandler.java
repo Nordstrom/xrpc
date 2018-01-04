@@ -1,5 +1,6 @@
 package com.nordstrom.xrpc.server;
 
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -15,6 +16,6 @@ class IdleDisconnectHandler extends IdleStateHandler {
 
   @Override
   protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
-    ctx.pipeline().channel().closeFuture();
+    ctx.close().addListener(ChannelFutureListener.CLOSE);
   }
 }

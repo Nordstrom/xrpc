@@ -1,29 +1,25 @@
 package com.nordstrom.xrpc;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class XConfigTest {
   Config _config = ConfigFactory.load("test.conf");
   XConfig config = new XConfig(_config.getConfig("xrpc"));
 
   @BeforeEach
-  void setUp() {
-  }
+  void setUp() {}
 
   @AfterEach
-  void tearDown() {
-  }
+  void tearDown() {}
 
   @Test
   void getClientRateLimitOverride() {
@@ -51,7 +47,5 @@ class XConfigTest {
   @Test
   void ipWhitelist() {
     ImmutableSet<String> whiteList = config.ipWhiteList();
-
   }
-
 }

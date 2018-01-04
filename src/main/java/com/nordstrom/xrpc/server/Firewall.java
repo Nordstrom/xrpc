@@ -4,6 +4,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
@@ -26,13 +27,17 @@ class Firewall extends ChannelDuplexHandler {
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_HARD_RATE_LIMIT)) {
       log.debug("Channel ($s) Closed due to Xrpc Hard Rate Limit being reached", ctx.channel());
       rateLimits.mark();
-      ctx.pipeline().channel().closeFuture();
+      ctx.close().addListener(ChannelFutureListener.CLOSE);
     }
 
     if ((ctx.channel().hasAttr(XrpcConstants.IP_BLACK_LIST))) {
-      log.debug("Channel (%s) Closed due to Xrpc IP Black List Configuration", ctx.channel());
-      rateLimits.mark();
-      ctx.pipeline().channel().closeFuture();
+      log.error("Channel " + ctx.channel() + "Closed due to Xrpc IP Black List Configuration");
+      ctx.close().addListener(ChannelFutureListener.CLOSE);
+    }
+
+    if ((ctx.channel().hasAttr(XrpcConstants.IP_WHITE_LIST))) {
+      log.error("(%s) is not a white listed client. Dropping Connection", ctx.channel());
+      ctx.close().addListener(ChannelFutureListener.CLOSE);
     }
 
     ctx.fireChannelActive();

@@ -5,6 +5,7 @@ import static com.codahale.metrics.MetricRegistry.name;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,7 +32,7 @@ class ConnectionLimiter extends ChannelDuplexHandler {
     if (maxConnections > 0) {
       if (numConnections.incrementAndGet() > maxConnections) {
         log.info("Accepted connection above limit (%d). Dropping.", maxConnections);
-        ctx.pipeline().channel().closeFuture();
+        ctx.close().addListener(ChannelFutureListener.CLOSE);
       }
     }
     ctx.fireChannelActive();
