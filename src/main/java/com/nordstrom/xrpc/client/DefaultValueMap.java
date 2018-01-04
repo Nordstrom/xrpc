@@ -3,7 +3,6 @@ package com.nordstrom.xrpc.client;
 import java.util.LinkedHashMap;
 
 /**
- *
  * A map that returns a default value instead of null when a given key is absent.
  *
  * This is the data structure returned for decoded query string parameters. It is meant to soften the edges around null-pointer errors.

@@ -93,13 +93,13 @@ public class XUrl {
     }
   }
 
-  public static String stripQueryParameters(String url) {
+  public static String getRawQueryParameters(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
     if (paramStartIndex == -1) {
       return url;
     } else {
-      return url.substring(paramStartIndex + 1, url.length());
+      return url.substring(paramStartIndex, url.length());
     }
   }
 
@@ -122,17 +122,10 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     Preconditions.checkNotNull(url);
-    QueryStringDecoder decoder = new QueryStringDecoder(stripQueryParameters(url));
+    QueryStringDecoder decoder = new QueryStringDecoder(getRawQueryParameters(url));
     Map<String, List<String>> params = new DefaultValueMap<>(ImmutableList.of());
     params.putAll(decoder.parameters());
     return params;
-  }
-
-  public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
-    final int idx = it.indexOf("=");
-    final String key = idx > 0 ? it.substring(0, idx) : it;
-    final String value = idx > 0 && it.length() > idx + 1 ? it.substring(idx + 1) : null;
-    return new AbstractMap.SimpleImmutableEntry<>(key, value);
   }
 
   public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {

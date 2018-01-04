@@ -46,7 +46,7 @@ class XUrlTest {
 
   @Test
   void stripQueryParameters() {
-    assertEquals("foo=bar", XUrl.stripQueryParameters(url1));
+    assertEquals("?foo=bar", XUrl.getRawQueryParameters(url1));
   }
 
   @Test
