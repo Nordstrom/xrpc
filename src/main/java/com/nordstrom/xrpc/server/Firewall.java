@@ -25,19 +25,19 @@ class Firewall extends ChannelDuplexHandler {
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_HARD_RATE_LIMIT)) {
-      log.debug("Channel ($s) Closed due to Xrpc Hard Rate Limit being reached", ctx.channel());
+      log.error("Channel " + ctx.channel() + " Closed due to Xrpc Hard Rate Limit being reached");
       rateLimits.mark();
-      ctx.close().addListener(ChannelFutureListener.CLOSE);
+      ctx.channel().closeFuture();
     }
 
     if ((ctx.channel().hasAttr(XrpcConstants.IP_BLACK_LIST))) {
-      log.error("Channel " + ctx.channel() + "Closed due to Xrpc IP Black List Configuration");
-      ctx.close().addListener(ChannelFutureListener.CLOSE);
+      log.error("Channel " + ctx.channel() + " Closed due to Xrpc IP Black List Configuration");
+      ctx.channel().closeFuture();
     }
 
     if ((ctx.channel().hasAttr(XrpcConstants.IP_WHITE_LIST))) {
-      log.error("(%s) is not a white listed client. Dropping Connection", ctx.channel());
-      ctx.close().addListener(ChannelFutureListener.CLOSE);
+      log.error(ctx.channel() + " is not a white listed client. Dropping Connection");
+      ctx.channel().closeFuture();
     }
 
     ctx.fireChannelActive();

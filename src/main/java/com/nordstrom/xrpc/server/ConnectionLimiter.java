@@ -32,7 +32,7 @@ class ConnectionLimiter extends ChannelDuplexHandler {
     if (maxConnections > 0) {
       if (numConnections.incrementAndGet() > maxConnections) {
         log.info("Accepted connection above limit (%d). Dropping.", maxConnections);
-        ctx.close().addListener(ChannelFutureListener.CLOSE);
+        ctx.channel().close().addListener(ChannelFutureListener.CLOSE);
       }
     }
     ctx.fireChannelActive();
