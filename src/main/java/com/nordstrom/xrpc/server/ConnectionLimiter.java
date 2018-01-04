@@ -10,12 +10,6 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
-/*
- * This section of classes have been added as Static inner classes to reduce GC pressure. As these
- * classes are only instantiated once and only from the Router class, this seems to be a more
- * appropriate class def than these objects living in their own public classes.
- */
-
 @Slf4j
 @ChannelHandler.Sharable
 class ConnectionLimiter extends ChannelDuplexHandler {
@@ -36,7 +30,7 @@ class ConnectionLimiter extends ChannelDuplexHandler {
     //TODO(JR): Should this return a 429 or is the current logic of silently dropping the connection sufficient?
     if (maxConnections > 0) {
       if (numConnections.incrementAndGet() > maxConnections) {
-        log.info("Accepted connection above limit (" + maxConnections + "). Dropping.");
+        log.info("Accepted connection above limit (%d). Dropping.", maxConnections);
         ctx.pipeline().channel().closeFuture();
       }
     }

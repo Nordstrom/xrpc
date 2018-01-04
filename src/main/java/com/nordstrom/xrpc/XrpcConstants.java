@@ -21,8 +21,8 @@ public class XrpcConstants {
           .writeBytes(
               "This response is being send due to too many requests being sent to the server"
                   .getBytes(DEFAULT_CHARSET));
-  public static final AttributeKey<? extends Object> IP_WHITE_LIST =
+  public static final AttributeKey<Boolean> IP_WHITE_LIST =
       AttributeKey.valueOf("IpWhiteList");
-  public static final AttributeKey<? extends Object> IP_BLACK_LIST =
+  public static final AttributeKey<Boolean> IP_BLACK_LIST =
       AttributeKey.valueOf("IpBlackList");
 }

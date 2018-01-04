@@ -1,7 +1,5 @@
 package com.nordstrom.xrpc.server;
 
-import static com.codahale.metrics.MetricRegistry.name;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -12,9 +10,12 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.PlatformDependent;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.InetSocketAddress;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+
+import static com.codahale.metrics.MetricRegistry.name;
 
 @Slf4j
 @ChannelHandler.Sharable
@@ -49,6 +50,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     // Rate Limit per server
     String remoteAddress = ((InetSocketAddress) ctx.channel().remoteAddress()).getHostName();
 
+
     if (hardLimiterMap.containsKey(remoteAddress)) {
       if (!hardLimiterMap.get(remoteAddress).tryAcquire()) {
         log.debug("Hard Rate limit fired for " + remoteAddress);
@@ -58,10 +60,15 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
       }
 
     } else {
-      // TODO(JR): You should be able to override per server
-      hardLimiterMap.put(remoteAddress, RateLimiter.create(config.hardReqPerSec()));
-      softLimiterMap.put(remoteAddress, RateLimiter.create(config.softReqPerSec()));
+      if (config.getClientRateLimitOverride().containsKey(remoteAddress)) {
+        hardLimiterMap.put(remoteAddress, RateLimiter.create(config.getClientRateLimitOverride().get(remoteAddress).get(1)));
+        softLimiterMap.put(remoteAddress, RateLimiter.create(config.getClientRateLimitOverride().get(remoteAddress).get(0)));
+      } else {
+        hardLimiterMap.put(remoteAddress, RateLimiter.create(config.hardReqPerSec()));
+        softLimiterMap.put(remoteAddress, RateLimiter.create(config.softReqPerSec()));
+      }
     }
+
 
     // Global Rate Limiter
     if (!hardLimiter.tryAcquire()) {

@@ -24,13 +24,13 @@ class Firewall extends ChannelDuplexHandler {
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_HARD_RATE_LIMIT)) {
-      log.debug("Channel " + ctx.channel() + " Closed due to Xrpc Hard Rate Limit being reached");
+      log.debug("Channel ($s) Closed due to Xrpc Hard Rate Limit being reached", ctx.channel());
       rateLimits.mark();
       ctx.pipeline().channel().closeFuture();
     }
 
     if ((ctx.channel().hasAttr(XrpcConstants.IP_BLACK_LIST))) {
-      log.debug("Channel " + ctx.channel() + " Closed due to Xrpc IP Black List Configuration");
+      log.debug("Channel (%s) Closed due to Xrpc IP Black List Configuration", ctx.channel());
       rateLimits.mark();
       ctx.pipeline().channel().closeFuture();
     }
