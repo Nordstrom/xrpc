@@ -1,6 +1,6 @@
-## -*- docker-image-name: "Nordstrom/xrpc" -*-
+## -*- docker-image-name: "nordstrom/xrpc" -*-
 FROM debian:stretch
-MAINTAINER Jeff Rose <jeff.rose@nordstrom.com
+MAINTAINER Jeff Rose <jeff.rose@nordstrom.com>
 
 # ===== Use the "noninteractive" debconf frontend =====
 ENV DEBIAN_FRONTEND noninteractive
@@ -33,9 +33,9 @@ RUN apt-get install -y \
     openjdk-8-jdk \
 --no-install-recommends
 
-# ===== Build java-xrpc  =====
-COPY . /opt/java-xrpc
-WORKDIR /opt/java-xrpc
+# ===== Build xrpc  =====
+COPY . /opt/xrpc
+WORKDIR /opt/xrpc
 
 RUN ./gradlew shadowJar
 
@@ -46,8 +46,8 @@ RUN apt-get clean
 WORKDIR /app
 COPY . .
 
-RUN ./gradlew shadowJar && \
-  mv build/libs/*-all.jar app.jar
+RUN ./gradlew clean shadowJar && \
+  mv demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar app.jar
 
 CMD java  \
   -Dconfig.file=application.conf \
