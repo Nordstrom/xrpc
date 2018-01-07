@@ -24,10 +24,11 @@ class WhiteListFilter extends ChannelDuplexHandler {
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    String remoteAddress = ((InetSocketAddress) ctx.channel().remoteAddress()).getHostName();
+    String remoteAddress =
+        ((InetSocketAddress) ctx.channel().remoteAddress()).getAddress().getHostAddress();
 
     if (!whiteList.contains(remoteAddress)) {
-      ctx.channel().attr(XrpcConstants.IP_WHITE_LIST).set(Boolean.TRUE);
+      ctx.channel().attr(XrpcConstants.IP_WHITE_LIST).set(Boolean.FALSE);
     }
 
     ctx.fireChannelActive();

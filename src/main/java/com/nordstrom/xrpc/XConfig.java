@@ -58,6 +58,7 @@ public class XConfig {
       PlatformDependent.newConcurrentHashMap();
   private final boolean enableWhiteList;
   private final boolean enableBlackList;
+  private final int rateLimiterPoolSize;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -83,6 +84,7 @@ public class XConfig {
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
     maxConnections = config.getInt("max_connections");
+    rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
     gloablSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
@@ -215,5 +217,9 @@ public class XConfig {
 
   public boolean enableBlackList() {
     return enableBlackList;
+  }
+
+  public int getRateLimiterPoolSize() {
+    return rateLimiterPoolSize;
   }
 }

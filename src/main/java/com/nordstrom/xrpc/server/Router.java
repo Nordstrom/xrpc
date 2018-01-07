@@ -277,9 +277,6 @@ public class Router {
 
     ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
 
-    // Clean the rate limiter map so we do not introduce a memory leak
-    b.config().childGroup().scheduleWithFixedDelay(rateLimiter::clean, 300, 300, TimeUnit.SECONDS);
-
     try {
       // Build out the loggers that are specified in the config
 

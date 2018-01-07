@@ -24,7 +24,8 @@ class BlackListFilter extends ChannelDuplexHandler {
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    String remoteAddress = ((InetSocketAddress) ctx.channel().remoteAddress()).getHostName();
+    String remoteAddress =
+        ((InetSocketAddress) ctx.channel().remoteAddress()).getAddress().getHostAddress();
 
     if (blackList.contains(remoteAddress)) {
       ctx.channel().attr(XrpcConstants.IP_BLACK_LIST).set(Boolean.TRUE);
