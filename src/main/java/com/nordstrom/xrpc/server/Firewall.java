@@ -25,7 +25,7 @@ class Firewall extends ChannelDuplexHandler {
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_HARD_RATE_LIMITED)) {
       if (log.isErrorEnabled()) {
-        log.debug("Channel " + ctx.channel() + " Closed due to Xrpc Hard Rate Limit being reached");
+        log.error("Channel " + ctx.channel() + " Closed due to Xrpc Hard Rate Limit being reached");
       }
 
       rateLimits.mark();

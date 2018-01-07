@@ -1,18 +1,53 @@
-FROM openjdk:8-jre-alpine
+## -*- docker-image-name: "Nordstrom/xrpc" -*-
+FROM debian:stretch
+MAINTAINER Jeff Rose <jeff.rose@nordstrom.com
+
+# ===== Use the "noninteractive" debconf frontend =====
+ENV DEBIAN_FRONTEND noninteractive
 
 ENV PORT=8080
+
+# ===== Update apt-get =====
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get upgrade -y
+
+# ===== Install sudo  =====
+RUN apt-get -y install sudo locales ca-certificates
+
+# ==== Set locales and Timezones and whatnot =====
+RUN sudo echo "America/Los_Angeles" > /etc/timezone
+RUN sudo dpkg-reconfigure -f noninteractive tzdata
+RUN sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+RUN sudo echo 'LANG="en_US.UTF-8"'>/etc/default/locale
+RUN sudo dpkg-reconfigure --frontend=noninteractive locales
+RUN sudo update-locale LANG=en_US.UTF-8
+
+# ===== Installing packages =====
+RUN apt-get install -y \
+    git-core \
+    wget \
+    unzip \
+    curl \
+    libssl-dev \
+    openjdk-8-jdk \
+--no-install-recommends
+
+# ===== Build java-xrpc  =====
+COPY . /opt/java-xrpc
+WORKDIR /opt/java-xrpc
+
+RUN ./gradlew shadowJar
+
+# ===== Clean Up Apt-get =====
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get clean
 
 WORKDIR /app
 COPY . .
 
-RUN apk --update upgrade && \
-    # install JDK
-    apk add curl openjdk8="$JAVA_ALPINE_VERSION" && \
-    # build the application into a single JAR, including dependencies
-    ./gradlew shadowJar && \
-    mv build/libs/*-all.jar app.jar
-
-# TODO(jkinkead): Fix this to use a base image instead of keeping around the build tools.
+RUN ./gradlew shadowJar && \
+  mv build/libs/*-all.jar app.jar
 
 CMD java  \
   -Dconfig.file=application.conf \
