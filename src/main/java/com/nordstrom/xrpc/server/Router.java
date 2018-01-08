@@ -198,14 +198,29 @@ public class Router {
     ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
     ObjectMapper healthMapper = new ObjectMapper();
 
-    addRoute("/admin", AdminHandlers.adminHandler(), HttpMethod.GET);
-    addRoute("/ping", AdminHandlers.pingHandler(), HttpMethod.GET);
+    /*
+    '/info' -> should expose version number, git commit number, etc
+    '/metrics' -> should return the metrics reporters in JSON format
+    '/health' -> should expose a summary of downstream health checks
+    '/ping' -> should respond with a 200-OK status code and the text 'PONG'
+    '/ready' -> should expose a Kubernetes or ELB specific healthcheck for liveliness
+    '/restart' -> restart service (should be restricted to approved devs / tooling)
+     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)```
+     */
+
+    addRoute("/info", AdminHandlers.infoHandler(), HttpMethod.GET);
+    addRoute(
+        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper), HttpMethod.GET);
     addRoute(
         "/health",
         AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper),
         HttpMethod.GET);
-    addRoute(
-        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper), HttpMethod.GET);
+    addRoute("/ping", AdminHandlers.pingHandler(), HttpMethod.GET);
+    addRoute("/ready", AdminHandlers.readyHandler(), HttpMethod.GET);
+    addRoute("/restart", AdminHandlers.restartHandler(this), HttpMethod.GET);
+    addRoute("/killkillkill", AdminHandlers.killHandler(this), HttpMethod.GET);
+
+    addRoute("/gc", AdminHandlers.pingHandler(), HttpMethod.GET);
   }
 
   public void listenAndServe() throws IOException {

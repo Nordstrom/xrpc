@@ -37,22 +37,28 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class Call {
+public class Call {
   private final XrpcClient client;
   private final String uri;
+  private final FullHttpRequest request;
 
-  private FullHttpRequest request = null;
-
-  public Call(XrpcClient client, String uri) {
+  Call(XrpcClient client, String uri) {
 
     this.client = client;
     this.uri = uri;
+    this.request = null;
+  }
+
+  private Call(XrpcClient client, String uri, FullHttpRequest request) {
+
+    this.client = client;
+    this.uri = uri;
+    this.request = request;
   }
 
   public Call get(FullHttpRequest request) {
-    this.request = request;
 
-    return this;
+    return new Call(client, uri, request);
   }
 
   public ListenableFuture<FullHttpResponse> execute() throws URISyntaxException {

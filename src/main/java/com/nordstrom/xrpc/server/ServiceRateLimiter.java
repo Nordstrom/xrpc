@@ -30,8 +30,8 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private final Meter reqs;
   private final Timer timer;
   private final XConfig config;
-  private final RendezvousHash<RateLimiter> softRateLimitHasher;
-  private final RendezvousHash<RateLimiter> hardRateLimitHasher;
+  private final RendezvousHash softRateLimitHasher;
+  private final RendezvousHash hardRateLimitHasher;
   private final RateLimiter globalHardLimiter;
   private final RateLimiter globalSoftLimiter;
 
@@ -60,7 +60,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), softTempPool, 1);
   }
 
-  private RendezvousHash<RateLimiter> buildHardHasher(int poolSize) {
+  private RendezvousHash buildHardHasher(int poolSize) {
     List<String> hardTempPool = new ArrayList<>();
 
     for (int i = 0; i < poolSize; i++) {
@@ -99,12 +99,14 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
 
     } else {
       if (!hardLimiterMap
-          .get(hardRateLimitHasher.get(remoteAddress.getBytes()).get(0))
+          .get(
+              hardRateLimitHasher.get(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)).get(0))
           .tryAcquire()) {
         log.debug("Hard Rate limit fired for " + remoteAddress);
         ctx.channel().attr(XrpcConstants.XRPC_HARD_RATE_LIMITED).set(Boolean.TRUE);
       } else if (!softLimiterMap
-          .get(softRateLimitHasher.get(remoteAddress.getBytes()).get(0))
+          .get(
+              softRateLimitHasher.get(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)).get(0))
           .tryAcquire()) {
         ctx.channel().attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);
       }
