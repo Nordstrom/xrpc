@@ -1,6 +1,7 @@
 package com.nordstrom.xrpc;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
@@ -21,6 +22,7 @@ public class RendezvousHash<N> {
   private final Map<Long, N> hashMap = PlatformDependent.newConcurrentHashMap();
 
   private ImmutableSet<N> nodeList;
+  private final List<N> _nodeList = new ArrayList<>();
 
   public RendezvousHash(Funnel<N> nodeFunnel, Collection<N> init, int listSize) {
     this.hasher = Hashing.murmur3_128();
@@ -40,24 +42,23 @@ public class RendezvousHash<N> {
   }
 
   public List<N> get(byte[] key) {
-    List<N> _nodeList = new ArrayList<>();
-
-    nodeList
-        .parallelStream()
-        .filter(xs -> !_nodeList.contains(xs))
-        .forEach(
-            xs -> {
-              hashMap.put(
-                  hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
-            });
-
-    for (int i = 0; i < listSize; i++) {
-      _nodeList.add(hashMap.remove(hashMap.keySet().stream().max(Long::compare).orElse(null)));
-    }
-
+    /* This is intentional as we are reusing the same data containers
+     * but want to limit the number of new objects created
+     */
+    _nodeList.clear();
     hashMap.clear();
 
-    return _nodeList;
+    nodeList.forEach(
+        xs -> {
+          hashMap.put(
+              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
+        });
+
+    for (int i = 0; i < listSize; i++) {
+      _nodeList.add(i, hashMap.remove(hashMap.keySet().stream().max(Long::compare).orElse(null)));
+    }
+
+    return Lists.newArrayList(_nodeList);
   }
 
   public void refresh(List<N> list) {

@@ -10,9 +10,9 @@ import java.nio.charset.Charset;
 public class XrpcConstants {
   public static final AttributeKey<XrpcRequest> XRPC_REQUEST = AttributeKey.valueOf("XrpcRequest");
   public static final AttributeKey<Boolean> XRPC_SOFT_RATE_LIMITED =
-      AttributeKey.valueOf("XrpcSoftRateLimit");
+      AttributeKey.valueOf("XrpcSoftRateLimited");
   public static final AttributeKey<Boolean> XRPC_HARD_RATE_LIMITED =
-      AttributeKey.valueOf("XrpcHardRateLimit");
+      AttributeKey.valueOf("XrpcHardRateLimited");
   public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
   public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");

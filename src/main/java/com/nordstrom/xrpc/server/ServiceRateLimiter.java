@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -35,7 +34,8 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private final RateLimiter globalHardLimiter;
   private final RateLimiter globalSoftLimiter;
 
-  private Map<ChannelHandlerContext, Timer.Context> timerMap = PlatformDependent.newConcurrentHashMap();
+  private Map<ChannelHandlerContext, Timer.Context> timerMap =
+      PlatformDependent.newConcurrentHashMap();
 
   public ServiceRateLimiter(MetricRegistry metrics, XConfig config) {
     this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
@@ -44,32 +44,23 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     this.globalHardLimiter = RateLimiter.create(config.globalHardReqPerSec());
     this.globalSoftLimiter = RateLimiter.create(config.globalSoftReqPerSec());
 
-    softRateLimitHasher = buildSoftHasher(config.getRateLimiterPoolSize());
-    hardRateLimitHasher = buildHardHasher(config.getRateLimiterPoolSize());
+    softRateLimitHasher =
+        buildHasher(softLimiterMap, config.getRateLimiterPoolSize(), config.softReqPerSec());
+    hardRateLimitHasher =
+        buildHasher(hardLimiterMap, config.getRateLimiterPoolSize(), config.hardReqPerSec());
   }
 
-  private RendezvousHash buildSoftHasher(int poolSize) {
-    List<String> softTempPool = new ArrayList<>();
+  private RendezvousHash buildHasher(
+      Map<String, RateLimiter> limiterMap, int poolSize, double rate) {
+    List<String> _tempPool = new ArrayList<>();
 
     for (int i = 0; i < poolSize; i++) {
       String id = UUID.randomUUID().toString();
-      softTempPool.add(id);
-      softLimiterMap.put(id, RateLimiter.create(config.softReqPerSec()));
+      _tempPool.add(id);
+      limiterMap.put(id, RateLimiter.create(rate));
     }
 
-    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), softTempPool, 1);
-  }
-
-  private RendezvousHash buildHardHasher(int poolSize) {
-    List<String> hardTempPool = new ArrayList<>();
-
-    for (int i = 0; i < poolSize; i++) {
-      String id = UUID.randomUUID().toString();
-      hardTempPool.add(id);
-      hardLimiterMap.put(id, RateLimiter.create(config.hardReqPerSec()));
-    }
-
-    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), hardTempPool, 1);
+    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool, 1);
   }
 
   @Override
@@ -124,7 +115,6 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     ctx.fireChannelActive();
 
     timerMap.put(ctx, timer.time());
-
   }
 
   @Override

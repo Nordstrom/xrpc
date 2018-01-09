@@ -25,19 +25,17 @@ RUN sudo update-locale LANG=en_US.UTF-8
 
 # ===== Installing packages =====
 RUN apt-get install -y \
-    git-core \
-    wget \
-    unzip \
-    curl \
-    libssl-dev \
-    openjdk-8-jdk \
+git-core \
+wget \
+unzip \
+curl \
+libssl-dev \
+openjdk-8-jdk \
 --no-install-recommends
 
 # ===== Build xrpc  =====
 COPY . /opt/xrpc
 WORKDIR /opt/xrpc
-
-RUN ./gradlew shadowJar
 
 # ===== Clean Up Apt-get =====
 RUN rm -rf /var/lib/apt/lists/*
