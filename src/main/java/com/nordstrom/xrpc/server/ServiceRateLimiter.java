@@ -35,7 +35,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private final RateLimiter globalHardLimiter;
   private final RateLimiter globalSoftLimiter;
 
-  private AtomicReference<Timer.Context> context = new AtomicReference<>();
+  private Map<ChannelHandlerContext, Timer.Context> timerMap = PlatformDependent.newConcurrentHashMap();
 
   public ServiceRateLimiter(MetricRegistry metrics, XConfig config) {
     this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
@@ -121,14 +121,16 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
       ctx.channel().attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);
     }
 
-    context.set(timer.time());
     ctx.fireChannelActive();
+
+    timerMap.put(ctx, timer.time());
+
   }
 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-    context.get().stop();
-
     ctx.fireChannelInactive();
+
+    timerMap.remove(ctx).stop();
   }
 }
