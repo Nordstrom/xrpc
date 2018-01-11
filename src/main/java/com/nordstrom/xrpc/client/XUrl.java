@@ -16,11 +16,9 @@ package com.nordstrom.xrpc.client;
  * limitations under the License.
  */
 
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,9 +26,6 @@ import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import io.netty.handler.codec.http.QueryStringDecoder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
