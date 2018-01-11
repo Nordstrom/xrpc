@@ -37,22 +37,28 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class Call {
+public class Call {
   private final XrpcClient client;
   private final String uri;
+  private final FullHttpRequest request;
 
-  private FullHttpRequest request = null;
-
-  public Call(XrpcClient client, String uri) {
+  Call(XrpcClient client, String uri) {
 
     this.client = client;
     this.uri = uri;
+    this.request = null;
+  }
+
+  private Call(XrpcClient client, String uri, FullHttpRequest request) {
+
+    this.client = client;
+    this.uri = uri;
+    this.request = request;
   }
 
   public Call get(FullHttpRequest request) {
-    this.request = request;
 
-    return this;
+    return new Call(client, uri, request);
   }
 
   public ListenableFuture<FullHttpResponse> execute() throws URISyntaxException {
@@ -95,7 +101,7 @@ class Call {
   }
 
   private RetryLoop buildRetryLoop() {
-    //TODO(JR): Make these retry options configurable, perhaps from a client.conf?
+    // TODO(JR): Make these retry options configurable, perhaps from a client.conf?
     return buildRetryLoop(50, 500, 4);
   }
 
@@ -155,14 +161,14 @@ class Call {
           }
         };
 
-    //TODO(JR): There should be a configurable timeout here
+    // TODO(JR): There should be a configurable timeout here
     try {
       bootstrap.connect(server).addListener(listener).await(200, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       try {
         retryLoop.takeException(e);
       } catch (Exception e1) {
-        //TODO(JR): Throw proper exception for exceeding retry limit
+        // TODO(JR): Throw proper exception for exceeding retry limit
 
       }
       log.info("==== Service connect failure (will retry)", e);
