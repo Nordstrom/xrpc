@@ -2,9 +2,8 @@ package com.nordstrom.xrpc.client;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Test;
-
 import java.net.InetSocketAddress;
+import org.junit.jupiter.api.Test;
 
 class XUrlTest {
 
@@ -90,13 +89,26 @@ class XUrlTest {
     String withPathTrailingSlashNoQuery = "https://api.nordstrom.com/v1/";
     String withPathTrailingSlash = "https://api.nordstrom.com/v1/?foo=bar";
 
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPath).get("param1").get(0));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
-    assertThrows(IndexOutOfBoundsException.class,  () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
+    assertThrows(
+        IndexOutOfBoundsException.class, () -> XUrl.decodeQueryString(noPath).get("param1").get(0));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
+    assertThrows(
+        IndexOutOfBoundsException.class,
+        () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));
   }
 
   @Test
@@ -107,14 +119,14 @@ class XUrlTest {
   }
 
   @Test
-  void getInetSocket_withNoPort() throws java.net.URISyntaxException  {
+  void getInetSocket_withNoPort() throws java.net.URISyntaxException {
     InetSocketAddress result = XUrl.getInetSocket(url1);
     assertEquals("api.nordstrom.com", result.getHostString());
     assertEquals(443, result.getPort());
   }
 
   @Test
-  void getInetSocket_withNoProtocol() throws java.net.URISyntaxException  {
+  void getInetSocket_withNoProtocol() throws java.net.URISyntaxException {
     InetSocketAddress result = XUrl.getInetSocket("api.nordstrom.com/foo/v1?foo=bar");
     assertEquals("api.nordstrom.com", result.getHostString());
     assertEquals(80, result.getPort());
