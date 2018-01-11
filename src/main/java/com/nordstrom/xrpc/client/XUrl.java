@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,6 +29,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import io.netty.handler.codec.http.QueryStringDecoder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -90,13 +93,13 @@ public class XUrl {
     }
   }
 
-  public static String stripQueryParameters(String url) {
+  public static String getRawQueryParameters(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
     if (paramStartIndex == -1) {
       return url;
     } else {
-      return url.substring(paramStartIndex + 1, url.length());
+      return url.substring(paramStartIndex, url.length());
     }
   }
 
@@ -118,20 +121,11 @@ public class XUrl {
   }
 
   public static Map<String, List<String>> decodeQueryString(String url) {
-    return Arrays.stream(stripQueryParameters(url).split("&"))
-        .map(XUrl::splitQueryParameter)
-        .collect(
-            Collectors.groupingBy(
-                AbstractMap.SimpleImmutableEntry::getKey,
-                LinkedHashMap::new,
-                mapping(Map.Entry::getValue, toList())));
-  }
-
-  public static AbstractMap.SimpleImmutableEntry<String, String> splitQueryParameter(String it) {
-    final int idx = it.indexOf("=");
-    final String key = idx > 0 ? it.substring(0, idx) : it;
-    final String value = idx > 0 && it.length() > idx + 1 ? it.substring(idx + 1) : null;
-    return new AbstractMap.SimpleImmutableEntry<>(key, value);
+    Preconditions.checkNotNull(url);
+    QueryStringDecoder decoder = new QueryStringDecoder(getRawQueryParameters(url));
+    Map<String, List<String>> params = new DefaultValueMap<>(ImmutableList.of());
+    params.putAll(decoder.parameters());
+    return params;
   }
 
   public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
