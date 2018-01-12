@@ -11,7 +11,8 @@ buildscript {
 plugins {
   id 'com.github.sherter.google-java-format' version '0.6'
   id 'net.researchgate.release' version '2.4.0'
-  id "com.github.spotbugs" version "1.6.0"
+  id 'com.github.spotbugs' version '1.6.0'
+  id 'com.jfrog.bintray' version '1.7.3'
 }
 
 release {
@@ -25,7 +26,7 @@ release {
 
 apply plugin: 'java'
 apply plugin: 'maven'
-apply plugin: 'signing'
+apply plugin: 'maven-publish'
 apply plugin: 'checkstyle'
 
 // Junit 5 gradle runner.
@@ -82,21 +83,6 @@ spotbugs {
   ignoreFailures = true
 }
 
-// Configure Maven upload.
-
-// Add Javadoc + sources jars.
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-artifacts {
-    archives javadocJar, sourcesJar
-}
-
 tasks.withType(com.github.spotbugs.SpotBugsTask) {
   extraArgs = ['-html:fancy-hist.xsl']
   reports {
@@ -105,72 +91,81 @@ tasks.withType(com.github.spotbugs.SpotBugsTask) {
   }
 }
 
-// Sign artifacts.
-signing {
-    // Only sign release versions.
-    required { !version.endsWith('-SNAPSHOT') }
-    sign configurations.archives
+// Add Javadoc + sources jars to artifacts list.
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
 }
 
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+def pomExtra = {
+  scm {
+    connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+      developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
+      url 'https://github.com/Nordstrom/xrpc'
+  }
 
-      // Safe aliases for username & password that don't require them to be set in order to load the
-      // project.
-      def ossrhUsername = rootProject.hasProperty('ossrhUsername') ? rootProject.ossrhUsername : ''
-      def ossrhPassword = rootProject.hasProperty('ossrhPassword') ? rootProject.ossrhPassword : ''
+  licenses {
+    license {
+      name 'The Apache License, Version 2.0'
+        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    }
+  }
 
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
+  developers {
+    developer {
+      id 'jkinkead'
+        name 'Jesse Kinkead'
+        email 'jesse.kinkead@nordstrom.com'
+    }
+    developer {
+      id 'xjdr'
+        name 'Jeff Rose'
+        email 'jeff.rose@nordstrom.com'
+    }
+  }
+}
 
-      // Snapshots by default publish local. If you want to publish to Sonatype, use the
-      // commented-out configuration below. Note that you won't be able to resolve snapshots in
-      // other projects unless you add the repository to the appropriate configuration block.
-      //
-      // snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-      //   authentication(userName: ossrhUsername, password: ossrhPassword)
-      // }
-      snapshotRepository(url: mavenLocal().url)
+publishing {
+  publications {
+    xrpcMaven(MavenPublication) {
+      from components.java
+      groupId rootProject.group
+      artifactId rootProject.archivesBaseName
+      version rootProject.version
+      artifact sourcesJar
+      artifact javadocJar
 
-      pom.project {
-        name 'xrpc library'
-        packaging 'jar'
-        // Optionally artifactId can be defined here, instead of relying on archivesBaseName.
-        description 'Simple, production ready Java API server built on top of functional composition.'
-        url 'https://github.com/Nordstrom/xrpc'
-
-        scm {
-          connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-          developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-          url 'https://github.com/Nordstrom/xrpc'
-        }
-
-        licenses {
-          license {
-            name 'The Apache License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          }
-        }
-
-        developers {
-          developer {
-            id 'jkinkead'
-            name 'Jesse Kinkead'
-            email 'jesse.kinkead@nordstrom.com'
-          }
-          developer {
-            id 'xjdr'
-            name 'Jeff Rose'
-            email 'jeff.rose@nordstrom.com'
-          }
-        }
+      pom.withXml {
+        asNode().appendNode('description', rootProject.description)
+        asNode().appendNode('name', 'xrpc library')
+        asNode().appendNode('url', 'https://github.com/Nordstrom/xrpc')
+        asNode().children().last() + pomExtra
       }
     }
   }
 }
 
+bintray {
+  user = rootProject.hasProperty('bintrayUsername') ? rootProject.bintrayUsername : ''
+  key = rootProject.hasProperty('bintrayKey') ? rootProject.bintrayKey : ''
+  publications = ['xrpcMaven']
+  // Automatically publish the version (make it public).
+  publish = true
+  pkg {
+    userOrg = 'nordstromoss'
+    repo = 'oss_maven'
+    name = rootProject.archivesBaseName
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/Nordstrom/xrpc.git'
+    version {
+      name = rootProject.version
+    }
+  }
+}
+
 // Run the upload as a part of the "release" task.
-afterReleaseBuild.dependsOn uploadArchives
+afterReleaseBuild.dependsOn bintrayUpload
