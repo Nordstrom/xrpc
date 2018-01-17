@@ -23,11 +23,11 @@ class RendezvousHashTest {
     }
 
     RendezvousHash rendezvousHash =
-        new RendezvousHash(Funnels.stringFunnel(Charset.defaultCharset()), nodeList, 3);
+        new RendezvousHash(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
     Random r = new Random();
     for (int i = 0; i < 100000; i++) {
       String thing = (Integer.toString(r.nextInt(123456789)));
-      List<String> hosts = rendezvousHash.get(thing.getBytes());
+      List<String> hosts = rendezvousHash.get(thing.getBytes(), 3);
       hosts.forEach(
           xs -> {
             mm.get(xs).add(thing);
@@ -45,22 +45,38 @@ class RendezvousHashTest {
     assertEquals(3000, xd.intValue());
   }
 
-  @Test void simpleGet() {
-    Map<String, String> map = new ImmutableMap.Builder<String, String>().put("a", "1").put("b", "2").put("c", "3").build();
-    RendezvousHash hasher = new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet(), 1);
+  @Test
+  void simpleGet() {
+    Map<String, String> map =
+        new ImmutableMap.Builder<String, String>()
+            .put("a", "1")
+            .put("b", "2")
+            .put("c", "3")
+            .put("d", "4")
+            .put("e", "5")
+            .build();
+    RendezvousHash hasher =
+        new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet());
     String k1 = "foo";
     String k2 = "bar";
     String k3 = "baz";
     String k4 = "biz";
 
-    assertEquals(hasher.get(k1.getBytes()), hasher.get(k1.getBytes()));
-    assertEquals(hasher.get(k2.getBytes()), hasher.get(k2.getBytes()));
-    assertEquals(hasher.get(k3.getBytes()), hasher.get(k3.getBytes()));
-    assertEquals(hasher.get(k4.getBytes()), hasher.get(k4.getBytes()));
+    assertEquals(hasher.getOne(k1.getBytes()), hasher.getOne(k1.getBytes()));
+    assertEquals(hasher.getOne(k2.getBytes()), hasher.getOne(k2.getBytes()));
+    assertEquals(hasher.getOne(k3.getBytes()), hasher.getOne(k3.getBytes()));
+    assertEquals(hasher.getOne(k4.getBytes()), hasher.getOne(k4.getBytes()));
 
-    assertNotEquals(hasher.get(k1.getBytes()), hasher.get(k4.getBytes()));
+    System.out.println(hasher.getOne(k1.getBytes()));
+    System.out.println(hasher.getOne(k2.getBytes()));
+    System.out.println(hasher.getOne(k3.getBytes()));
+    System.out.println(hasher.getOne(k4.getBytes()));
 
+    System.out.println(hasher.getOne(k1.getBytes()));
+    System.out.println(hasher.getOne(k2.getBytes()));
+    System.out.println(hasher.getOne(k3.getBytes()));
+    System.out.println(hasher.getOne(k4.getBytes()));
 
-
+    assertNotEquals(hasher.getOne(k1.getBytes()), hasher.getOne(k4.getBytes()));
   }
 }

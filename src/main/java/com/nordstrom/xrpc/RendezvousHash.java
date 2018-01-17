@@ -1,31 +1,24 @@
 package com.nordstrom.xrpc;
 
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RendezvousHash<N> {
 
   private final HashFunction hasher;
   private final Funnel<N> nodeFunnel;
-  private final int listSize;
   private final Map<Long, N> hashMap = new ConcurrentSkipListMap<>();
   private final Set<N> nodeList = Sets.newConcurrentHashSet();
 
-  public RendezvousHash(Funnel<N> nodeFunnel, Collection<N> init, int listSize) {
+  public RendezvousHash(Funnel<N> nodeFunnel, Collection<N> init) {
     this.hasher = Hashing.murmur3_128();
     this.nodeFunnel = nodeFunnel;
-    this.listSize = listSize;
 
     nodeList.addAll(init);
   }
@@ -43,21 +36,36 @@ public class RendezvousHash<N> {
     nodeList.addAll(list);
   }
 
-  public List<N> get(byte[] key) {
+  public N getOne(byte[] key) {
+    hashMap.clear();
+
+    nodeList.forEach(
+        xs -> {
+          hashMap.put(
+              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
+        });
+
+    return hashMap.remove(hashMap.keySet().stream().max(Long::compare).orElse(null));
+  }
+
+  public List<N> get(byte[] key, int listSize) {
     hashMap.clear();
     List<N> _nodeList = new ArrayList<>(listSize);
 
     nodeList.forEach(
-      xs -> {
-        hashMap.put(
-          hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
-      });
+        xs -> {
+          hashMap.put(
+              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
+        });
+
+    TreeSet<Long> set = Sets.newTreeSet(hashMap.keySet());
 
     for (int i = 0; i < listSize; i++) {
-      _nodeList.add(i, hashMap.remove(hashMap.keySet().stream().max(Long::compare).get()));
+      Long x = set.first();
+      _nodeList.add(i, hashMap.remove(x));
+      set.remove(x);
     }
 
     return _nodeList;
   }
-
 }

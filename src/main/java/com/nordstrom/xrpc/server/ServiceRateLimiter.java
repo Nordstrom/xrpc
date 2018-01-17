@@ -60,7 +60,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
       limiterMap.put(id, RateLimiter.create(rate));
     }
 
-    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool, 1);
+    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
   }
 
   @Override
@@ -90,14 +90,12 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
 
     } else {
       if (!hardLimiterMap
-          .get(
-              hardRateLimitHasher.get(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)).get(0))
+          .get(hardRateLimitHasher.getOne(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)))
           .tryAcquire()) {
         log.debug("Hard Rate limit fired for " + remoteAddress);
         ctx.channel().attr(XrpcConstants.XRPC_HARD_RATE_LIMITED).set(Boolean.TRUE);
       } else if (!softLimiterMap
-          .get(
-              softRateLimitHasher.get(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)).get(0))
+          .get(softRateLimitHasher.getOne(remoteAddress.getBytes(XrpcConstants.DEFAULT_CHARSET)))
           .tryAcquire()) {
         ctx.channel().attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);
       }
