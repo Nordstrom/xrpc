@@ -164,7 +164,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       int padding,
       boolean endOfStream) {
 
-    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_SOFT_RATE_LIMITED)) {
       writeResponse(
           ctx,
           streamId,

@@ -27,7 +27,7 @@ public class UrlRouter extends ChannelDuplexHandler {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     xctx.getRequestMeter().mark();
 
-    if (ctx.channel().hasAttr(XrpcConstants.XRPC_RATE_LIMIT)) {
+    if (ctx.channel().hasAttr(XrpcConstants.XRPC_SOFT_RATE_LIMITED)) {
       ctx.writeAndFlush(
               Recipes.newResponse(
                   HttpResponseStatus.TOO_MANY_REQUESTS,

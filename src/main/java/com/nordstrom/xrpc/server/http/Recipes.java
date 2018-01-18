@@ -122,8 +122,8 @@ public final class Recipes {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     if (customHeaders != null) {
-      for (String header : customHeaders.keySet()) {
-        response.headers().set(header, customHeaders.get(header));
+      for (Map.Entry<String, String> entry : customHeaders.entrySet()) {
+        response.headers().set(entry.getKey(), entry.getValue());
       }
     }
 
