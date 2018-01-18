@@ -39,6 +39,7 @@ class Firewall extends ChannelDuplexHandler {
       ctx.channel().closeFuture();
     }
 
+    // This will always be set to False
     if ((ctx.channel().hasAttr(XrpcConstants.IP_WHITE_LIST))) {
       if (log.isErrorEnabled()) {
         log.error(ctx.channel() + " is not a white listed client. Dropping Connection");
