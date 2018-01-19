@@ -34,7 +34,7 @@ public class AdminHandlers {
 
     return xrpcRequest -> Recipes.newResponseOk("TODO");
   }
-  
+
   public static Handler gcHandler() {
     Runtime.getRuntime().gc();
 
