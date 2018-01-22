@@ -1,0 +1,16 @@
+language: java
+install: true
+script:
+  - ./gradlew clean
+  - ./gradlew check
+  - ./gradlew build
+before_deploy:
+  - git config --global user.email "sisyphus@nordstrom.com"
+  - git config --global user.name "Sisyphus - Travis CI Builds"
+  - git remote rm origin
+  - git remote add origin 'git@github.com:spenserpothier/xrpc.git'
+  - git checkout $TRAVIS_BRANCH
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: ./bin/publish.sh
