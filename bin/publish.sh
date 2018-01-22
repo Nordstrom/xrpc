@@ -3,7 +3,7 @@
 set -e
 
 # Publish to BinTray if the HEAD commit is tagged with a version number.
-if [ "$TRAVIS_PULL_REQUEST" -ne "false" ]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo "Building a pull request, not publishing."
   echo "TRAVIS_PULL_REQUEST is equal to $TRAVIS_PULL_REQUEST"
   exit 0
