@@ -20,7 +20,7 @@ release {
   tagCommitMessage = 'New release: '
   newVersionCommitMessage = 'Creating new SNAPSHOT version '
   git {
-    pushToRemote = 'upstream'
+    pushToRemote = 'origin'
   }
 }
 
@@ -154,7 +154,7 @@ bintray {
   key = rootProject.hasProperty('bintrayKey') ? rootProject.bintrayKey : ''
   publications = ['xrpcMaven']
   // Automatically publish the version (make it public).
-  publish = true
+  publish = false // Disabled until travis-ci changes are complete.
   pkg {
     userOrg = 'nordstromoss'
     repo = 'oss_maven'
