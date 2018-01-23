@@ -106,11 +106,11 @@ public class XConfig {
   }
 
   private String readFromFile(Path path) {
-    String fileText = null;
+    String fileText;
     try {
       fileText = new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new RuntimeException("Could not read cert/key from path: " + path);
     }
     return fileText;
   }
