@@ -18,6 +18,10 @@ package com.nordstrom.xrpc;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -72,8 +76,27 @@ public class XConfig {
     maxConnections = config.getInt("max_connections");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
-    cert = config.getString("cert");
-    key = config.getString("key");
+
+    // Check to see if path_to_cert and path_to_key are configured; if so, use them. If not,
+    // fall back to cert and key configured in plaintext in xrpc.conf.
+    if (config.hasPath("path_to_cert")) {
+      // get and use non-null setting
+      String pathToCert = config.getString("path_to_cert");
+      cert = readFromFile(Paths.get(pathToCert));
+    } else {
+      // handle unset path; fall back to default
+      cert = config.getString("cert");
+    }
+
+    if (config.hasPath("path_to_key")) {
+      // get and use non-null setting
+      String pathToKey = config.getString("path_to_key");
+      key = readFromFile(Paths.get(pathToKey));
+    } else {
+      // handle unset path; fall back to default
+      key = config.getString("key");
+    }
+
     port = config.getInt("server.port");
     slf4jReporter = config.getBoolean("slf4j_reporter");
     jmxReporter = config.getBoolean("jmx_reporter");
@@ -81,6 +104,17 @@ public class XConfig {
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
   }
+
+  private String readFromFile(Path path) {
+    String fileText = null;
+    try {
+      fileText = new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return fileText;
+  }
+
 
   public int readerIdleTimeout() {
     return readerIdleTimeout;
