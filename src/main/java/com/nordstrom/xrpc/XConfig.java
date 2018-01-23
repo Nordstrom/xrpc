@@ -16,12 +16,16 @@
 
 package com.nordstrom.xrpc;
 
+import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import com.typesafe.config.ConfigObject;
+import io.netty.util.internal.PlatformDependent;
+import java.util.*;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -44,11 +48,21 @@ public class XConfig {
   private final String cert;
   private final String key;
   private final int port;
-  private boolean slf4jReporter;
-  private boolean jmxReporter;
-  private boolean consoleReporter;
-  private int slf4jReporterPollingRate;
-  private int consoleReporterPollingRate;
+  private final double gloablSoftReqPerSec;
+  private final double globalHardReqPerSec;
+  private final ImmutableSet<String> ipBlackList;
+  private final ImmutableSet<String> ipWhiteList;
+  private final boolean slf4jReporter;
+  private final boolean jmxReporter;
+  private final boolean consoleReporter;
+  private final int slf4jReporterPollingRate;
+  private final int consoleReporterPollingRate;
+
+  private final Map<String, List<Double>> clientRateLimitOverride =
+      PlatformDependent.newConcurrentHashMap();
+  private final boolean enableWhiteList;
+  private final boolean enableBlackList;
+  private final int rateLimiterPoolSize;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -74,6 +88,7 @@ public class XConfig {
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
     maxConnections = config.getInt("max_connections");
+    rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
 
@@ -97,12 +112,42 @@ public class XConfig {
       key = config.getString("key");
     }
 
+    gloablSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
+    globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
     port = config.getInt("server.port");
     slf4jReporter = config.getBoolean("slf4j_reporter");
     jmxReporter = config.getBoolean("jmx_reporter");
     consoleReporter = config.getBoolean("console_reporter");
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
+
+    enableWhiteList = config.getBoolean("enable_white_list");
+    enableBlackList = config.getBoolean("enable_black_list");
+
+    ipBlackList =
+        ImmutableSet.<String>builder().addAll(config.getStringList("ip_black_list")).build();
+    ipWhiteList =
+        ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
+
+    populateClientOverrideList(config.getObjectList("req_per_second_override"));
+  }
+
+  private void populateClientOverrideList(List<? extends ConfigObject> req_per_second_override) {
+    req_per_second_override.forEach(
+        xs -> {
+          xs.forEach(
+              (key, value) -> {
+                List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
+                List<Double> val = new ArrayList();
+                valString.forEach(v -> val.add(Double.parseDouble(v)));
+
+                clientRateLimitOverride.put(key, val);
+              });
+        });
+  }
+
+  public Map<String, List<Double>> getClientRateLimitOverride() {
+    return clientRateLimitOverride;
   }
 
   private String readFromFile(Path path) {
@@ -182,5 +227,33 @@ public class XConfig {
 
   public long consoleReporterPollingRate() {
     return (long) consoleReporterPollingRate;
+  }
+
+  public double globalHardReqPerSec() {
+    return globalHardReqPerSec;
+  }
+
+  public double globalSoftReqPerSec() {
+    return gloablSoftReqPerSec;
+  }
+
+  public ImmutableSet<String> ipBlackList() {
+    return ipBlackList;
+  }
+
+  public ImmutableSet<String> ipWhiteList() {
+    return ipWhiteList;
+  }
+
+  public boolean enableWhiteList() {
+    return enableWhiteList;
+  }
+
+  public boolean enableBlackList() {
+    return enableBlackList;
+  }
+
+  public int getRateLimiterPoolSize() {
+    return rateLimiterPoolSize;
   }
 }
