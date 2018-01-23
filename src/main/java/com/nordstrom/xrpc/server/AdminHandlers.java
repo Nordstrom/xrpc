@@ -30,12 +30,24 @@ public class AdminHandlers {
     return xrpcRequest -> Recipes.newResponseOk("PONG");
   }
 
+  public static Handler infoHandler() {
+
+    return xrpcRequest -> Recipes.newResponseOk("TODO");
+  }
+
+  public static Handler gcHandler() {
+    Runtime.getRuntime().gc();
+
+    return xrpcRequest -> Recipes.newResponseOk("OK");
+  }
+
   public static Handler healthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
     Preconditions.checkState(healthCheckRegistry != null);
     Preconditions.checkState(mapper != null);
 
     SortedMap<String, HealthCheck.Result> healthChecks = healthCheckRegistry.runHealthChecks();
+
     return xrpcRequest ->
         Recipes.newResponseOk(
             xrpcRequest
@@ -44,5 +56,19 @@ public class AdminHandlers {
                 .writeBytes(
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(healthChecks)),
             Recipes.ContentType.Application_Json);
+  }
+
+  public static Handler readyHandler() {
+    return xrpcRequest -> Recipes.newResponseOk("OK");
+  }
+
+  public static Handler restartHandler(Router router) {
+    return xrpcRequest -> Recipes.newResponseOk("TODO");
+  }
+
+  public static Handler killHandler(Router router) {
+    router.shutdown();
+
+    return xrpcRequest -> Recipes.newResponseOk("OK");
   }
 }
