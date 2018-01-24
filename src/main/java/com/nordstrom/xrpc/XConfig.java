@@ -21,7 +21,14 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 import io.netty.util.internal.PlatformDependent;
-import java.util.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -72,8 +79,10 @@ public class XConfig {
    * Construct a config object using the provided configuration, falling back on the default
    * configuration values <a
    * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">here</a>.
+   *
+   * @throws RuntimeException if there is an error reading one of path_to_cert or path_to_key
    */
-  public XConfig(Config configOverrides) {
+  public XConfig(Config configOverrides) throws RuntimeException {
     Config defaultConfig = ConfigFactory.parseResources(this.getClass(), "xrpc.conf");
     Config config = configOverrides.withFallback(defaultConfig);
 
@@ -87,10 +96,25 @@ public class XConfig {
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
+
+    // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
+    // fall back to cert and key configured in plaintext in xrpc.conf.
+    if (config.hasPath("path_to_cert")) {
+      String pathToCert = config.getString("path_to_cert");
+      cert = readFromFile(Paths.get(pathToCert));
+    } else {
+      cert = config.getString("cert");
+    }
+
+    if (config.hasPath("path_to_key")) {
+      String pathToKey = config.getString("path_to_key");
+      key = readFromFile(Paths.get(pathToKey));
+    } else {
+      key = config.getString("key");
+    }
+
     gloablSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
     globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
-    cert = config.getString("cert");
-    key = config.getString("key");
     port = config.getInt("server.port");
     slf4jReporter = config.getBoolean("slf4j_reporter");
     jmxReporter = config.getBoolean("jmx_reporter");
@@ -126,6 +150,17 @@ public class XConfig {
   public Map<String, List<Double>> getClientRateLimitOverride() {
     return clientRateLimitOverride;
   }
+
+  private String readFromFile(Path path) {
+    String fileText;
+    try {
+      fileText = new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
+    } catch (IOException e) {
+      throw new RuntimeException("Could not read cert/key from path: " + path, e);
+    }
+    return fileText;
+  }
+
 
   public int readerIdleTimeout() {
     return readerIdleTimeout;
