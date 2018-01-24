@@ -23,9 +23,12 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import java.nio.charset.Charset;
 import java.util.Map;
 import lombok.Getter;
 
@@ -97,6 +100,29 @@ public class XrpcRequest {
     }
 
     return data;
+  }
+
+  /** Returns a new string representing the request data, decoded using the appropriate charset. */
+  public String getDataAsString() {
+    // Note that this defaults to iso-8859-1 per
+    // https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7.1.
+    Charset charset = HttpUtil.getCharset(getHeader(HttpHeaderNames.CONTENT_TYPE));
+    return getData().toString(charset);
+  }
+
+  /**
+   * Returns the value of the given HTTP header, or null if it's missing.
+   *
+   * @param name the header name, lower-cased
+   */
+  public CharSequence getHeader(CharSequence name) {
+    if (h1Request != null) {
+      return h1Request.headers().get(name);
+    } else if (h2Headers != null) {
+      return h2Headers.get(name);
+    } else {
+      throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
+    }
   }
 
   public ListeningExecutorService getExecutor() {
