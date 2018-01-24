@@ -188,7 +188,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
         ctx.channel()
             .attr(XrpcConstants.XRPC_REQUEST)
             .set(new XrpcRequest(headers, groups.get(), ctx.channel(), streamId));
-        Optional<CharSequence> contentLength = Optional.ofNullable(headers.get("content-length"));
+        Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
         if (!contentLength.isPresent()) {
           try {
             executeHandler(ctx, streamId, route);
