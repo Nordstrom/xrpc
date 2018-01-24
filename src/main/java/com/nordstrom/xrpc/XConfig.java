@@ -159,7 +159,6 @@ public class XConfig {
     }
   }
 
-
   public int readerIdleTimeout() {
     return readerIdleTimeout;
   }
