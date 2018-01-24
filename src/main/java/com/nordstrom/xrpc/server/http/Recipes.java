@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -39,14 +40,14 @@ public final class Recipes {
   private Recipes() {}
 
   public static enum ContentType {
-    Application_Json("application/json"),
-    Application_Octet_Stream("application/octet-stream"),
-    Text_Plain("text/plain"),
+    Application_Json(HttpHeaderValues.APPLICATION_JSON),
+    Application_Octet_Stream(HttpHeaderValues.APPLICATION_OCTET_STREAM),
+    Text_Plain(HttpHeaderValues.TEXT_PLAIN),
     Text_Html("text/html");
 
-    private final String value;
+    private final CharSequence value;
 
-    ContentType(String value) {
+    ContentType(CharSequence value) {
       this.value = value;
     }
   }
