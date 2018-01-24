@@ -67,9 +67,10 @@ public class Example {
     // Define a simple function call.
     Handler peopleHandler =
         request -> {
+          String json = adapter.toJson(people);
           return Recipes.newResponse(
               HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
+              request.getAlloc().directBuffer().writeCharSequence(json, StandardCharsets.UTF_8),
               Recipes.ContentType.Application_Json);
         };
 
