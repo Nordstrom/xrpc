@@ -82,7 +82,7 @@ public class XConfig {
    *
    * @throws RuntimeException if there is an error reading one of path_to_cert or path_to_key
    */
-  public XConfig(Config configOverrides) throws RuntimeException {
+  public XConfig(Config configOverrides) {
     Config defaultConfig = ConfigFactory.parseResources(this.getClass(), "xrpc.conf");
     Config config = configOverrides.withFallback(defaultConfig);
 
@@ -152,13 +152,11 @@ public class XConfig {
   }
 
   private String readFromFile(Path path) {
-    String fileText;
     try {
-      fileText = new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
+      return new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
       throw new RuntimeException("Could not read cert/key from path: " + path, e);
     }
-    return fileText;
   }
 
 
