@@ -19,13 +19,16 @@ package com.nordstrom.xrpc;
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigObject;
+import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import com.typesafe.config.ConfigObject;
-import io.netty.util.internal.PlatformDependent;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -76,8 +79,10 @@ public class XConfig {
    * Construct a config object using the provided configuration, falling back on the default
    * configuration values <a
    * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">here</a>.
+   *
+   * @throws RuntimeException if there is an error reading one of path_to_cert or path_to_key
    */
-  public XConfig(Config configOverrides) {
+  public XConfig(Config configOverrides) throws RuntimeException {
     Config defaultConfig = ConfigFactory.parseResources(this.getClass(), "xrpc.conf");
     Config config = configOverrides.withFallback(defaultConfig);
 
@@ -92,23 +97,19 @@ public class XConfig {
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
 
-    // Check to see if path_to_cert and path_to_key are configured; if so, use them. If not,
+    // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
     // fall back to cert and key configured in plaintext in xrpc.conf.
     if (config.hasPath("path_to_cert")) {
-      // get and use non-null setting
       String pathToCert = config.getString("path_to_cert");
       cert = readFromFile(Paths.get(pathToCert));
     } else {
-      // handle unset path; fall back to default
       cert = config.getString("cert");
     }
 
     if (config.hasPath("path_to_key")) {
-      // get and use non-null setting
       String pathToKey = config.getString("path_to_key");
       key = readFromFile(Paths.get(pathToKey));
     } else {
-      // handle unset path; fall back to default
       key = config.getString("key");
     }
 
@@ -155,7 +156,7 @@ public class XConfig {
     try {
       fileText = new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
-      throw new RuntimeException("Could not read cert/key from path: " + path);
+      throw new RuntimeException("Could not read cert/key from path: " + path, e);
     }
     return fileText;
   }
