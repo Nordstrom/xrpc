@@ -37,6 +37,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,10 +68,10 @@ public class Example {
     // Define a simple function call.
     Handler peopleHandler =
         request -> {
-          String json = adapter.toJson(people);
+          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
           return Recipes.newResponse(
               HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeCharSequence(json, StandardCharsets.UTF_8),
+              request.getAlloc().directBuffer().writeBytes(jsonBytes),
               Recipes.ContentType.Application_Json);
         };
 
