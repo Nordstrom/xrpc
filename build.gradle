@@ -12,7 +12,6 @@ plugins {
   id 'com.github.sherter.google-java-format' version '0.6'
   id 'net.researchgate.release' version '2.4.0'
   id 'com.github.spotbugs' version '1.6.0'
-  id 'com.jfrog.bintray' version '1.7.3'
 }
 
 release {
@@ -148,24 +147,3 @@ publishing {
     }
   }
 }
-
-bintray {
-  user = rootProject.hasProperty('bintrayUsername') ? rootProject.bintrayUsername : ''
-  key = rootProject.hasProperty('bintrayKey') ? rootProject.bintrayKey : ''
-  publications = ['xrpcMaven']
-  // Automatically publish the version (make it public).
-  publish = true
-  pkg {
-    userOrg = 'nordstromoss'
-    repo = 'oss_maven'
-    name = rootProject.archivesBaseName
-    licenses = ['Apache-2.0']
-    vcsUrl = 'https://github.com/Nordstrom/xrpc.git'
-    version {
-      name = rootProject.version
-    }
-  }
-}
-
-// Run the upload as a part of the "release" task.
-afterReleaseBuild.dependsOn bintrayUpload
