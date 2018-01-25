@@ -1,10 +1,11 @@
 language: java
 install: true
 script:
-  - ./gradlew clean check generatePomFileForXrpcMavenPublication publishToMavenLocal
+  - ./gradlew clean check
 before_deploy:
   - sed -i 's/VERSION_NUMBER/'$(./gradlew properties | grep "version:" | awk '{print $2}')'/g' .travis/bintray_descriptor.json
   - sed -i 's/RELEASE_DATE/'$(date +%Y-%m-%d)'/g' .travis/bintray_descriptor.json
+  - ./gradlew generatePomFileForXrpcMavenPublication publishToMavenLocal
 deploy:
   - provider: bintray
     skip_cleanup: true
