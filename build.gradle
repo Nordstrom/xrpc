@@ -1,3 +1,4 @@
+
 buildscript {
   repositories {
     mavenCentral()
@@ -50,6 +51,7 @@ tasks.withType(JavaCompile) {
 
 repositories {
     mavenCentral()
+    maven { url 'https://dl.bintray.com/nordstromoss/oss_maven' }
 }
 
 dependencies {
@@ -57,6 +59,7 @@ dependencies {
     compile 'com.squareup.okhttp3:okhttp:3.8.0'
     compile 'com.squareup.okio:okio:1.13.0'
     compile 'com.typesafe:config:1.3.1'
+    compile 'com.xjeffrose:xio:0.13.0'
     compile 'io.dropwizard.metrics:metrics-core:3.2.5'
     compile 'io.dropwizard.metrics:metrics-healthchecks:3.2.5'
     compile 'io.dropwizard.metrics:metrics-json:3.2.5'
