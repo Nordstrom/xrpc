@@ -6,3 +6,4 @@ build/
 demo/out/
 out/
 xrpc.iml
+.DS_Store

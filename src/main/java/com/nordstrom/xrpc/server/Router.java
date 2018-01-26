@@ -35,7 +35,12 @@ import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -126,17 +131,50 @@ public class Router {
     }
 
     workerGroup.scheduleWithFixedDelay(
-        new Runnable() {
-          @Override
-          public void run() {
-            healthCheckRegistry.runHealthChecks(workerGroup);
-          }
-        },
-        initialDelay,
-        delay,
-        timeUnit);
+        () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
   }
 
+  /** * Convenience Methods ** */
+  public void get(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.GET);
+  }
+
+  public void post(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.POST);
+  }
+
+  public void put(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.PUT);
+  }
+
+  public void delete(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.DELETE);
+  }
+
+  public void head(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.HEAD);
+  }
+
+  public void options(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.OPTIONS);
+  }
+
+  public void patch(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.PATCH);
+  }
+
+  public void trace(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.TRACE);
+  }
+
+  public void connect(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.CONNECT);
+  }
+
+  public void any(String route, Handler handler) {
+    addRoute(route, handler, XHttpMethod.ANY);
+  }
+  /** ************************* */
   public void addRoute(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.ANY);
   }
@@ -348,7 +386,7 @@ public class Router {
                   log.warn("Error shutting down server", future.cause());
                 }
                 synchronized (Router.this) {
-                  //TODO(JR): We should probably be more thoughtful here.
+                  // TODO(JR): We should probably be more thoughtful here.
                   shutdown();
                 }
               }

@@ -33,7 +33,6 @@ import com.typesafe.config.ConfigFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -65,34 +64,6 @@ public class Example {
     XConfig xConfig = new XConfig(config.getConfig("xrpc"));
     Router router = new Router(xConfig);
 
-    // Define a simple function call.
-    Handler peopleHandler =
-        request -> {
-          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
-          return Recipes.newResponse(
-              HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeBytes(jsonBytes),
-              Recipes.ContentType.Application_Json);
-        };
-
-    // Define a complex function call
-    Handler personPostHandler =
-        request -> {
-          Person p = new Person(request.getDataAsString());
-          people.add(p);
-
-          return Recipes.newResponseOk("");
-        };
-
-    // Define a complex function call
-    Handler personHandler =
-        request -> {
-          Person p = new Person(request.variable("person"));
-          people.add(p);
-
-          return Recipes.newResponseOk("");
-        };
-
     // RPC style endpoint
     Handler dinoHandler =
         request -> {
@@ -107,13 +78,40 @@ public class Example {
           }
         };
 
-    // Create your route mapping for the JSON requests
-    router.addRoute("/people/{person}", personHandler, HttpMethod.GET);
-    router.addRoute("/people", personPostHandler, HttpMethod.POST);
-    router.addRoute("/people", peopleHandler, HttpMethod.GET);
+    // Add handler for HTTP GET:/people/{person} route
+    router.get(
+        "/people/{person}",
+        request -> {
+          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
+          return Recipes.newResponse(
+              HttpResponseStatus.OK,
+              request.getAlloc().directBuffer().writeBytes(jsonBytes),
+              Recipes.ContentType.Application_Json);
+        });
 
-    // Create your route mapping
-    router.addRoute("/DinoService/{method}", dinoHandler);
+    // Add handler for HTTP POST:/people route
+    router.post(
+        "/people",
+        request -> {
+          Person p = new Person(request.getDataAsString());
+          people.add(p);
+
+          return Recipes.newResponseOk("");
+        });
+
+    // Add handler for HTTP GET:/people route
+    router.get(
+        "/people",
+        request -> {
+          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
+          return Recipes.newResponse(
+              HttpResponseStatus.OK,
+              request.getAlloc().directBuffer().writeBytes(jsonBytes),
+              Recipes.ContentType.Application_Json);
+        });
+
+    // Add predefined handler for HTTP ANY:/DinoService/{method}
+    router.any("/DinoService/{method}", dinoHandler);
 
     // Add a service specific health check
     router.addHealthCheck("simple", new SimpleHealthCheck());
