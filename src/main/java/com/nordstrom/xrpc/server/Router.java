@@ -134,47 +134,57 @@ public class Router {
         () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
   }
 
-  /** * Convenience Methods ** */
+  /** Binds a handler for GET requests to the given route. */
   public void get(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.GET);
   }
 
+  /** Binds a handler for POST requests to the given route. */
   public void post(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.POST);
   }
 
+  /** Binds a handler for PUT requests to the given route. */
   public void put(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.PUT);
   }
 
+  /** Binds a handler for DELETE requests to the given route. */
   public void delete(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.DELETE);
   }
 
+  /** Binds a handler for HEAD requests to the given route. */
   public void head(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.HEAD);
   }
 
+  /** Binds a handler for OPTIONS requests to the given route. */
   public void options(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.OPTIONS);
   }
 
+  /** Binds a handler for PATCH requests to the given route. */
   public void patch(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.PATCH);
   }
 
+  /** Binds a handler for TRACE requests to the given route. */
   public void trace(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.TRACE);
   }
 
+  /** Binds a handler for CONNECT requests to the given route. */
   public void connect(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.CONNECT);
   }
 
+  /** Binds a handler for ANY requests to the given route. */
   public void any(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.ANY);
   }
-  /** ************************* */
+
+  @Deprecated
   public void addRoute(String route, Handler handler) {
     addRoute(route, handler, XHttpMethod.ANY);
   }
@@ -246,19 +256,15 @@ public class Router {
      '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)```
      */
 
-    addRoute("/info", AdminHandlers.infoHandler(), HttpMethod.GET);
-    addRoute(
-        "/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper), HttpMethod.GET);
-    addRoute(
-        "/health",
-        AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper),
-        HttpMethod.GET);
-    addRoute("/ping", AdminHandlers.pingHandler(), HttpMethod.GET);
-    addRoute("/ready", AdminHandlers.readyHandler(), HttpMethod.GET);
-    addRoute("/restart", AdminHandlers.restartHandler(this), HttpMethod.GET);
-    addRoute("/killkillkill", AdminHandlers.killHandler(this), HttpMethod.GET);
+    get("/info", AdminHandlers.infoHandler());
+    get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
+    get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
+    get("/ping", AdminHandlers.pingHandler());
+    get("/ready", AdminHandlers.readyHandler());
+    get("/restart", AdminHandlers.restartHandler(this));
+    get("/killkillkill", AdminHandlers.killHandler(this));
 
-    addRoute("/gc", AdminHandlers.pingHandler(), HttpMethod.GET);
+    get("/gc", AdminHandlers.pingHandler());
   }
 
   public void listenAndServe() throws IOException {
@@ -379,17 +385,15 @@ public class Router {
     channel
         .close()
         .addListener(
-            new ChannelFutureListener() {
-              @Override
-              public void operationComplete(ChannelFuture future) throws Exception {
-                if (!future.isSuccess()) {
-                  log.warn("Error shutting down server", future.cause());
-                }
-                synchronized (Router.this) {
-                  // TODO(JR): We should probably be more thoughtful here.
-                  shutdown();
-                }
-              }
-            });
+            (ChannelFutureListener)
+                future -> {
+                  if (!future.isSuccess()) {
+                    log.warn("Error shutting down server", future.cause());
+                  }
+                  synchronized (Router.this) {
+                    // TODO(JR): We should probably be more thoughtful here.
+                    shutdown();
+                  }
+                });
   }
 }

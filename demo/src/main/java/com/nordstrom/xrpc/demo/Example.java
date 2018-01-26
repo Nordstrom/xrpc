@@ -20,14 +20,15 @@ import com.codahale.metrics.health.HealthCheck;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.demo.proto.*;
+import com.nordstrom.xrpc.demo.proto.Dino;
+import com.nordstrom.xrpc.demo.proto.DinoGetReply;
+import com.nordstrom.xrpc.demo.proto.DinoGetRequest;
+import com.nordstrom.xrpc.demo.proto.DinoSetReply;
+import com.nordstrom.xrpc.demo.proto.DinoSetRequest;
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
 import com.nordstrom.xrpc.server.XrpcRequest;
 import com.nordstrom.xrpc.server.http.Recipes;
-import com.squareup.moshi.JsonAdapter;
-import com.squareup.moshi.Moshi;
-import com.squareup.moshi.Types;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import io.netty.buffer.ByteBuf;
@@ -36,24 +37,15 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Example {
   public static void main(String[] args) {
-    final List<Person> people = new ArrayList<>();
     final List<Dino> dinos = new ArrayList<>();
-
-    // For the JSON portion of the demo
-    Moshi moshi = new Moshi.Builder().build();
-    Type type = Types.newParameterizedType(List.class, Person.class);
-    JsonAdapter<List<Person>> adapter = moshi.adapter(type);
 
     // Load application config from jar resources. The 'load' method below also allows supports
     // overrides from environment variables.
@@ -78,37 +70,8 @@ public class Example {
           }
         };
 
-    // Add handler for HTTP GET:/people/{person} route
-    router.get(
-        "/people/{person}",
-        request -> {
-          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
-          return Recipes.newResponse(
-              HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeBytes(jsonBytes),
-              Recipes.ContentType.Application_Json);
-        });
-
-    // Add handler for HTTP POST:/people route
-    router.post(
-        "/people",
-        request -> {
-          Person p = new Person(request.getDataAsString());
-          people.add(p);
-
-          return Recipes.newResponseOk("");
-        });
-
-    // Add handler for HTTP GET:/people route
-    router.get(
-        "/people",
-        request -> {
-          byte[] jsonBytes = adapter.toJson(people).getBytes(StandardCharsets.UTF_8);
-          return Recipes.newResponse(
-              HttpResponseStatus.OK,
-              request.getAlloc().directBuffer().writeBytes(jsonBytes),
-              Recipes.ContentType.Application_Json);
-        });
+    // Add handlers for /people routes
+    new PeopleRoutes(router);
 
     // Add predefined handler for HTTP ANY:/DinoService/{method}
     router.any("/DinoService/{method}", dinoHandler);
@@ -168,12 +131,6 @@ public class Example {
     } catch (IOException e) {
       return Recipes.newResponseBadRequest("Malformed SetDino Request: " + e.getMessage());
     }
-  }
-
-  // Example POJO for use in request / response.
-  @AllArgsConstructor
-  private static class Person {
-    private String name;
   }
 
   public static class SimpleHealthCheck extends HealthCheck {

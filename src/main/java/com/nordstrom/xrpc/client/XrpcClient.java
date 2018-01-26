@@ -35,7 +35,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.util.concurrent.ThreadFactory;
 import javax.net.ssl.SSLException;
@@ -46,7 +50,7 @@ public class XrpcClient {
 
   @Getter private final Bootstrap bootstrap;
   private final SslContext sslCtx;
-  //TODO(JR): These should be configurable
+  // TODO(JR): These should be configurable
   private static final String workerNameFormat = "xrpc-client-%d";
   private static final int workerThreadCount = 4;
 
@@ -82,9 +86,11 @@ public class XrpcClient {
           // TODO(JR): Make a seperate Handler Class for http2 as opposed to autoneg
           //        .applicationProtocolConfig(new ApplicationProtocolConfig(
           //          ApplicationProtocolConfig.Protocol.ALPN,
-          //          // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+          //          // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK
+          //             providers.
           //          ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-          //          // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+          //          // ACCEPT is currently the only mode supported by both OpenSsl and JDK
+          //             providers.
           //          ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
           //          ApplicationProtocolNames.HTTP_2,
           //          ApplicationProtocolNames.HTTP_1_1))
@@ -115,7 +121,7 @@ public class XrpcClient {
         .channel(channelClass)
         .option(
             ChannelOption.CONNECT_TIMEOUT_MILLIS,
-            500) //TODO(JR): This timeout value should be configurable
+            500) // TODO(JR): This timeout value should be configurable
         .option(ChannelOption.SO_REUSEADDR, true)
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
         .option(ChannelOption.TCP_NODELAY, true)
@@ -125,7 +131,7 @@ public class XrpcClient {
               protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline cp = ch.pipeline();
                 cp.addLast("tls", sslCtx.newHandler(ch.alloc()));
-                //cp.addLast("protocolNeg", new Http2OrHttpHandler());
+                // cp.addLast("protocolNeg", new Http2OrHttpHandler());
                 cp.addLast("codec", new HttpClientCodec());
                 cp.addLast("aggregator", new HttpObjectAggregator(MAX_PAYLOAD_SIZE));
                 cp.addLast("responseHandler", new HttpResponseHandler());
