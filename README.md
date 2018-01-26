@@ -32,7 +32,7 @@ $ ./bin/startTestServer.sh
 # Basic http set
 
 ```shell
-$ curl -k  https://localhost:8080/people/bob
+$ curl -k -d "bob" -X POST https://localhost:8080/people
 ```
 
 # Basic http/2 get
@@ -44,7 +44,7 @@ $ curl -k  https://localhost:8080/people
 ```
 
 ```shell
-$ curl -k  https://localhost:8080/people --http/1.1
+$ curl -k  https://localhost:8080/people --http1.1
 [{"name":"bob"}]
 ```
 

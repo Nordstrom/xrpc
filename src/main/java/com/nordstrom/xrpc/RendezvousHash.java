@@ -4,7 +4,12 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,22 +55,21 @@ public class RendezvousHash<N> {
 
   public List<N> get(byte[] key, int listSize) {
     hashMap.clear();
-    List<N> _nodeList = new ArrayList<>(listSize);
+    List<N> nodes = new ArrayList<>(listSize);
 
     nodeList.forEach(
-        xs -> {
-          hashMap.put(
-              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
-        });
+        xs ->
+            hashMap.put(
+                hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs));
 
     TreeSet<Long> set = Sets.newTreeSet(hashMap.keySet());
 
     for (int i = 0; i < listSize; i++) {
       Long x = set.first();
-      _nodeList.add(i, hashMap.remove(x));
+      nodes.add(i, hashMap.remove(x));
       set.remove(x);
     }
 
-    return _nodeList;
+    return nodes;
   }
 }

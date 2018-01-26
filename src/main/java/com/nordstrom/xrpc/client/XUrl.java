@@ -23,7 +23,8 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +89,10 @@ public class XUrl {
     }
   }
 
+  public static String stripUrlParameters(URL url) {
+    return stripUrlParameters(url.toString());
+  }
+
   public static String getRawQueryParameters(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
@@ -96,10 +101,6 @@ public class XUrl {
     } else {
       return url.substring(paramStartIndex, url.length());
     }
-  }
-
-  public static String stripUrlParameters(URL url) {
-    return stripUrlParameters(url.toString());
   }
 
   private static final Pattern URL_PROTOCOL_REGEX =
