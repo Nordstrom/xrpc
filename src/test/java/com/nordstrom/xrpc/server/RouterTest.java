@@ -1,14 +1,12 @@
 package com.nordstrom.xrpc.server;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,61 +19,20 @@ class RouterTest {
     XConfig config = new XConfig();
     Router r = new Router(config, 1);
 
-    Handler h1 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
-
-    Handler h2 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
-
-    Handler h3 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
-
-    Handler h4 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
-
-    Handler h5 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
-
-    Handler h6 =
-        new Handler() {
-          @Override
-          public HttpResponse handle(XrpcRequest xrpcRequest) {
-            return null;
-          }
-        };
+    Handler h1 = xrpcRequest -> null;
+    Handler h2 = xrpcRequest -> null;
+    Handler h3 = xrpcRequest -> null;
+    Handler h4 = xrpcRequest -> null;
+    Handler h5 = xrpcRequest -> null;
+    Handler h6 = xrpcRequest -> null;
 
     // Test Basic operation
     r.addRoute("/foo", h1);
     r.addRoute("/foo/bar", h2);
     r.addRoute("/baz", h3);
-    r.addRoute("/baz/.*", h4);
-    r.addRoute("/people/{person}", h5, HttpMethod.GET);
-    r.addRoute("/people/{person}", h6, HttpMethod.POST);
+    r.any("/baz/.*", h4);
+    r.get("/people/{person}", h5);
+    r.post("/people/{person}", h6);
 
     AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routes =
         r.getRoutes();

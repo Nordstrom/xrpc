@@ -133,18 +133,17 @@ public class XConfig {
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
   }
 
-  private void populateClientOverrideList(List<? extends ConfigObject> req_per_second_override) {
-    req_per_second_override.forEach(
-        xs -> {
-          xs.forEach(
-              (key, value) -> {
-                List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
-                List<Double> val = new ArrayList();
-                valString.forEach(v -> val.add(Double.parseDouble(v)));
+  private void populateClientOverrideList(List<? extends ConfigObject> reqPerSecondOverride) {
+    reqPerSecondOverride.forEach(
+        xs ->
+            xs.forEach(
+                (key, value) -> {
+                  List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
+                  List<Double> val = new ArrayList();
+                  valString.forEach(v -> val.add(Double.parseDouble(v)));
 
-                clientRateLimitOverride.put(key, val);
-              });
-        });
+                  clientRateLimitOverride.put(key, val);
+                }));
   }
 
   public Map<String, List<Double>> getClientRateLimitOverride() {
