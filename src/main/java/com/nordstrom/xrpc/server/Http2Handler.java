@@ -1,5 +1,8 @@
 package com.nordstrom.xrpc.server;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
@@ -13,14 +16,10 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http2.*;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
