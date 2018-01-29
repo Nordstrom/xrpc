@@ -40,6 +40,10 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -48,9 +52,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
@@ -91,14 +92,17 @@ public class Router {
   }
 
   private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
 
     // Create the proper metrics containers
     final String NAME_PREFIX = "responseCodes.";
     meterNamesByStatusCode.put(HttpResponseStatus.OK, NAME_PREFIX + "ok");
     meterNamesByStatusCode.put(HttpResponseStatus.CREATED, NAME_PREFIX + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, NAME_PREFIX + "accepted");
     meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, NAME_PREFIX + "noContent");
     meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, NAME_PREFIX + "unauthorized");
+    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, NAME_PREFIX + "forbidden");
     meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
     meterNamesByStatusCode.put(
         HttpResponseStatus.TOO_MANY_REQUESTS, NAME_PREFIX + "tooManyRequests");
