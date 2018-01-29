@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
@@ -38,8 +37,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -297,32 +294,15 @@ public class Router {
     Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, ctx);
 
     b.childHandler(
-        new ChannelInitializer<Channel>() {
-          @Override
-          public void initChannel(Channel ch) throws Exception {
-            ChannelPipeline cp = ch.pipeline();
-            cp.addLast(
-                "idleDisconnectHandler",
-                new IdleDisconnectHandler(
-                    config.readerIdleTimeout(),
-                    config.writerIdleTimeout(),
-                    config.allIdleTimeout()));
-            cp.addLast("serverConnectionLimiter", globalConnectionLimiter);
-            cp.addLast("serverRateLimiter", rateLimiter);
-
-            if (config.enableWhiteList()) {
-              cp.addLast("whiteList", whiteListFilter);
-            } else if (config.enableBlackList()) {
-              cp.addLast("blackList", blackListFilter);
-            }
-
-            cp.addLast("firewall", firewall);
-            cp.addLast(
-                "encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs
-            cp.addLast("codec", h1h2);
-            cp.addLast("exceptionLogger", new ExceptionLogger());
-          }
-        });
+        new ServerChannelInitializer(
+            config,
+            globalConnectionLimiter,
+            rateLimiter,
+            whiteListFilter,
+            blackListFilter,
+            firewall,
+            tls,
+            h1h2));
 
     if (scheduleHealthChecks) {
       final EventLoopGroup _workerGroup = b.config().childGroup();
