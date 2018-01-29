@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.nordstrom.xrpc.client.retry.BoundedExponentialBackoffRetry;
 import com.nordstrom.xrpc.client.retry.RetryLoop;
@@ -91,7 +92,9 @@ public class Call {
             response.cancel(true);
             error.setException(t);
           }
-        });
+        },
+        MoreExecutors.directExecutor()
+        );
 
     if (response.isCancelled()) {
       return error;

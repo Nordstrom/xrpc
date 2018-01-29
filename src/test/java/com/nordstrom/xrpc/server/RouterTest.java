@@ -27,9 +27,9 @@ class RouterTest {
     Handler h6 = xrpcRequest -> null;
 
     // Test Basic operation
-    r.addRoute("/foo", h1);
-    r.addRoute("/foo/bar", h2);
-    r.addRoute("/baz", h3);
+    r.any("/foo", h1);
+    r.any("/foo/bar", h2);
+    r.any("/baz", h3);
     r.any("/baz/.*", h4);
     r.get("/people/{person}", h5);
     r.post("/people/{person}", h6);

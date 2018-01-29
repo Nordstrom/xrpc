@@ -29,8 +29,8 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private final Meter reqs;
   private final Timer timer;
   private final XConfig config;
-  private final RendezvousHash softRateLimitHasher;
-  private final RendezvousHash hardRateLimitHasher;
+  private final RendezvousHash<CharSequence> softRateLimitHasher;
+  private final RendezvousHash<CharSequence> hardRateLimitHasher;
   private final RateLimiter globalHardLimiter;
   private final RateLimiter globalSoftLimiter;
 
@@ -50,7 +50,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
         buildHasher(hardLimiterMap, config.getRateLimiterPoolSize(), config.hardReqPerSec());
   }
 
-  private RendezvousHash buildHasher(
+  private RendezvousHash<CharSequence> buildHasher(
       Map<String, RateLimiter> limiterMap, int poolSize, double rate) {
     List<String> _tempPool = new ArrayList<>();
 
@@ -60,7 +60,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
       limiterMap.put(id, RateLimiter.create(rate));
     }
 
-    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
+    return new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
   }
 
   @Override

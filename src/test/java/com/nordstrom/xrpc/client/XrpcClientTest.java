@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.netty.handler.codec.http.*;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
@@ -63,7 +64,9 @@ class XrpcClientTest {
             latch.countDown();
             assertEquals(true, false);
           }
-        });
+        },
+        MoreExecutors.directExecutor()
+        );
 
     try {
       latch.await(500, TimeUnit.MILLISECONDS);
