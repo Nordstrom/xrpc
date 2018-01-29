@@ -1,5 +1,6 @@
 xrpc
 ====
+[![Build Status][ci-image]][ci-link] [ ![Download][artifact-image]][artifact-download]
 
 Xrpc is a framework for creating production quality API services on top of Netty. The framework helps to encapsulate our
 best practices and provides sane (and safe) defaults.
@@ -65,3 +66,9 @@ trexblue
 # Contributing
 
 Please see [the contributing guide](CONTRIBUTING.md) for details on contributing to this repository.
+
+
+[ci-image]:https://travis-ci.org/Nordstrom/xrpc.svg?branch=master
+[ci-link]:https://travis-ci.org/Nordstrom/xrpc
+[artifact-image]:https://api.bintray.com/packages/nordstromoss/oss_maven/xrpc/images/download.svg
+[artifact-download]:https://bintray.com/nordstromoss/oss_maven/xrpc/_latestVersion
