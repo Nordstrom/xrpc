@@ -93,8 +93,7 @@ public class Call {
             error.setException(t);
           }
         },
-        MoreExecutors.directExecutor()
-        );
+        MoreExecutors.directExecutor());
 
     if (response.isCancelled()) {
       return error;

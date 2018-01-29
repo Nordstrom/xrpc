@@ -65,8 +65,7 @@ class XrpcClientTest {
             assertEquals(true, false);
           }
         },
-        MoreExecutors.directExecutor()
-        );
+        MoreExecutors.directExecutor());
 
     try {
       latch.await(500, TimeUnit.MILLISECONDS);
