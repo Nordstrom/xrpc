@@ -51,7 +51,7 @@ tasks.withType(JavaCompile) {
 
 repositories {
     mavenCentral()
-    maven { url 'https://dl.bintray.com/nordstromoss/oss_maven' }
+    jcenter()
 }
 
 dependencies {
