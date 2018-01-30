@@ -93,9 +93,9 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                   .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     }
 
-    Optional<Meter> responseMap =
+    Optional<Meter> statusMeter =
         Optional.ofNullable(xctx.getMetersByStatusCode().get(h1Resp.status()));
-    responseMap.ifPresent(Meter::mark);
+    statusMeter.ifPresent(Meter::mark);
 
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
     Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
