@@ -21,7 +21,7 @@ public class XrpcConnectionContext {
 
   @Getter
   private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode =
-      new ConcurrentHashMap<>(6);
+      new ConcurrentHashMap<>(10);
 
   @Getter
   private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
