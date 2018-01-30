@@ -16,24 +16,36 @@
 
 package com.nordstrom.xrpc.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.nordstrom.xrpc.server.http.Recipes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.Map;
 import lombok.Getter;
+import lombok.experimental.Accessors;
+import lombok.val;
 
 /** Xprc specific Request object. */
 public class XrpcRequest {
+  private static final ObjectMapper mapper = new ObjectMapper();
+
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
 
@@ -43,6 +55,11 @@ public class XrpcRequest {
   @Getter private final ByteBufAllocator alloc;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
+
+  /** The parsed query string. */
+  @Getter
+  @Accessors(fluent = true)
+  private final HttpQuery query;
 
   private final int streamId;
   private ByteBuf data;
@@ -55,6 +72,7 @@ public class XrpcRequest {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.streamId = -1;
+    this.query = new HttpQuery(request.uri());
   }
 
   public XrpcRequest(
@@ -66,6 +84,7 @@ public class XrpcRequest {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.streamId = streamId;
+    this.query = new HttpQuery("");
   }
 
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
@@ -152,5 +171,41 @@ public class XrpcRequest {
     }
 
     throw new IllegalStateException("Cannot get the http request for an empty XrpcRequest");
+  }
+
+  public FullHttpResponse response(
+      HttpResponseStatus status,
+      Object body,
+      Recipes.ContentType contentType,
+      Map<String, String> customHeaders) {
+    return Recipes.newResponse(status, bodyToByteBuf(body), contentType, customHeaders);
+  }
+
+  public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) {
+    return response(status, body, Recipes.ContentType.Application_Json, Collections.EMPTY_MAP);
+  }
+
+  public FullHttpResponse okJsonResponse(Object body) {
+    return jsonResponse(HttpResponseStatus.OK, body);
+  }
+
+  public FullHttpResponse notFoundJsonResponse(Object body) {
+    return jsonResponse(HttpResponseStatus.NOT_FOUND, body);
+  }
+
+  public FullHttpResponse badRequestJsonResponse(Object body) {
+    return jsonResponse(HttpResponseStatus.BAD_REQUEST, body);
+  }
+
+  private ByteBuf bodyToByteBuf(Object body) {
+    val buf = getAlloc().directBuffer();
+    OutputStream stream = new ByteBufOutputStream(buf);
+
+    try {
+      mapper.writeValue(stream, body);
+      return buf;
+    } catch (IOException e) {
+      throw new RuntimeException(String.format("Error serializing %s object.", body.getClass()), e);
+    }
   }
 }
