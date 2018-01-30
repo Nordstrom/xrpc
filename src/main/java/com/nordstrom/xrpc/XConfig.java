@@ -139,7 +139,7 @@ public class XConfig {
             xs.forEach(
                 (key, value) -> {
                   List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
-                  List<Double> val = new ArrayList();
+                  List<Double> val = new ArrayList<>();
                   valString.forEach(v -> val.add(Double.parseDouble(v)));
 
                   clientRateLimitOverride.put(key, val);

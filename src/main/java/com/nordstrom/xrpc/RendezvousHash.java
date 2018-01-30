@@ -21,7 +21,7 @@ public class RendezvousHash<N> {
   private final Map<Long, N> hashMap = new ConcurrentSkipListMap<>();
   private final Set<N> nodeList = Sets.newConcurrentHashSet();
 
-  public RendezvousHash(Funnel<N> nodeFunnel, Collection<N> init) {
+  public RendezvousHash(Funnel<N> nodeFunnel, Collection<? extends N> init) {
     this.hasher = Hashing.murmur3_128();
     this.nodeFunnel = nodeFunnel;
 

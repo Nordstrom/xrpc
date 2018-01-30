@@ -22,12 +22,12 @@ class RendezvousHashTest {
       mm.put(("Host" + i), new ArrayList<>());
     }
 
-    RendezvousHash rendezvousHash =
-        new RendezvousHash(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
+    RendezvousHash<CharSequence> rendezvousHash =
+        new RendezvousHash<>(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
     Random r = new Random();
     for (int i = 0; i < 100000; i++) {
       String thing = (Integer.toString(r.nextInt(123456789)));
-      List<String> hosts = rendezvousHash.get(thing.getBytes(), 3);
+      List<CharSequence> hosts = rendezvousHash.get(thing.getBytes(), 3);
       hosts.forEach(
           xs -> {
             mm.get(xs).add(thing);
@@ -55,8 +55,8 @@ class RendezvousHashTest {
             .put("d", "4")
             .put("e", "5")
             .build();
-    RendezvousHash hasher =
-        new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet());
+    RendezvousHash<CharSequence> hasher =
+        new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet());
     String k1 = "foo";
     String k2 = "bar";
     String k3 = "baz";
