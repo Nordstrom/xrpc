@@ -92,14 +92,17 @@ public class Router {
   }
 
   private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
 
     // Create the proper metrics containers
     final String NAME_PREFIX = "responseCodes.";
     meterNamesByStatusCode.put(HttpResponseStatus.OK, NAME_PREFIX + "ok");
     meterNamesByStatusCode.put(HttpResponseStatus.CREATED, NAME_PREFIX + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, NAME_PREFIX + "accepted");
     meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, NAME_PREFIX + "noContent");
     meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, NAME_PREFIX + "unauthorized");
+    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, NAME_PREFIX + "forbidden");
     meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
     meterNamesByStatusCode.put(
         HttpResponseStatus.TOO_MANY_REQUESTS, NAME_PREFIX + "tooManyRequests");

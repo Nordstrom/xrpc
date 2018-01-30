@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
@@ -10,7 +11,10 @@ import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http2.*;
 import java.io.IOException;
 import java.util.Map;
@@ -89,7 +93,9 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                   .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     }
 
-    xctx.getMetersByStatusCode().get(h1Resp.status()).mark();
+    Optional<Meter> statusMeter =
+        Optional.ofNullable(xctx.getMetersByStatusCode().get(h1Resp.status()));
+    statusMeter.ifPresent(Meter::mark);
 
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
     Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
