@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.nordstrom.xrpc.server;
 
 import io.netty.channel.ChannelHandler;
@@ -13,7 +28,7 @@ import io.netty.util.AttributeKey;
 public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
   private static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
-  private static final int MAX_PAYLOAD_SIZE = 1024 * 1024; //TODO(JR): This should be configurable
+  private static final int MAX_PAYLOAD_SIZE = 1024 * 1024; // TODO(JR): This should be configurable
   private final UrlRouter router;
   private final XrpcConnectionContext xctx;
 
@@ -37,7 +52,7 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
       ChannelPipeline cp = ctx.pipeline();
       cp.addLast("codec", new HttpServerCodec());
       cp.addLast("aggregator", new HttpObjectAggregator(MAX_PAYLOAD_SIZE));
-      //cp.addLast("authHandler", new NoOpHandler()); // TODO(JR): OAuth2.0 Impl needed
+      // cp.addLast("authHandler", new NoOpHandler()); // TODO(JR): OAuth2.0 Impl needed
       cp.addLast("routingFilter", router);
       return;
     }
