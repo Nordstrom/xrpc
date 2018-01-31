@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nordstrom.xrpc.server;
 
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
-import com.nordstrom.xrpc.server.tls.Tls;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -30,32 +27,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ServerChannelInitializer extends ChannelInitializer<Channel> {
-  private final XConfig config;
-  private final ConnectionLimiter globalConnectionLimiter;
-  private final ServiceRateLimiter rateLimiter;
-  private final WhiteListFilter whiteListFilter;
-  private final BlackListFilter blackListFilter;
-  private final Firewall firewall;
-  private final Tls tls;
-  private final Http2OrHttpHandler h1h2;
+  private final State state;
 
-  public ServerChannelInitializer(
-      XConfig config,
-      ConnectionLimiter globalConnectionLimiter,
-      ServiceRateLimiter rateLimiter,
-      WhiteListFilter whiteListFilter,
-      BlackListFilter blackListFilter,
-      Firewall firewall,
-      Tls tls,
-      Http2OrHttpHandler h1h2) {
-    this.config = config;
-    this.globalConnectionLimiter = globalConnectionLimiter;
-    this.rateLimiter = rateLimiter;
-    this.whiteListFilter = whiteListFilter;
-    this.blackListFilter = blackListFilter;
-    this.firewall = firewall;
-    this.tls = tls;
-    this.h1h2 = h1h2;
+  public ServerChannelInitializer(State state) {
+    this.state = state;
   }
 
   @Override
@@ -64,19 +39,22 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
     cp.addLast(
         "idleDisconnectHandler",
         new IdleDisconnectHandler(
-            config.readerIdleTimeout(), config.writerIdleTimeout(), config.allIdleTimeout()));
-    cp.addLast("serverConnectionLimiter", globalConnectionLimiter);
-    cp.addLast("serverRateLimiter", rateLimiter);
+            state.config().readerIdleTimeout(),
+            state.config().writerIdleTimeout(),
+            state.config().allIdleTimeout()));
+    cp.addLast("serverConnectionLimiter", state.globalConnectionLimiter());
+    cp.addLast("serverRateLimiter", state.rateLimiter());
 
-    if (config.enableWhiteList()) {
-      cp.addLast("whiteList", whiteListFilter);
-    } else if (config.enableBlackList()) {
-      cp.addLast("blackList", blackListFilter);
+    if (state.config().enableWhiteList()) {
+      cp.addLast("whiteList", state.whiteListFilter());
+    } else if (state.config().enableBlackList()) {
+      cp.addLast("blackList", state.blackListFilter());
     }
 
-    cp.addLast("firewall", firewall);
-    cp.addLast("encryptionHandler", tls.getEncryptionHandler(ch.alloc())); // Add Config for Certs
-    cp.addLast("codec", h1h2);
+    cp.addLast("firewall", state.firewall());
+    cp.addLast(
+        "encryptionHandler", state.tls().getEncryptionHandler(ch.alloc())); // Add Config for Certs
+    cp.addLast("codec", state.h1h2());
     cp.addLast("exceptionLogger", new ExceptionLogger());
   }
 }

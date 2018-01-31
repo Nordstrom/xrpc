@@ -43,7 +43,11 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
     // the compiler so that the definition works).
-    options.compilerArgs += ['-XDignore.symbol.file']
+    options.compilerArgs += [
+        '-XDignore.symbol.file',
+        '-Xlint:auxiliaryclass,cast,classfile,deprecation,dep-ann,divzero,empty,fallthrough,' +
+            'finally,options,overloads,overrides,path,rawtypes,static,try,unchecked,varargs',
+        '-Werror']
     options.fork = true
     options.forkOptions.executable = 'javac'
 }
@@ -54,6 +58,7 @@ repositories {
 }
 
 dependencies {
+    compile 'com.google.auto.value:auto-value:1.5.3'
     compile 'com.google.guava:guava:21.0'
     compile 'com.squareup.okhttp3:okhttp:3.8.0'
     compile 'com.squareup.okio:okio:1.13.0'

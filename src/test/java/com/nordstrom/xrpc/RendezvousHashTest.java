@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.nordstrom.xrpc;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,12 +37,12 @@ class RendezvousHashTest {
       mm.put(("Host" + i), new ArrayList<>());
     }
 
-    RendezvousHash rendezvousHash =
-        new RendezvousHash(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
+    RendezvousHash<CharSequence> rendezvousHash =
+        new RendezvousHash<>(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
     Random r = new Random();
     for (int i = 0; i < 100000; i++) {
       String thing = (Integer.toString(r.nextInt(123456789)));
-      List<String> hosts = rendezvousHash.get(thing.getBytes(), 3);
+      List<CharSequence> hosts = rendezvousHash.get(thing.getBytes(), 3);
       hosts.forEach(
           xs -> {
             mm.get(xs).add(thing);
@@ -55,8 +70,8 @@ class RendezvousHashTest {
             .put("d", "4")
             .put("e", "5")
             .build();
-    RendezvousHash hasher =
-        new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet());
+    RendezvousHash<CharSequence> hasher =
+        new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), map.keySet());
     String k1 = "foo";
     String k2 = "bar";
     String k3 = "baz";

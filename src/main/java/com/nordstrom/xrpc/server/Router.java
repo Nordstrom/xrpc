@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.ConsoleReporter;
@@ -37,6 +36,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -91,14 +91,17 @@ public class Router {
   }
 
   private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
 
     // Create the proper metrics containers
     final String NAME_PREFIX = "responseCodes.";
     meterNamesByStatusCode.put(HttpResponseStatus.OK, NAME_PREFIX + "ok");
     meterNamesByStatusCode.put(HttpResponseStatus.CREATED, NAME_PREFIX + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, NAME_PREFIX + "accepted");
     meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, NAME_PREFIX + "noContent");
     meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, NAME_PREFIX + "unauthorized");
+    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, NAME_PREFIX + "forbidden");
     meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
     meterNamesByStatusCode.put(
         HttpResponseStatus.TOO_MANY_REQUESTS, NAME_PREFIX + "tooManyRequests");
@@ -264,6 +267,17 @@ public class Router {
     get("/gc", AdminHandlers.pingHandler());
   }
 
+  /**
+   * Builds an initializer that sets up the server pipeline, override this method to customize your
+   * pipeline.
+   *
+   * @param state a value object with server wide state
+   * @return a ChannelInitializer that builds this servers ChannelPipeline
+   */
+  public ChannelInitializer<Channel> initializer(State state) {
+    return new ServerChannelInitializer(state);
+  }
+
   public void listenAndServe() throws IOException {
     listenAndServe(true, true);
   }
@@ -278,31 +292,24 @@ public class Router {
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
   public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
-    ConnectionLimiter globalConnectionLimiter =
-        new ConnectionLimiter(
-            metricRegistry, config.maxConnections()); // All endpoints for a given service
-    ServiceRateLimiter rateLimiter = new ServiceRateLimiter(metricRegistry, config);
-
-    Firewall firewall = new Firewall(metricRegistry);
-
-    WhiteListFilter whiteListFilter = new WhiteListFilter(metricRegistry, config.ipWhiteList());
-    BlackListFilter blackListFilter = new BlackListFilter(metricRegistry, config.ipBlackList());
+    State state =
+        State.builder()
+            .config(config)
+            .globalConnectionLimiter(
+                new ConnectionLimiter(
+                    metricRegistry, config.maxConnections())) // All endpoints for a given service
+            .rateLimiter(new ServiceRateLimiter(metricRegistry, config))
+            .whiteListFilter(new WhiteListFilter(metricRegistry, config.ipWhiteList()))
+            .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
+            .firewall(new Firewall(metricRegistry))
+            .tls(tls)
+            .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx))
+            .build();
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
-    UrlRouter router = new UrlRouter();
-    Http2OrHttpHandler h1h2 = new Http2OrHttpHandler(router, ctx);
 
-    b.childHandler(
-        new ServerChannelInitializer(
-            config,
-            globalConnectionLimiter,
-            rateLimiter,
-            whiteListFilter,
-            blackListFilter,
-            firewall,
-            tls,
-            h1h2));
+    b.childHandler(initializer(state));
 
     if (scheduleHealthChecks) {
       final EventLoopGroup _workerGroup = b.config().childGroup();
