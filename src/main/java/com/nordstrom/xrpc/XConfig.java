@@ -20,6 +20,9 @@ import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,6 +32,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import lombok.val;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -38,6 +44,8 @@ import java.util.Map;
  * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">the
  * embedded config</a> for defaults and documentation.
  */
+@Accessors(fluent = true)
+@Getter
 public class XConfig {
   private final int readerIdleTimeout;
   private final int writerIdleTimeout;
@@ -51,7 +59,7 @@ public class XConfig {
   private final String cert;
   private final String key;
   private final int port;
-  private final double gloablSoftReqPerSec;
+  private final double globalSoftReqPerSec;
   private final double globalHardReqPerSec;
   private final ImmutableSet<String> ipBlackList;
   private final ImmutableSet<String> ipWhiteList;
@@ -66,6 +74,8 @@ public class XConfig {
   private final boolean enableWhiteList;
   private final boolean enableBlackList;
   private final int rateLimiterPoolSize;
+
+  private final CorsConfig corsConfig;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -113,7 +123,7 @@ public class XConfig {
       key = config.getString("key");
     }
 
-    gloablSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
+    globalSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
     globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
     port = config.getInt("server.port");
     slf4jReporter = config.getBoolean("slf4j_reporter");
@@ -130,7 +140,39 @@ public class XConfig {
     ipWhiteList =
         ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
 
+    corsConfig = configureCors(config);
+
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
+  }
+
+  private CorsConfig configureCors(Config config) {
+    if (!config.getBoolean("enable_cors")) {
+      return CorsConfigBuilder.forAnyOrigin().disable().build();
+    }
+
+    val builder =
+        CorsConfigBuilder.forOrigins(getStrings(config, "cors_allowed_origins"))
+            .allowedRequestHeaders(getStrings(config, "cors_allowed_headers"))
+            .allowedRequestMethods(getHttpMethods(config, "cors_allowed_methods"));
+    if (config.getBoolean("cors_allow_credentials")) {
+      builder.allowCredentials();
+    }
+    if (config.getBoolean("cors_short_circuit")) {
+      builder.shortCircuit();
+    }
+    return builder.build();
+  }
+
+  private String[] getStrings(Config config, String key) {
+    if (!config.hasPath(key)) {
+      return new String[0];
+    }
+    return config.getStringList(key).toArray(new String[0]);
+  }
+
+  private HttpMethod[] getHttpMethods(Config config, String key) {
+    if (!config.hasPath(key)) return new HttpMethod[0];
+    return config.getStringList(key).stream().map(HttpMethod::valueOf).toArray(HttpMethod[]::new);
   }
 
   private void populateClientOverrideList(List<? extends ConfigObject> reqPerSecondOverride) {
@@ -139,7 +181,7 @@ public class XConfig {
             xs.forEach(
                 (key, value) -> {
                   List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
-                  List<Double> val = new ArrayList();
+                  List<Double> val = new ArrayList<>();
                   valString.forEach(v -> val.add(Double.parseDouble(v)));
 
                   clientRateLimitOverride.put(key, val);
@@ -156,101 +198,5 @@ public class XConfig {
     } catch (IOException e) {
       throw new RuntimeException("Could not read cert/key from path: " + path, e);
     }
-  }
-
-  public int readerIdleTimeout() {
-    return readerIdleTimeout;
-  }
-
-  public int writerIdleTimeout() {
-    return writerIdleTimeout;
-  }
-
-  public int allIdleTimeout() {
-    return allIdleTimeout;
-  }
-
-  public String workerNameFormat() {
-    return workerNameFormat;
-  }
-
-  public int bossThreadCount() {
-    return bossThreadCount;
-  }
-
-  public int workerThreadCount() {
-    return workerThreadCount;
-  }
-
-  public int maxConnections() {
-    return maxConnections;
-  }
-
-  public double softReqPerSec() {
-    return softReqPerSec;
-  }
-
-  public double hardReqPerSec() {
-    return hardReqPerSec;
-  }
-
-  public String cert() {
-    return cert;
-  }
-
-  public String key() {
-    return key;
-  }
-
-  public int port() {
-    return port;
-  }
-
-  public boolean slf4jReporter() {
-    return slf4jReporter;
-  }
-
-  public boolean jmxReporter() {
-    return jmxReporter;
-  }
-
-  public boolean consoleReporter() {
-    return consoleReporter;
-  }
-
-  public long slf4jReporterPollingRate() {
-    return (long) slf4jReporterPollingRate;
-  }
-
-  public long consoleReporterPollingRate() {
-    return (long) consoleReporterPollingRate;
-  }
-
-  public double globalHardReqPerSec() {
-    return globalHardReqPerSec;
-  }
-
-  public double globalSoftReqPerSec() {
-    return gloablSoftReqPerSec;
-  }
-
-  public ImmutableSet<String> ipBlackList() {
-    return ipBlackList;
-  }
-
-  public ImmutableSet<String> ipWhiteList() {
-    return ipWhiteList;
-  }
-
-  public boolean enableWhiteList() {
-    return enableWhiteList;
-  }
-
-  public boolean enableBlackList() {
-    return enableBlackList;
-  }
-
-  public int getRateLimiterPoolSize() {
-    return rateLimiterPoolSize;
   }
 }

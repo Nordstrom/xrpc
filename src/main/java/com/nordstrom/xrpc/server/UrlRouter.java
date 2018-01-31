@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.*;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 @ChannelHandler.Sharable
@@ -41,45 +42,50 @@ public class UrlRouter extends ChannelDuplexHandler {
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
-      for (Route route : xctx.getRoutes().get().descendingKeySet()) {
-        Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
-        if (groups.isPresent()) {
-          XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
-          xrpcRequest.setData(request.content());
-          HttpResponse resp;
-          Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
-              xctx.getRoutes()
-                  .get()
-                  .get(route)
-                  .stream()
-                  .filter(
-                      m -> m.keySet().stream().anyMatch(mx -> mx.compareTo(request.method()) == 0))
-                  .findFirst();
 
-          if (handlerMapOptional.isPresent()) {
-            resp =
-                handlerMapOptional
-                    .get()
-                    .get(handlerMapOptional.get().keySet().asList().get(0))
-                    .handle(xrpcRequest);
-          } else {
-            resp =
+      val routes = xctx.getRoutes().get();
+      if (routes != null) {
+        for (Route route : routes.descendingKeySet()) {
+          Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
+          if (groups.isPresent()) {
+            XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
+            xrpcRequest.setData(request.content());
+            HttpResponse resp;
+            Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
                 xctx.getRoutes()
                     .get()
                     .get(route)
                     .stream()
-                    .filter(mx -> mx.containsKey(XHttpMethod.ANY))
-                    .findFirst()
-                    .get()
-                    .get(XHttpMethod.ANY)
-                    .handle(xrpcRequest);
+                    .filter(
+                        m ->
+                            m.keySet().stream().anyMatch(mx -> mx.compareTo(request.method()) == 0))
+                    .findFirst();
+
+            if (handlerMapOptional.isPresent()) {
+              resp =
+                  handlerMapOptional
+                      .get()
+                      .get(handlerMapOptional.get().keySet().asList().get(0))
+                      .handle(xrpcRequest);
+            } else {
+              resp =
+                  xctx.getRoutes()
+                      .get()
+                      .get(route)
+                      .stream()
+                      .filter(mx -> mx.containsKey(XHttpMethod.ANY))
+                      .findFirst()
+                      .get()
+                      .get(XHttpMethod.ANY)
+                      .handle(xrpcRequest);
+            }
+
+            xctx.getMetersByStatusCode().get(resp.status()).mark();
+
+            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
+            ctx.fireChannelRead(msg);
+            return;
           }
-
-          xctx.getMetersByStatusCode().get(resp.status()).mark();
-
-          ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-          ctx.fireChannelRead(msg);
-          return;
         }
       }
       // No matching route.
