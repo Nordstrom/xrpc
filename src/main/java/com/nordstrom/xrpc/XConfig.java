@@ -150,7 +150,7 @@ public class XConfig {
       return CorsConfigBuilder.forAnyOrigin().disable().build();
     }
 
-    val builder =
+    CorsConfigBuilder builder =
         CorsConfigBuilder.forOrigins(getStrings(config, "cors_allowed_origins"))
             .allowedRequestHeaders(getStrings(config, "cors_allowed_headers"))
             .allowedRequestMethods(getHttpMethods(config, "cors_allowed_methods"));

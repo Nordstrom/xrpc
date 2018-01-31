@@ -4,6 +4,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -14,10 +15,10 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 @Slf4j
 @ChannelHandler.Sharable
@@ -43,7 +44,8 @@ public class UrlRouter extends ChannelDuplexHandler {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
 
-      val routes = xctx.getRoutes().get();
+      ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
+          xctx.getRoutes().get();
       if (routes != null) {
         for (Route route : routes.descendingKeySet()) {
           Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
