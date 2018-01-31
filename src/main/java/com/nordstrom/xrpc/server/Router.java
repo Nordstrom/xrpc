@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.ConsoleReporter;
@@ -94,14 +93,17 @@ public class Router {
   }
 
   private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
 
     // Create the proper metrics containers
     final String namePrefix = "responseCodes.";
     meterNamesByStatusCode.put(HttpResponseStatus.OK, namePrefix + "ok");
     meterNamesByStatusCode.put(HttpResponseStatus.CREATED, namePrefix + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, namePrefix + "accepted");
     meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, namePrefix + "noContent");
     meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, namePrefix + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, namePrefix + "unauthorized");
+    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, namePrefix + "forbidden");
     meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, namePrefix + "notFound");
     meterNamesByStatusCode.put(
         HttpResponseStatus.TOO_MANY_REQUESTS, namePrefix + "tooManyRequests");
