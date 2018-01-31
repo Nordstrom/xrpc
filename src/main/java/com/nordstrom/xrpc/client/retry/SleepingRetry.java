@@ -1,7 +1,5 @@
-package com.nordstrom.xrpc.client.retry;
-
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +13,7 @@ package com.nordstrom.xrpc.client.retry;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.nordstrom.xrpc.client.retry;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +39,7 @@ abstract class SleepingRetry implements RetryPolicy {
           // Non-spurious interrupt.
           return false;
         } else {
-          //Ignore
+          // Ignore
         }
       }
       return true;

@@ -140,7 +140,10 @@ def pomExtra = {
 license {
   header = rootProject.file('Apache-2.0.txt')
   ext.year = Calendar.getInstance().get(Calendar.YEAR)
-  ext.name = 'Nordstrom, Inc'
+  ext.name = 'Nordstrom, Inc.'
+  mapping {
+    java = 'SLASHSTAR_STYLE'
+  }
 }
 
 publishing {
