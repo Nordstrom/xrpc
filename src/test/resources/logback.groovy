@@ -13,4 +13,4 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
-root(DEBUG, ["CONSOLE"])
+root(INFO, ["CONSOLE"])

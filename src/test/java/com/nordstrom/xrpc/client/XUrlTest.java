@@ -71,7 +71,7 @@ class XUrlTest {
   void addProtocol() {}
 
   @Test
-  void decodequery1() {
+  void decodeQueryString1() {
     String query = "https://n.com?param1=value1&param2=value2&param3=value3";
     assertEquals("value1", XUrl.decodeQueryString(query).get("param1").get(0));
     assertEquals("value2", XUrl.decodeQueryString(query).get("param2").get(0));
@@ -79,7 +79,7 @@ class XUrlTest {
   }
 
   @Test
-  void decodequery2() {
+  void decodeQueryString2() {
     String query = "https://n.com?param1=value1&param2=&param3=value3&param3";
     assertEquals("value1", XUrl.decodeQueryString(query).get("param1").get(0));
     assertEquals("", XUrl.decodeQueryString(query).get("param2").get(0));
@@ -88,7 +88,7 @@ class XUrlTest {
   }
 
   @Test
-  void decodequery_withUrlEncoding() {
+  void decodeQueryString_withUrlEncoding() {
     String query = "https://n.com?param1=value%201&param2=&param3=value%203&param3";
     assertEquals("value 1", XUrl.decodeQueryString(query).get("param1").get(0));
     assertEquals("", XUrl.decodeQueryString(query).get("param2").get(0));
@@ -97,7 +97,7 @@ class XUrlTest {
   }
 
   @Test
-  void decodequery3() {
+  void decodeQueryString3() {
     String noPath = "https://api.nordstrom.com";
     String noPathTrailingSlash = "https://api.nordstrom.com/";
 
