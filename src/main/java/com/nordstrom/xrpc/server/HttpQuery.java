@@ -4,59 +4,51 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.val;
 
-/** Parsed query string */
+/** Parsed query string. */
 public class HttpQuery {
-  private String uri;
-  private QueryStringDecoder decoder;
+  private final QueryStringDecoder decoder;
 
-  /** Construct a HttpQuery based on a uri */
+  /** Construct a HttpQuery based on a uri. */
   public HttpQuery(String uri) {
-    this.uri = uri;
+    this.decoder = new QueryStringDecoder(uri, true);
   }
 
-  /** Source uri */
+  /** Source uri. */
   public String uri() {
-    return decoder().uri();
+    return decoder.uri();
   }
 
   /** URI path */
   public String path() {
-    return decoder().path();
+    return decoder.path();
   }
 
-  /** Map of query parameters */
+  /** Map of query parameters. */
   public Map<String, List<String>> parameters() {
-    return decoder().parameters();
+    return decoder.parameters();
   }
 
-  /** Get a query parameter by key */
+  /** Get a query parameter by key. */
   public Optional<String> parameter(String key) {
     return parameter(key, null);
   }
 
-  /** Get a query parameter by key with a default value */
+  /** Get a query parameter by key with a default value. */
   public Optional<String> parameter(String key, String defaultValue) {
-    val value = parameters().get(key);
-    if (value == null || value.size() < 1) return Optional.of(defaultValue);
-    return Optional.of(value.get(0));
+    return Optional.of(
+        Optional.of(parameters().get(key))
+            .flatMap(list -> list.stream().findFirst())
+            .orElse(defaultValue));
   }
 
   /** Get original (raw) path */
   public String rawPath() {
-    return decoder().rawPath();
+    return decoder.rawPath();
   }
 
   /** Get raw query string */
   public String rawQuery() {
-    return decoder().rawQuery();
-  }
-
-  private QueryStringDecoder decoder() {
-    if (decoder == null) {
-      decoder = new QueryStringDecoder(uri, true);
-    }
-    return decoder;
+    return decoder.rawQuery();
   }
 }

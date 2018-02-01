@@ -197,18 +197,13 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     String path = getPathFromHeaders(headers);
 
-    for (Route route :
-        ctx.channel()
-            .attr(XrpcConstants.CONNECTION_CONTEXT)
-            .get()
-            .getRoutes()
-            .get()
-            .descendingKeySet()) {
+    XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
+    for (Route route : xctx.getRoutes().get().descendingKeySet()) {
       Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
       if (groups.isPresent()) {
         ctx.channel()
             .attr(XrpcConstants.XRPC_REQUEST)
-            .set(new XrpcRequest(headers, groups.get(), ctx.channel(), streamId));
+            .set(new XrpcRequest(headers, xctx.getMapper(), groups.get(), ctx.channel(), streamId));
         Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
         if (!contentLength.isPresent()) {
           try {

@@ -38,12 +38,10 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 import lombok.Getter;
-import lombok.experimental.Accessors;
-import lombok.val;
 
 /** Xprc specific Request object. */
 public class XrpcRequest {
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper;
 
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
@@ -56,34 +54,47 @@ public class XrpcRequest {
   private final Map<String, String> groups;
 
   /** The parsed query string. */
-  @Getter
-  @Accessors(fluent = true)
-  private final HttpQuery query;
+  private HttpQuery query;
 
   private final int streamId;
   private ByteBuf data;
 
-  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, Channel channel) {
+  public XrpcRequest(
+      FullHttpRequest request, ObjectMapper mapper, Map<String, String> groups, Channel channel) {
     this.h1Request = request;
     this.h2Headers = null;
+    this.mapper = mapper;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.streamId = -1;
-    this.query = new HttpQuery(request.uri());
   }
 
   public XrpcRequest(
-      Http2Headers headers, Map<String, String> groups, Channel channel, int streamId) {
+      Http2Headers headers,
+      ObjectMapper mapper,
+      Map<String, String> groups,
+      Channel channel,
+      int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
+    this.mapper = mapper;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.streamId = streamId;
-    this.query = new HttpQuery("");
+  }
+
+  public HttpQuery query() {
+    if (h1Request == null) {
+      throw new UnsupportedOperationException("query() is not supported for HTTP2.");
+    }
+    if (query == null) {
+      query = new HttpQuery(h1Request.uri());
+    }
+    return query;
   }
 
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
@@ -176,35 +187,35 @@ public class XrpcRequest {
       HttpResponseStatus status,
       Object body,
       Recipes.ContentType contentType,
-      Map<String, String> customHeaders) {
+      Map<String, String> customHeaders)
+      throws IOException {
     return Recipes.newResponse(status, bodyToByteBuf(body), contentType, customHeaders);
   }
 
-  public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) {
-    return response(status, body, Recipes.ContentType.Application_Json, Collections.EMPTY_MAP);
+  public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) throws IOException {
+    return response(status, body, Recipes.ContentType.Application_Json, Collections.emptyMap());
   }
 
-  public FullHttpResponse okJsonResponse(Object body) {
+  public FullHttpResponse okResponse() {
+    return Recipes.newResponseOk();
+  }
+
+  public FullHttpResponse okJsonResponse(Object body) throws IOException {
     return jsonResponse(HttpResponseStatus.OK, body);
   }
 
-  public FullHttpResponse notFoundJsonResponse(Object body) {
+  public FullHttpResponse notFoundJsonResponse(Object body) throws IOException {
     return jsonResponse(HttpResponseStatus.NOT_FOUND, body);
   }
 
-  public FullHttpResponse badRequestJsonResponse(Object body) {
+  public FullHttpResponse badRequestJsonResponse(Object body) throws IOException {
     return jsonResponse(HttpResponseStatus.BAD_REQUEST, body);
   }
 
-  private ByteBuf bodyToByteBuf(Object body) {
-    val buf = getAlloc().directBuffer();
+  private ByteBuf bodyToByteBuf(Object body) throws IOException {
+    ByteBuf buf = getAlloc().directBuffer();
     OutputStream stream = new ByteBufOutputStream(buf);
-
-    try {
-      mapper.writeValue(stream, body);
-      return buf;
-    } catch (IOException e) {
-      throw new RuntimeException(String.format("Error serializing %s object.", body.getClass()), e);
-    }
+    mapper.writeValue(stream, body);
+    return buf;
   }
 }
