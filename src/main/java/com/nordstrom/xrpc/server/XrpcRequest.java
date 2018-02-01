@@ -88,11 +88,12 @@ public class XrpcRequest {
   }
 
   public HttpQuery query() {
-    if (h1Request == null) {
-      throw new UnsupportedOperationException("query() is not supported for HTTP2.");
-    }
     if (query == null) {
-      query = new HttpQuery(h1Request.uri());
+      if (h1Request != null) {
+        query = new HttpQuery(h1Request.uri());
+      } else if (h2Headers != null) {
+        query = new HttpQuery(h2Headers.path().toString());
+      }
     }
     return query;
   }

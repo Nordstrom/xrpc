@@ -29,17 +29,19 @@ public class HttpQuery {
     return decoder.parameters();
   }
 
-  /** Get a query parameter by key. */
+  /** Get a the first query parameter by key, ignoring any extras. */
   public Optional<String> parameter(String key) {
-    return parameter(key, null);
+    return Optional.ofNullable(parameter(key, null));
   }
 
-  /** Get a query parameter by key with a default value. */
-  public Optional<String> parameter(String key, String defaultValue) {
-    return Optional.of(
-        Optional.of(parameters().get(key))
-            .flatMap(list -> list.stream().findFirst())
-            .orElse(defaultValue));
+  /**
+   * Get a the first query parameter by key, ignoring any extras. If no parameter is found, returns
+   * default value.
+   */
+  public String parameter(String key, String defaultValue) {
+    return Optional.ofNullable(parameters().get(key))
+        .flatMap(list -> list.stream().findFirst())
+        .orElse(defaultValue);
   }
 
   /** Get original (raw) path */
