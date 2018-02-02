@@ -139,24 +139,24 @@ public class XConfig {
     ipWhiteList =
         ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
 
-    corsConfig = configureCors(config);
+    corsConfig = configureCors(config.getConfig("cors"));
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
   }
 
   private CorsConfig configureCors(Config config) {
-    if (!config.getBoolean("enable_cors")) {
+    if (!config.getBoolean("enable")) {
       return CorsConfigBuilder.forAnyOrigin().disable().build();
     }
 
     CorsConfigBuilder builder =
-        CorsConfigBuilder.forOrigins(getStrings(config, "cors_allowed_origins"))
-            .allowedRequestHeaders(getStrings(config, "cors_allowed_headers"))
-            .allowedRequestMethods(getHttpMethods(config, "cors_allowed_methods"));
-    if (config.getBoolean("cors_allow_credentials")) {
+        CorsConfigBuilder.forOrigins(getStrings(config, "allowed_origins"))
+            .allowedRequestHeaders(getStrings(config, "allowed_headers"))
+            .allowedRequestMethods(getHttpMethods(config, "allowed_methods"));
+    if (config.getBoolean("allow_credentials")) {
       builder.allowCredentials();
     }
-    if (config.getBoolean("cors_short_circuit")) {
+    if (config.getBoolean("short_circuit")) {
       builder.shortCircuit();
     }
     return builder.build();

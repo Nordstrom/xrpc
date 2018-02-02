@@ -41,8 +41,8 @@ class CorsTest {
 
   @Test
   void testCorsEnabledWithShortCircuit() throws IOException {
-    addConfigValue("enable_cors", fromAnyRef(true));
-    addConfigValue("cors_short_circuit", fromAnyRef(true));
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.short_circuit", fromAnyRef(true));
     init();
     start();
 
@@ -58,8 +58,8 @@ class CorsTest {
 
   @Test
   void testCorsEnabledPreFlight() throws IOException {
-    addConfigValue("enable_cors", fromAnyRef(true));
-    addConfigValue("cors_allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
     init();
     start();
 
@@ -77,8 +77,8 @@ class CorsTest {
 
   @Test
   void testCorsEnabledInFlight() throws IOException {
-    addConfigValue("enable_cors", fromAnyRef(true));
-    addConfigValue("cors_allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
     init();
     router.get("/people", req -> Recipes.newResponseOk("hello foo.bar"));
     start();
@@ -98,9 +98,9 @@ class CorsTest {
 
   @Test
   void testCorsEnabledPreFlightWithMethods() throws IOException {
-    addConfigValue("enable_cors", fromAnyRef(true));
-    addConfigValue("cors_allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
-    addConfigValue("cors_allowed_methods", fromIterable(ImmutableList.of("GET")));
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    addConfigValue("cors.allowed_methods", fromIterable(ImmutableList.of("GET")));
     init();
     start();
 
@@ -117,9 +117,9 @@ class CorsTest {
 
   @Test
   void testCorsEnabledPreFlightWithHeaders() throws IOException {
-    addConfigValue("enable_cors", fromAnyRef(true));
-    addConfigValue("cors_allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
-    addConfigValue("cors_allowed_headers", fromIterable(ImmutableList.of("foo-header")));
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    addConfigValue("cors.allowed_headers", fromIterable(ImmutableList.of("foo-header")));
     init();
     start();
 
