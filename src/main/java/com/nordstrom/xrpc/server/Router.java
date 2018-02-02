@@ -87,6 +87,7 @@ public class Router {
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .maxPayloadSize(maxPayload)
+            .mapper(new ObjectMapper())
             .build();
 
     configResponseCodeMeters();

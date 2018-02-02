@@ -15,24 +15,34 @@
  */
 package com.nordstrom.xrpc.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.nordstrom.xrpc.server.http.Recipes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.Map;
 import lombok.Getter;
 
 /** Xprc specific Request object. */
 public class XrpcRequest {
+  private final ObjectMapper mapper;
+
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
 
@@ -43,12 +53,17 @@ public class XrpcRequest {
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
+  /** The parsed query string. */
+  private HttpQuery query;
+
   private final int streamId;
   private ByteBuf data;
 
-  public XrpcRequest(FullHttpRequest request, Map<String, String> groups, Channel channel) {
+  public XrpcRequest(
+      FullHttpRequest request, ObjectMapper mapper, Map<String, String> groups, Channel channel) {
     this.h1Request = request;
     this.h2Headers = null;
+    this.mapper = mapper;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
@@ -57,14 +72,32 @@ public class XrpcRequest {
   }
 
   public XrpcRequest(
-      Http2Headers headers, Map<String, String> groups, Channel channel, int streamId) {
+      Http2Headers headers,
+      ObjectMapper mapper,
+      Map<String, String> groups,
+      Channel channel,
+      int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
+    this.mapper = mapper;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.streamId = streamId;
+  }
+
+  public HttpQuery query() {
+    if (query == null) {
+      if (h1Request != null) {
+        query = new HttpQuery(h1Request.uri());
+      } else if (h2Headers != null) {
+        query = new HttpQuery(h2Headers.path().toString());
+      } else {
+        throw new IllegalStateException("Cannot get query.  http1.1 or http2 request needed.");
+      }
+    }
+    return query;
   }
 
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
@@ -151,5 +184,41 @@ public class XrpcRequest {
     }
 
     throw new IllegalStateException("Cannot get the http request for an empty XrpcRequest");
+  }
+
+  public FullHttpResponse response(
+      HttpResponseStatus status,
+      Object body,
+      Recipes.ContentType contentType,
+      Map<String, String> customHeaders)
+      throws IOException {
+    return Recipes.newResponse(status, bodyToByteBuf(body), contentType, customHeaders);
+  }
+
+  public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) throws IOException {
+    return response(status, body, Recipes.ContentType.Application_Json, Collections.emptyMap());
+  }
+
+  public FullHttpResponse okResponse() {
+    return Recipes.newResponseOk();
+  }
+
+  public FullHttpResponse okJsonResponse(Object body) throws IOException {
+    return jsonResponse(HttpResponseStatus.OK, body);
+  }
+
+  public FullHttpResponse notFoundJsonResponse(Object body) throws IOException {
+    return jsonResponse(HttpResponseStatus.NOT_FOUND, body);
+  }
+
+  public FullHttpResponse badRequestJsonResponse(Object body) throws IOException {
+    return jsonResponse(HttpResponseStatus.BAD_REQUEST, body);
+  }
+
+  private ByteBuf bodyToByteBuf(Object body) throws IOException {
+    ByteBuf buf = getAlloc().directBuffer();
+    OutputStream stream = new ByteBufOutputStream(buf);
+    mapper.writeValue(stream, body);
+    return buf;
   }
 }
