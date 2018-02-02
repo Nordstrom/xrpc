@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Script used to test CORS support on the demo service.
+
 LINE_BREAK="======================================"
 REQUEST_HEADERS="Content-Type"
 REQUEST_METHOD="GET"

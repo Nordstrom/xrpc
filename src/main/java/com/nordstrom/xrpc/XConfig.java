@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.val;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -139,12 +138,12 @@ public class XConfig {
     ipWhiteList =
         ImmutableSet.<String>builder().addAll(config.getStringList("ip_white_list")).build();
 
-    corsConfig = configureCors(config.getConfig("cors"));
+    corsConfig = buildCorsConfig(config.getConfig("cors"));
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
   }
 
-  private CorsConfig configureCors(Config config) {
+  private CorsConfig buildCorsConfig(Config config) {
     if (!config.getBoolean("enable")) {
       return CorsConfigBuilder.forAnyOrigin().disable().build();
     }
