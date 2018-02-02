@@ -59,7 +59,7 @@ public class Router {
   private final int workerThreadCount;
 
   private final XConfig config;
-  private final int MAX_PAYLOAD_SIZE;
+  private final int maxPayloadSize;
   private final Tls tls;
   private final XrpcConnectionContext ctx;
 
@@ -79,12 +79,13 @@ public class Router {
     this.bossThreadCount = config.bossThreadCount();
     this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
-    this.MAX_PAYLOAD_SIZE = maxPayload;
+    this.maxPayloadSize = maxPayload;
 
     this.ctx =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .maxPayloadSize(MAX_PAYLOAD_SIZE)
+            .maxPayloadSize(maxPayloadSize)
+            .mapper(new ObjectMapper())
             .build();
 
     configResponseCodeMeters();

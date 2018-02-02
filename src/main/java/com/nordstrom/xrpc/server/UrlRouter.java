@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
@@ -56,10 +57,11 @@ public class UrlRouter extends ChannelDuplexHandler {
     if (msg instanceof HttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
+      ObjectMapper mapper = xctx.getMapper();
       for (Route route : xctx.getRoutes().get().descendingKeySet()) {
         Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
         if (groups.isPresent()) {
-          XrpcRequest xrpcRequest = new XrpcRequest(request, groups.get(), ctx.channel());
+          XrpcRequest xrpcRequest = new XrpcRequest(request, mapper, groups.get(), ctx.channel());
           xrpcRequest.setData(request.content());
           HttpResponse resp;
           Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =

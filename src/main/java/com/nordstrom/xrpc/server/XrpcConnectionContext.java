@@ -16,6 +16,7 @@
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.server.http.Route;
@@ -30,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Builder
+// TODO: (AD) Merge with State
+// TODO: (AD) Make Immutable.
 public class XrpcConnectionContext {
   @Getter private Meter requestMeter;
   @Getter private int maxPayloadSize;
@@ -41,4 +44,6 @@ public class XrpcConnectionContext {
   @Getter
   private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
       routes = new AtomicReference<>();
+
+  @Getter private final ObjectMapper mapper;
 }
