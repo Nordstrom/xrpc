@@ -299,7 +299,7 @@ public class Router {
             .globalConnectionLimiter(
                 new ConnectionLimiter(
                     metricRegistry, config.maxConnections())) // All endpoints for a given service
-            .rateLimiter(new ServiceRateLimiter(metricRegistry, config))
+            .rateLimiter(new ServiceRateLimiter(metricRegistry, config, ctx))
             .whiteListFilter(new WhiteListFilter(metricRegistry, config.ipWhiteList()))
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))

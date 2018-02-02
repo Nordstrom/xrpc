@@ -20,19 +20,25 @@ import static com.codahale.metrics.MetricRegistry.name;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.hash.Funnels;
 import com.google.common.util.concurrent.RateLimiter;
 import com.nordstrom.xrpc.RendezvousHash;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
+import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.PlatformDependent;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,7 +58,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private Map<ChannelHandlerContext, Timer.Context> timerMap =
       PlatformDependent.newConcurrentHashMap();
 
-  public ServiceRateLimiter(MetricRegistry metrics, XConfig config) {
+  public ServiceRateLimiter(MetricRegistry metrics, XConfig config, XrpcConnectionContext ctx) {
     this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
     this.timer = metrics.timer("Request Latency");
     this.config = config;
@@ -63,6 +69,32 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
         buildHasher(softLimiterMap, config.getRateLimiterPoolSize(), config.softReqPerSec());
     hardRateLimitHasher =
         buildHasher(hardLimiterMap, config.getRateLimiterPoolSize(), config.hardReqPerSec());
+    configEndpointLevelRateMeters(metrics, ctx);
+  }
+
+  private void configEndpointLevelRateMeters(
+      MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
+    ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
+        ctx.getRoutes().get();
+
+    final String NAME_PREFIX = "handler.rate.";
+
+    Set<String> routeAndMethodNames = new HashSet<>();
+
+    for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
+      Route route = entry.getKey();
+
+      for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
+        for (XHttpMethod httpMethod : map.keySet()) {
+          routeAndMethodNames.add(MetricsUtil.getMeterNameForRoute(route, httpMethod));
+        }
+      }
+    }
+
+    for (String routeName : routeAndMethodNames) {
+      ctx.getRateMetersByRouteAndMethod()
+          .put(routeName, metricRegistry.meter(name(Router.class, NAME_PREFIX + routeName)));
+    }
   }
 
   private RendezvousHash<CharSequence> buildHasher(

@@ -92,6 +92,13 @@ public class UrlRouter extends ChannelDuplexHandler {
                     .handle(xrpcRequest);
           }
 
+          // Check here for the case of an admin endpoint (eg /metrics, /health, and all others
+          // configured in
+          // Router.serveAdmin()); we do not track metrics for admin endpoints.
+          String meterName = MetricsUtil.getMeterNameForRoute(route, request.method().name());
+          if (xctx.getRateMetersByRouteAndMethod().get(meterName) != null) {
+            xctx.getRateMetersByRouteAndMethod().get(meterName).mark();
+          }
           xctx.getMetersByStatusCode().get(resp.status()).mark();
 
           ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
