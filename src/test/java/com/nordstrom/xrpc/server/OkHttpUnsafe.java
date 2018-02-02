@@ -6,11 +6,9 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -66,14 +64,7 @@ public class OkHttpUnsafe {
     final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
     sslContext.init(keyManagers, trustAllCerts, new java.security.SecureRandom());
     // Create an ssl socket factory with our all-trusting manager
-    final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-    // System.out.println("supported ciphers: " +
-    // java.util.Arrays.asList(sslSocketFactory.getSupportedCipherSuites()));
-    // System.out.println("supported SSL parameters ciphers: " +
-    // java.util.Arrays.asList(sslContext.getSupportedSSLParameters().getCipherSuites()));
-    // System.out.println("supported SSL parameters protocols: " +
-    // java.util.Arrays.asList(sslContext.getSupportedSSLParameters().getProtocols()));
-    return sslSocketFactory;
+    return sslContext.getSocketFactory();
   }
 
   public static OkHttpClient getUnsafeClient() {
@@ -84,13 +75,7 @@ public class OkHttpUnsafe {
       OkHttpClient okHttpClient =
           new OkHttpClient.Builder()
               .sslSocketFactory(sslSocketFactory, trustManager)
-              .hostnameVerifier(
-                  new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                      return true;
-                    }
-                  })
+              .hostnameVerifier((hostname, session) -> true)
               .build();
 
       return okHttpClient;
