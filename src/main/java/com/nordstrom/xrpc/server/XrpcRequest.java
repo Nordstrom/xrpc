@@ -93,6 +93,8 @@ public class XrpcRequest {
         query = new HttpQuery(h1Request.uri());
       } else if (h2Headers != null) {
         query = new HttpQuery(h2Headers.path().toString());
+      } else {
+        throw new IllegalStateException("Cannot get query.  http1.1 or http2 request needed.");
       }
     }
     return query;
