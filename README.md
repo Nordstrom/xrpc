@@ -65,8 +65,7 @@ trexblue
 
 # Admin routes
 
-xrpc comes with some built in admin routes
-
+xrpc comes with some built in admin routes. See also [Router.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/Router.java#L262-L270) and [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java)
 * `/metrics` -> Returns the metrics reporters in JSON format
 * `/health` -> Expose a summary of downstream health checks
 * `/ping` -> Responds with a 200-OK status code and the text 'PONG'
