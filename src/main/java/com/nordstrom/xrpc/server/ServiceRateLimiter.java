@@ -60,9 +60,9 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     this.globalSoftLimiter = RateLimiter.create(config.globalSoftReqPerSec());
 
     softRateLimitHasher =
-        buildHasher(softLimiterMap, config.getRateLimiterPoolSize(), config.softReqPerSec());
+        buildHasher(softLimiterMap, config.rateLimiterPoolSize(), config.softReqPerSec());
     hardRateLimitHasher =
-        buildHasher(hardLimiterMap, config.getRateLimiterPoolSize(), config.hardReqPerSec());
+        buildHasher(hardLimiterMap, config.rateLimiterPoolSize(), config.hardReqPerSec());
   }
 
   private RendezvousHash<CharSequence> buildHasher(
