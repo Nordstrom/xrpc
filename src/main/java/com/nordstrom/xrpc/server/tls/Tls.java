@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nordstrom.xrpc.server.tls;
 
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
@@ -79,14 +92,16 @@ public class Tls {
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
       final String rawCertString = cert;
       PrivateKey privateKey;
-      //PublicKey publicKey; //TODO(JR): Leave code in, we should really validate the signature with the public key
+      // PublicKey publicKey;
+      // TODO(JR): Leave code in, we should really validate the signature with the public key
       X509Certificate selfSignedCert = null;
 
       if (key != null) {
         X509CertificateGenerator.DerKeySpec derKeySpec =
             X509CertificateGenerator.parseDerKeySpec(key);
         privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
-        //publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec); //TODO(JR): Leave code in, we should really validate the signature with the public key
+        // publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
+        // TODO(JR): Leave code in, we should really validate the signature with the public key
       } else {
         selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
         privateKey = selfSignedCert.getKey();
@@ -133,9 +148,11 @@ public class Tls {
                 .applicationProtocolConfig(
                     new ApplicationProtocolConfig(
                         Protocol.ALPN,
-                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and
+                        // JDK providers.
                         SelectorFailureBehavior.NO_ADVERTISE,
-                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK
+                        // providers.
                         SelectedListenerFailureBehavior.ACCEPT,
                         ApplicationProtocolNames.HTTP_2,
                         ApplicationProtocolNames.HTTP_1_1))
@@ -156,9 +173,11 @@ public class Tls {
                 .applicationProtocolConfig(
                     new ApplicationProtocolConfig(
                         Protocol.ALPN,
-                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and
+                        // JDK providers.
                         SelectorFailureBehavior.NO_ADVERTISE,
-                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK
+                        // providers.
                         SelectedListenerFailureBehavior.ACCEPT,
                         ApplicationProtocolNames.HTTP_2,
                         ApplicationProtocolNames.HTTP_1_1))

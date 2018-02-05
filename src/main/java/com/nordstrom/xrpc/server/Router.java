@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.ConsoleReporter;
@@ -33,10 +32,10 @@ import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
+import com.typesafe.config.Config;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
@@ -60,7 +59,6 @@ public class Router {
   private final int workerThreadCount;
 
   private final XConfig config;
-  private final int MAX_PAYLOAD_SIZE;
   private final Tls tls;
   private final XrpcConnectionContext ctx;
 
@@ -70,8 +68,12 @@ public class Router {
   @Getter private HealthCheckRegistry healthCheckRegistry;
   private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
 
+  public Router(Config config) {
+    this(new XConfig(config));
+  }
+
   public Router(XConfig config) {
-    this(config, 1 * 1024 * 1024);
+    this(config, 1024 * 1024);
   }
 
   public Router(XConfig config, int maxPayload) {
@@ -80,31 +82,34 @@ public class Router {
     this.bossThreadCount = config.bossThreadCount();
     this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
-    this.MAX_PAYLOAD_SIZE = maxPayload;
 
     this.ctx =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .maxPayloadSize(MAX_PAYLOAD_SIZE)
+            .maxPayloadSize(maxPayload)
+            .mapper(new ObjectMapper())
             .build();
 
     configResponseCodeMeters();
   }
 
   private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(6);
+    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
 
     // Create the proper metrics containers
-    final String NAME_PREFIX = "responseCodes.";
-    meterNamesByStatusCode.put(HttpResponseStatus.OK, NAME_PREFIX + "ok");
-    meterNamesByStatusCode.put(HttpResponseStatus.CREATED, NAME_PREFIX + "created");
-    meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, NAME_PREFIX + "noContent");
-    meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, NAME_PREFIX + "badRequest");
-    meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, NAME_PREFIX + "notFound");
+    final String namePrefix = "responseCodes.";
+    meterNamesByStatusCode.put(HttpResponseStatus.OK, namePrefix + "ok");
+    meterNamesByStatusCode.put(HttpResponseStatus.CREATED, namePrefix + "created");
+    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, namePrefix + "accepted");
+    meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, namePrefix + "noContent");
+    meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, namePrefix + "badRequest");
+    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, namePrefix + "unauthorized");
+    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, namePrefix + "forbidden");
+    meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, namePrefix + "notFound");
     meterNamesByStatusCode.put(
-        HttpResponseStatus.TOO_MANY_REQUESTS, NAME_PREFIX + "tooManyRequests");
+        HttpResponseStatus.TOO_MANY_REQUESTS, namePrefix + "tooManyRequests");
     meterNamesByStatusCode.put(
-        HttpResponseStatus.INTERNAL_SERVER_ERROR, NAME_PREFIX + "serverError");
+        HttpResponseStatus.INTERNAL_SERVER_ERROR, namePrefix + "serverError");
 
     for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
       ctx.getMetersByStatusCode().put(entry.getKey(), metricRegistry.meter(entry.getValue()));
@@ -187,8 +192,8 @@ public class Router {
     addRoute(route, handler, XHttpMethod.ANY);
   }
 
-  public void addRoute(String route, Handler handler, HttpMethod method) {
-    Preconditions.checkState(!route.isEmpty());
+  public void addRoute(String routePattern, Handler handler, HttpMethod method) {
+    Preconditions.checkState(!routePattern.isEmpty());
     Preconditions.checkState(handler != null);
     Preconditions.checkState(method != null);
 
@@ -197,23 +202,23 @@ public class Router {
             .put(new XHttpMethod(method.name()), handler)
             .build();
 
-    Route _route = Route.build(route);
+    Route route = Route.build(routePattern);
     Optional<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routesOptional =
         Optional.ofNullable(ctx.getRoutes().get());
 
     if (routesOptional.isPresent()) {
 
-      if (routesOptional.get().containsKey(_route)) {
-        ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> _routes =
+      if (routesOptional.get().containsKey(route)) {
+        ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
             routesOptional.get();
-        _routes.get(_route).add(handlerMap);
-        ctx.getRoutes().set(_routes);
+        routes.get(route).add(handlerMap);
+        ctx.getRoutes().set(routes);
 
       } else {
         ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
             new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
                     Ordering.usingToString())
-                .put(Route.build(route), Lists.newArrayList(handlerMap));
+                .put(Route.build(routePattern), Lists.newArrayList(handlerMap));
 
         routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
 
@@ -223,7 +228,7 @@ public class Router {
       ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
           new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
                   Ordering.usingToString())
-              .put(Route.build(route), Lists.newArrayList(handlerMap));
+              .put(Route.build(routePattern), Lists.newArrayList(handlerMap));
 
       ctx.getRoutes().set(routeMap.build());
     }
@@ -301,7 +306,7 @@ public class Router {
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
             .tls(tls)
-            .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx))
+            .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
             .build();
 
     ServerBootstrap b =
@@ -370,15 +375,14 @@ public class Router {
     channel
         .close()
         .addListener(
-            (ChannelFutureListener)
-                future -> {
-                  if (!future.isSuccess()) {
-                    log.warn("Error shutting down server", future.cause());
-                  }
-                  synchronized (Router.this) {
-                    // TODO(JR): We should probably be more thoughtful here.
-                    shutdown();
-                  }
-                });
+            future -> {
+              if (!future.isSuccess()) {
+                log.warn("Error shutting down server", future.cause());
+              }
+              synchronized (Router.this) {
+                // TODO(JR): We should probably be more thoughtful here.
+                shutdown();
+              }
+            });
   }
 }

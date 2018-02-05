@@ -1,8 +1,24 @@
+/*
+ * Copyright 2018 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.nordstrom.xrpc.server;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
@@ -10,7 +26,10 @@ import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http2.*;
 import java.io.IOException;
 import java.util.Map;
@@ -89,7 +108,9 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
                   .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     }
 
-    xctx.getMetersByStatusCode().get(h1Resp.status()).mark();
+    Optional<Meter> statusMeter =
+        Optional.ofNullable(xctx.getMetersByStatusCode().get(h1Resp.status()));
+    statusMeter.ifPresent(Meter::mark);
 
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
     Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
@@ -176,18 +197,13 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     String path = getPathFromHeaders(headers);
 
-    for (Route route :
-        ctx.channel()
-            .attr(XrpcConstants.CONNECTION_CONTEXT)
-            .get()
-            .getRoutes()
-            .get()
-            .descendingKeySet()) {
+    XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
+    for (Route route : xctx.getRoutes().get().descendingKeySet()) {
       Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
       if (groups.isPresent()) {
         ctx.channel()
             .attr(XrpcConstants.XRPC_REQUEST)
-            .set(new XrpcRequest(headers, groups.get(), ctx.channel(), streamId));
+            .set(new XrpcRequest(headers, xctx.getMapper(), groups.get(), ctx.channel(), streamId));
         Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
         if (!contentLength.isPresent()) {
           try {

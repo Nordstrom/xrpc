@@ -1,6 +1,22 @@
+/*
+ * Copyright 2018 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.nordstrom.xrpc.client;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.Test;
@@ -55,39 +71,35 @@ class XUrlTest {
   void addProtocol() {}
 
   @Test
-  void decodeQString1() {
-    String qString = "https://n.com?param1=value1&param2=value2&param3=value3";
-    assertEquals("value1", XUrl.decodeQueryString(qString).get("param1").get(0));
-    assertEquals("value2", XUrl.decodeQueryString(qString).get("param2").get(0));
-    assertEquals("value3", XUrl.decodeQueryString(qString).get("param3").get(0));
+  void decodeQueryString1() {
+    String query = "https://n.com?param1=value1&param2=value2&param3=value3";
+    assertEquals("value1", XUrl.decodeQueryString(query).get("param1").get(0));
+    assertEquals("value2", XUrl.decodeQueryString(query).get("param2").get(0));
+    assertEquals("value3", XUrl.decodeQueryString(query).get("param3").get(0));
   }
 
   @Test
-  void decodeQString2() {
-    String qString = "https://n.com?param1=value1&param2=&param3=value3&param3";
-    assertEquals("value1", XUrl.decodeQueryString(qString).get("param1").get(0));
-    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
-    assertEquals("value3", XUrl.decodeQueryString(qString).get("param3").get(0));
-    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
+  void decodeQueryString2() {
+    String query = "https://n.com?param1=value1&param2=&param3=value3&param3";
+    assertEquals("value1", XUrl.decodeQueryString(query).get("param1").get(0));
+    assertEquals("", XUrl.decodeQueryString(query).get("param2").get(0));
+    assertEquals("value3", XUrl.decodeQueryString(query).get("param3").get(0));
+    assertEquals("", XUrl.decodeQueryString(query).get("param3").get(1));
   }
 
   @Test
-  void decodeQString_withUrlEncoding() {
-    String qString = "https://n.com?param1=value%201&param2=&param3=value%203&param3";
-    assertEquals("value 1", XUrl.decodeQueryString(qString).get("param1").get(0));
-    assertEquals("", XUrl.decodeQueryString(qString).get("param2").get(0));
-    assertEquals("value 3", XUrl.decodeQueryString(qString).get("param3").get(0));
-    assertEquals("", XUrl.decodeQueryString(qString).get("param3").get(1));
+  void decodeQueryString_withUrlEncoding() {
+    String query = "https://n.com?param1=value%201&param2=&param3=value%203&param3";
+    assertEquals("value 1", XUrl.decodeQueryString(query).get("param1").get(0));
+    assertEquals("", XUrl.decodeQueryString(query).get("param2").get(0));
+    assertEquals("value 3", XUrl.decodeQueryString(query).get("param3").get(0));
+    assertEquals("", XUrl.decodeQueryString(query).get("param3").get(1));
   }
 
   @Test
-  void decodeQString3() {
+  void decodeQueryString3() {
     String noPath = "https://api.nordstrom.com";
     String noPathTrailingSlash = "https://api.nordstrom.com/";
-    String noPathQuery = "https://api.nordstrom.com?foo=bar";
-    String withPathNoQuery = "https://api.nordstrom.com/v1";
-    String withPathTrailingSlashNoQuery = "https://api.nordstrom.com/v1/";
-    String withPathTrailingSlash = "https://api.nordstrom.com/v1/?foo=bar";
 
     assertThrows(
         IndexOutOfBoundsException.class, () -> XUrl.decodeQueryString(noPath).get("param1").get(0));
@@ -97,15 +109,19 @@ class XUrlTest {
     assertThrows(
         IndexOutOfBoundsException.class,
         () -> XUrl.decodeQueryString(noPathTrailingSlash).get("param2").get(0));
+    String noPathQuery = "https://api.nordstrom.com?foo=bar";
     assertThrows(
         IndexOutOfBoundsException.class,
         () -> XUrl.decodeQueryString(noPathQuery).get("param3").get(0));
+    String withPathNoQuery = "https://api.nordstrom.com/v1";
     assertThrows(
         IndexOutOfBoundsException.class,
         () -> XUrl.decodeQueryString(withPathNoQuery).get("param3").get(1));
+    String withPathTrailingSlashNoQuery = "https://api.nordstrom.com/v1/";
     assertThrows(
         IndexOutOfBoundsException.class,
         () -> XUrl.decodeQueryString(withPathTrailingSlashNoQuery).get("param3").get(1));
+    String withPathTrailingSlash = "https://api.nordstrom.com/v1/?foo=bar";
     assertThrows(
         IndexOutOfBoundsException.class,
         () -> XUrl.decodeQueryString(withPathTrailingSlash).get("param3").get(1));

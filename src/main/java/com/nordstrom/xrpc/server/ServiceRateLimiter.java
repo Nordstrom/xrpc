@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.nordstrom.xrpc.server;
 
 import static com.codahale.metrics.MetricRegistry.name;
@@ -29,8 +44,8 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private final Meter reqs;
   private final Timer timer;
   private final XConfig config;
-  private final RendezvousHash softRateLimitHasher;
-  private final RendezvousHash hardRateLimitHasher;
+  private final RendezvousHash<CharSequence> softRateLimitHasher;
+  private final RendezvousHash<CharSequence> hardRateLimitHasher;
   private final RateLimiter globalHardLimiter;
   private final RateLimiter globalSoftLimiter;
 
@@ -45,12 +60,12 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     this.globalSoftLimiter = RateLimiter.create(config.globalSoftReqPerSec());
 
     softRateLimitHasher =
-        buildHasher(softLimiterMap, config.getRateLimiterPoolSize(), config.softReqPerSec());
+        buildHasher(softLimiterMap, config.rateLimiterPoolSize(), config.softReqPerSec());
     hardRateLimitHasher =
-        buildHasher(hardLimiterMap, config.getRateLimiterPoolSize(), config.hardReqPerSec());
+        buildHasher(hardLimiterMap, config.rateLimiterPoolSize(), config.hardReqPerSec());
   }
 
-  private RendezvousHash buildHasher(
+  private RendezvousHash<CharSequence> buildHasher(
       Map<String, RateLimiter> limiterMap, int poolSize, double rate) {
     List<String> _tempPool = new ArrayList<>();
 
@@ -60,7 +75,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
       limiterMap.put(id, RateLimiter.create(rate));
     }
 
-    return new RendezvousHash(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
+    return new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
   }
 
   @Override
