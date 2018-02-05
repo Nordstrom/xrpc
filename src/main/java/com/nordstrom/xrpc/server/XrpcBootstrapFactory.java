@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XrpcBootstrapFactory {
 
-  private XrpcBootstrapFactory() {};
+  private XrpcBootstrapFactory() {}
 
   private static ThreadFactory threadFactory(String nameFormat) {
     return new ThreadFactoryBuilder().setNameFormat(nameFormat).build();

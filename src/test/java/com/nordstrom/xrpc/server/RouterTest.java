@@ -34,20 +34,20 @@ class RouterTest {
     XConfig config = new XConfig();
     Router r = new Router(config, 1);
 
-    Handler h1 = xrpcRequest -> null;
-    Handler h2 = xrpcRequest -> null;
-    Handler h3 = xrpcRequest -> null;
-    Handler h4 = xrpcRequest -> null;
-    Handler h5 = xrpcRequest -> null;
-    Handler h6 = xrpcRequest -> null;
+    Handler h1 = request -> null;
+    Handler h2 = request -> null;
+    Handler h3 = request -> null;
+    Handler h4 = request -> null;
+    Handler h5 = request -> null;
+    Handler h6 = request -> null;
 
     // Test Basic operation
     r.any("/foo", h1);
-    r.any("/foo/bar", h2);
-    r.any("/baz", h3);
-    r.any("/baz/.*", h4);
+    r.post("/foo/bar", h2);
+    r.put("/baz", h3);
+    r.delete("/baz/.*", h4);
     r.get("/people/{person}", h5);
-    r.post("/people/{person}", h6);
+    r.head("/people/{person}", h6);
 
     AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routes =
         r.getRoutes();
@@ -79,10 +79,10 @@ class RouterTest {
                 .descendingMap()
                 .get(route)
                 .stream()
-                .filter(m -> m.containsKey(XHttpMethod.ANY))
+                .filter(m -> m.containsKey(XHttpMethod.POST))
                 .findFirst()
                 .get()
-                .get(XHttpMethod.ANY));
+                .get(XHttpMethod.POST));
       }
     }
 
@@ -96,10 +96,10 @@ class RouterTest {
                 .descendingMap()
                 .get(route)
                 .stream()
-                .filter(m -> m.containsKey(XHttpMethod.ANY))
+                .filter(m -> m.containsKey(XHttpMethod.PUT))
                 .findFirst()
                 .get()
-                .get(XHttpMethod.ANY));
+                .get(XHttpMethod.PUT));
       }
     }
 
@@ -113,10 +113,10 @@ class RouterTest {
                 .descendingMap()
                 .get(route)
                 .stream()
-                .filter(m -> m.containsKey(XHttpMethod.ANY))
+                .filter(m -> m.containsKey(XHttpMethod.DELETE))
                 .findFirst()
                 .get()
-                .get(XHttpMethod.ANY));
+                .get(XHttpMethod.DELETE));
       }
     }
 
@@ -147,10 +147,10 @@ class RouterTest {
                 .descendingMap()
                 .get(route)
                 .stream()
-                .filter(m -> m.containsKey(XHttpMethod.POST))
+                .filter(m -> m.containsKey(XHttpMethod.HEAD))
                 .findFirst()
                 .get()
-                .get(XHttpMethod.POST));
+                .get(XHttpMethod.HEAD));
       }
     }
   }
