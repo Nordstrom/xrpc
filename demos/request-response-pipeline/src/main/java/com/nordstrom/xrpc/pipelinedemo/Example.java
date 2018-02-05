@@ -59,6 +59,10 @@ public class Example {
       this.routes = routes;
     }
 
+    /*
+     * This is a lot of boilerplate that allows us to setup a custom
+     * pipeline. This should be refactored away in the future.
+     */
     @Override
     public void initChannel(Channel ch) throws Exception {
       ChannelPipeline cp = ch.pipeline();
