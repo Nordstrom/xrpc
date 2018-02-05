@@ -5,7 +5,6 @@ set -e
 PORT=8080
 
 ./gradlew clean shadowJar && \
-  mv demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar app.jar && \
 java -ea          \
   $JAVA_OPTS                      \
   -Djava.net.preferIPv4Stack=true \
@@ -31,4 +30,4 @@ java -ea          \
   -Dcom.sun.management.jmxremote.ssl=false          \
   -Dserver.port=$PORT                               \
   -Dconfig.file=application.conf                    \
-  -jar app.jar
+  -jar demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar
