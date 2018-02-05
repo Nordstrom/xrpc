@@ -22,7 +22,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 
 @ChannelHandler.Sharable
-class IdleDisconnectHandler extends IdleStateHandler {
+public class IdleDisconnectHandler extends IdleStateHandler {
 
   public IdleDisconnectHandler(
       int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
