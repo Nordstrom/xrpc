@@ -309,7 +309,7 @@ public class Router {
             .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx))
             .build();
 
-    configEndpointLevelRateMeters(metricRegistry, ctx);
+    configEndpointRequestCountMeters(metricRegistry, ctx);
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
@@ -369,7 +369,7 @@ public class Router {
     channel = future.channel();
   }
 
-  private void configEndpointLevelRateMeters(
+  private void configEndpointRequestCountMeters(
       MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
     ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
         ctx.getRoutes().get();
@@ -382,8 +382,7 @@ public class Router {
       for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
         for (XHttpMethod httpMethod : map.keySet()) {
           String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
-          ctx.getMetersByRoute()
-              .put(routeName, metricRegistry.meter(name(Router.class, namePrefix + routeName)));
+          ctx.getMetersByRoute().put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
         }
       }
     }
