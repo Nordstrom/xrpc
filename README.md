@@ -63,6 +63,16 @@ $ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k 
 trexblue
 ```
 
+# Admin routes
+
+xrpc comes with some built in admin routes. See also [Router.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/Router.java#L262-L270) and [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java)
+* `/metrics` -> Returns the metrics reporters in JSON format
+* `/health` -> Expose a summary of downstream health checks
+* `/ping` -> Responds with a 200-OK status code and the text 'PONG'
+* `/ready` -> Exposes a Kubernetes or ELB specific healthcheck for liveliness
+* `/restart` -> Restart service (should be restricted to approved devs / tooling)
+* `/killkillkill` -> Shutdown service (should be restricted to approved devs / tooling)
+
 # Contributing
 
 Please see [the contributing guide](CONTRIBUTING.md) for details on contributing to this repository.
