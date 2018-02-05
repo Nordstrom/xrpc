@@ -47,7 +47,5 @@ public class XrpcConnectionContext {
 
   @Getter private final ObjectMapper mapper;
 
-  @Getter
-  private final ConcurrentHashMap<String, Meter> rateMetersByRouteAndMethod =
-      new ConcurrentHashMap<>();
+  @Getter private final ConcurrentHashMap<String, Meter> metersByRoute = new ConcurrentHashMap<>();
 }

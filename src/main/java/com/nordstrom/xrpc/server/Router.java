@@ -15,6 +15,8 @@
  */
 package com.nordstrom.xrpc.server;
 
+import static com.codahale.metrics.MetricRegistry.name;
+
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -307,6 +309,8 @@ public class Router {
             .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx))
             .build();
 
+    configEndpointLevelRateMeters(metricRegistry, ctx);
+
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
 
@@ -363,6 +367,26 @@ public class Router {
     }
 
     channel = future.channel();
+  }
+
+  private void configEndpointLevelRateMeters(
+      MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
+    ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
+        ctx.getRoutes().get();
+
+    final String namePrefix = "routes.";
+
+    for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
+      Route route = entry.getKey();
+
+      for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
+        for (XHttpMethod httpMethod : map.keySet()) {
+          String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
+          ctx.getMetersByRoute()
+              .put(routeName, metricRegistry.meter(name(Router.class, namePrefix + routeName)));
+        }
+      }
+    }
   }
 
   public void shutdown() {
