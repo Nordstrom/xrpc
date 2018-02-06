@@ -104,12 +104,11 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
     // Check here for the case of an admin endpoint (eg /metrics, /health, and all others configured
     // in Router.serveAdmin()); we do not track metrics for admin endpoints.
-    Meter meter =
-        xctx.getMetersByRoute()
-            .get(MetricsUtil.getMeterNameForRoute(route, httpRequestMethod.name()));
-    if (meter != null) {
-      meter.mark();
-    }
+    Optional<Meter> routeMeter =
+        Optional.ofNullable(
+            xctx.getMetersByRoute()
+                .get(MetricsUtil.getMeterNameForRoute(route, httpRequestMethod.name())));
+    routeMeter.ifPresent(Meter::mark);
 
     Optional<Meter> statusMeter =
         Optional.ofNullable(xctx.getMetersByStatusCode().get(h1Resp.status()));
