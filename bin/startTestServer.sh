@@ -30,4 +30,4 @@ java -ea          \
   -Dcom.sun.management.jmxremote.ssl=false          \
   -Dserver.port=$PORT                               \
   -Dconfig.file=application.conf                    \
-  -jar demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar
+  -jar demos/demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar
