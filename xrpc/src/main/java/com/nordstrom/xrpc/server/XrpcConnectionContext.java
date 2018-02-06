@@ -23,23 +23,23 @@ import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Builder
+@Builder(builderClassName = "Builder")
 // TODO: (AD) Merge with State
 // TODO: (AD) Make Immutable.
 public class XrpcConnectionContext {
-  @Getter private Meter requestMeter;
-  @Getter private int maxPayloadSize;
+  @Getter private final Meter requestMeter;
+  @Getter private final int maxPayloadSize;
 
+  @Singular("meterByStatusCode")
   @Getter
-  private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode =
-      new ConcurrentHashMap<>(10);
+  private final ImmutableMap<HttpResponseStatus, Meter> metersByStatusCode;
 
   @Getter
   private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>

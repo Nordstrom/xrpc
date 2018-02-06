@@ -42,6 +42,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,36 +84,35 @@ public class Router {
     this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
 
-    this.ctx =
+    XrpcConnectionContext.Builder contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .maxPayloadSize(maxPayload)
-            .mapper(new ObjectMapper())
-            .build();
+            .mapper(new ObjectMapper());
+    configureResponseCodeMeters(contextBuilder);
 
-    configResponseCodeMeters();
+    this.ctx = contextBuilder.build();
   }
 
-  private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
+  /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
+  private void configureResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
+    Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
+    namesByCode.put(HttpResponseStatus.OK, "ok");
+    namesByCode.put(HttpResponseStatus.CREATED, "created");
+    namesByCode.put(HttpResponseStatus.ACCEPTED, "accepted");
+    namesByCode.put(HttpResponseStatus.NO_CONTENT, "noContent");
+    namesByCode.put(HttpResponseStatus.BAD_REQUEST, "badRequest");
+    namesByCode.put(HttpResponseStatus.UNAUTHORIZED, "unauthorized");
+    namesByCode.put(HttpResponseStatus.FORBIDDEN, "forbidden");
+    namesByCode.put(HttpResponseStatus.NOT_FOUND, "notFound");
+    namesByCode.put(HttpResponseStatus.TOO_MANY_REQUESTS, "tooManyRequests");
+    namesByCode.put(HttpResponseStatus.INTERNAL_SERVER_ERROR, "serverError");
 
-    // Create the proper metrics containers
-    final String namePrefix = "responseCodes.";
-    meterNamesByStatusCode.put(HttpResponseStatus.OK, namePrefix + "ok");
-    meterNamesByStatusCode.put(HttpResponseStatus.CREATED, namePrefix + "created");
-    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, namePrefix + "accepted");
-    meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, namePrefix + "noContent");
-    meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, namePrefix + "badRequest");
-    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, namePrefix + "unauthorized");
-    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, namePrefix + "forbidden");
-    meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, namePrefix + "notFound");
-    meterNamesByStatusCode.put(
-        HttpResponseStatus.TOO_MANY_REQUESTS, namePrefix + "tooManyRequests");
-    meterNamesByStatusCode.put(
-        HttpResponseStatus.INTERNAL_SERVER_ERROR, namePrefix + "serverError");
-
-    for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
-      ctx.getMetersByStatusCode().put(entry.getKey(), metricRegistry.meter(entry.getValue()));
+    // Create the proper metrics containers.
+    String namePrefix = "responseCodes.";
+    for (Map.Entry<HttpResponseStatus, String> entry : namesByCode.entrySet()) {
+      String meterName = namePrefix + entry.getValue();
+      contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
   }
 
