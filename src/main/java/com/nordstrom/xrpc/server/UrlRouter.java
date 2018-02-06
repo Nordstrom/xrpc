@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
@@ -99,11 +100,12 @@ public class UrlRouter extends ChannelDuplexHandler {
             }
 
             // Check here for the case of an admin endpoint (eg /metrics, /health, and all others
-            // configured in
-            // Router.serveAdmin()); we do not track metrics for admin endpoints.
-            String meterName = MetricsUtil.getMeterNameForRoute(route, request.method().name());
-            if (xctx.getMetersByRoute().get(meterName) != null) {
-              xctx.getMetersByRoute().get(meterName).mark();
+            // configured in Router.serveAdmin()); we do not track metrics for admin endpoints.
+            Meter meter =
+                xctx.getMetersByRoute()
+                    .get(MetricsUtil.getMeterNameForRoute(route, request.method().name()));
+            if (meter != null) {
+              meter.mark();
             }
             xctx.getMetersByStatusCode().get(resp.status()).mark();
 

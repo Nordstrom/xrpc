@@ -64,37 +64,29 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       throws IOException {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     FullHttpResponse h1Resp;
-    String httpRequestMethodName = null;
+    final XHttpMethod httpRequestMethod =
+        XHttpMethod.valueOf(
+            ctx.channel()
+                .attr(XrpcConstants.XRPC_REQUEST)
+                .get()
+                .getH2Headers()
+                .method()
+                .toString());
 
     Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
         xctx.getRoutes()
             .get()
             .get(route)
             .stream()
-            .filter(
-                m ->
-                    m.keySet()
-                        .stream()
-                        .anyMatch(
-                            mx ->
-                                mx.compareTo(
-                                        XHttpMethod.valueOf(
-                                            ctx.channel()
-                                                .attr(XrpcConstants.XRPC_REQUEST)
-                                                .get()
-                                                .getH2Headers()
-                                                .method()
-                                                .toString()))
-                                    == 0))
+            .filter(m -> m.keySet().stream().anyMatch(mx -> mx.compareTo(httpRequestMethod) == 0))
             .findFirst();
 
     if (handlerMapOptional.isPresent()) {
-      httpRequestMethodName = handlerMapOptional.get().keySet().asList().get(0).name();
       h1Resp =
           (FullHttpResponse)
               handlerMapOptional
                   .get()
-                  .get(handlerMapOptional.get().keySet().asList().get(0))
+                  .get(httpRequestMethod)
                   .handle(ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get());
     } else {
       h1Resp =
@@ -111,11 +103,12 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     }
 
     // Check here for the case of an admin endpoint (eg /metrics, /health, and all others configured
-    // in
-    // Router.serveAdmin()); we do not track metrics for admin endpoints.
-    String meterName = MetricsUtil.getMeterNameForRoute(route, httpRequestMethodName);
-    if (xctx.getMetersByRoute().get(meterName) != null) {
-      xctx.getMetersByRoute().get(meterName).mark();
+    // in Router.serveAdmin()); we do not track metrics for admin endpoints.
+    Meter meter =
+        xctx.getMetersByRoute()
+            .get(MetricsUtil.getMeterNameForRoute(route, httpRequestMethod.name()));
+    if (meter != null) {
+      meter.mark();
     }
 
     Optional<Meter> statusMeter =
