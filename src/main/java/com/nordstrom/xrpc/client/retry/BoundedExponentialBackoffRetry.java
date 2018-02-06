@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.client.retry;
 
 /*
@@ -35,6 +36,8 @@ public class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
   private final int maxSleepTimeMs;
 
   /**
+   * Construct BoundedExponentialBackoffRetry with base sleep time, max sleep time, and max retries.
+   *
    * @param baseSleepTimeMs initial amount of time to wait between retries
    * @param maxSleepTimeMs maximum amount of time to wait between retries
    * @param maxRetries maximum number of times to retry

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,7 +106,7 @@ public class XrpcRequest {
     return groups.get(name);
   }
 
-  /** Create a convenience function to prevent direct access to the Allocator */
+  /** Create a convenience function to prevent direct access to the Allocator. */
   public ByteBuf getByteBuf() {
     return alloc.compositeDirectBuffer();
   }

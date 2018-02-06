@@ -19,7 +19,6 @@ package com.nordstrom.xrpc.demo;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.demo.proto.Dino;
 import com.nordstrom.xrpc.demo.proto.DinoGetReply;
 import com.nordstrom.xrpc.demo.proto.DinoGetRequest;
@@ -53,8 +52,7 @@ public class Example {
 
     // Build your router. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
-    Router router = new Router(xConfig);
+    Router router = new Router(config);
 
     // RPC style endpoint
     Handler dinoHandler =
