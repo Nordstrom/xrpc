@@ -51,7 +51,7 @@ public class XUrl {
     try {
       return getDomainChecked(url);
     } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
+      log.info("Malformed url: {}", url);
       return null;
     }
   }
@@ -72,7 +72,7 @@ public class XUrl {
         return uri.getPort();
       }
     } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
+      log.info("Malformed url: {}", url);
       return -1;
     }
   }
@@ -89,7 +89,7 @@ public class XUrl {
     try {
       return new URI(url).getPath();
     } catch (URISyntaxException e) {
-      log.info("Malformed url: " + url);
+      log.info("Malformed url: {}", url);
       return null;
     }
   }

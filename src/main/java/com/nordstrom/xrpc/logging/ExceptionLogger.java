@@ -36,6 +36,6 @@ public class ExceptionLogger extends LoggingHandler {
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-    log.error("Exception caught: " + ctx + cause.getMessage(), cause);
+    log.error("Exception caught, context={}:", ctx, cause);
   }
 }
