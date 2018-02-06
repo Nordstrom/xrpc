@@ -89,7 +89,7 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
     if (config.getClientRateLimitOverride().containsKey(remoteAddress)) {
       if (hardLimiterMap.containsKey(remoteAddress)) {
         if (!hardLimiterMap.get(remoteAddress).tryAcquire()) {
-          log.debug("Hard Rate limit fired for " + remoteAddress);
+          log.debug("Hard Rate limit fired for {}", remoteAddress);
           ctx.channel().attr(XrpcConstants.XRPC_HARD_RATE_LIMITED).set(Boolean.TRUE);
         } else if (!softLimiterMap.get(remoteAddress).tryAcquire()) {
           ctx.channel().attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);

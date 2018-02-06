@@ -163,16 +163,15 @@ public class Call {
                 f.setException(e);
               }
             } else {
-              log.debug("Xrpc connected to: " + server);
+              log.debug("Xrpc connected to: {}", server);
               String hostname = server.getAddress().getHostAddress();
               if (hostname.equals("localhost")) {
                 hostname = "127.0.0.1";
               }
               log.debug(
-                  "Adding hostname: "
-                      + hostname
-                      + ":"
-                      + ((InetSocketAddress) future.channel().remoteAddress()).getPort());
+                  "Adding hostname: {}:{}",
+                  hostname,
+                  ((InetSocketAddress) future.channel().remoteAddress()).getPort());
               f.set(future);
             }
           }
