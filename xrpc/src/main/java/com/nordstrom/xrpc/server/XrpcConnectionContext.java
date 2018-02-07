@@ -47,4 +47,6 @@ public class XrpcConnectionContext {
       routes = new AtomicReference<>();
 
   @Getter private final ObjectMapper mapper;
+
+  @Getter private final ConcurrentHashMap<String, Meter> metersByRoute = new ConcurrentHashMap<>();
 }

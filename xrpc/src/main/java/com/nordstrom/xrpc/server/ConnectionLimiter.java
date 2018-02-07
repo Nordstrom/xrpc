@@ -37,7 +37,7 @@ class ConnectionLimiter extends ChannelDuplexHandler {
   public ConnectionLimiter(MetricRegistry metrics, int maxConnections) {
     this.maxConnections = maxConnections;
     this.numConnections = new AtomicInteger(0);
-    this.connections = metrics.counter(name(Router.class, "Active Connections"));
+    this.connections = metrics.counter(name("Active Connections"));
   }
 
   @Override
