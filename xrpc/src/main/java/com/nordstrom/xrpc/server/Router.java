@@ -278,20 +278,13 @@ public class Router {
     return new ServerChannelInitializer(state);
   }
 
-  public void listenAndServe() throws IOException {
-    listenAndServe(true, true);
-  }
-
   /**
    * The listenAndServe method is the primary entry point for the server and should only be called
    * once and only from the main thread.
    *
-   * @param serveAdmin pass true to serve the admin handlers, false if not
-   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health
-   *     checks will be run every time the health endpoint is hit
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
-  public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
+  public void listenAndServe() throws IOException {
     State state =
         State.builder()
             .config(config)
@@ -313,13 +306,13 @@ public class Router {
 
     b.childHandler(initializer(state));
 
-    if (scheduleHealthChecks) {
+    if (config.runBackgroundHealthChecks()) {
       final EventLoopGroup _workerGroup = b.config().childGroup();
       healthCheckRegistry = new HealthCheckRegistry(_workerGroup);
       scheduleHealthChecks(_workerGroup);
     }
 
-    if (serveAdmin) {
+    if (config.serveAdminRoutes()) {
       serveAdmin();
     }
 

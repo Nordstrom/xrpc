@@ -31,6 +31,8 @@ class CorsTest {
   @BeforeEach
   void beforeEach() {
     config = ConfigFactory.load("test.conf").getConfig("xrpc");
+    addConfigValue("serve_admin_routes", fromAnyRef(false));
+    addConfigValue("run_background_health_checks", fromAnyRef(false));
     client = OkHttpUnsafe.getUnsafeClient();
   }
 
@@ -143,6 +145,6 @@ class CorsTest {
   }
 
   private void start() throws IOException {
-    router.listenAndServe(false, false);
+    router.listenAndServe();
   }
 }
