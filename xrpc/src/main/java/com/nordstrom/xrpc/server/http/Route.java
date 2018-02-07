@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server.http;
 
 import java.util.ArrayList;
@@ -90,14 +91,20 @@ public class Route {
     return new Route(compiledPattern, keywords, pathPattern);
   }
 
-  /** @return true if this route matches the given URL path */
+  /**
+   * Determine if this Route matches the specified path.
+   *
+   * @return true if this route matches the given URL path
+   */
   public boolean matches(String path) {
     return pathPattern.matcher(path).matches();
   }
 
   /**
-   * @return the groups this captured from the given path, if any; or null if this route doesn't
-   *     match the path
+   * Get the path parameter groups captured for the specified path.
+   *
+   * @return the groups captured from the given path, if any; or null if this route doesn't match
+   *     the path
    */
   public Map<String, String> groups(String path) {
     Matcher matcher = pathPattern.matcher(path);

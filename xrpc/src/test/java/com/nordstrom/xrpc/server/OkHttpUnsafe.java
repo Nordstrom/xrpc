@@ -54,7 +54,7 @@ public class OkHttpUnsafe {
     };
   }
 
-  public static SSLSocketFactory getUnsafeSSLSocketFactory(
+  public static SSLSocketFactory getUnsafeSslSocketFactory(
       KeyManager[] keyManagers, X509TrustManager trustManager)
       throws NoSuchAlgorithmException, KeyManagementException {
     // Create a trust manager that does not validate certificate chains
@@ -70,7 +70,7 @@ public class OkHttpUnsafe {
   public static OkHttpClient getUnsafeClient() {
     try {
       X509TrustManager trustManager = unsafeTrustManager();
-      final SSLSocketFactory sslSocketFactory = getUnsafeSSLSocketFactory(null, trustManager);
+      final SSLSocketFactory sslSocketFactory = getUnsafeSslSocketFactory(null, trustManager);
 
       OkHttpClient okHttpClient =
           new OkHttpClient.Builder()
@@ -88,7 +88,7 @@ public class OkHttpUnsafe {
     try {
       MockWebServer server = new MockWebServer();
       server.useHttps(
-          OkHttpUnsafe.getUnsafeSSLSocketFactory(getKeyManagers(config), unsafeTrustManager()),
+          OkHttpUnsafe.getUnsafeSslSocketFactory(getKeyManagers(config), unsafeTrustManager()),
           false);
       return server;
     } catch (Exception e) {

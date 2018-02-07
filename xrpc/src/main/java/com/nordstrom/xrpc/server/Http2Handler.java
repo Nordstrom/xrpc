@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
@@ -30,7 +31,16 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http2.*;
+import io.netty.handler.codec.http2.DefaultHttp2DataFrame;
+import io.netty.handler.codec.http2.Http2ConnectionDecoder;
+import io.netty.handler.codec.http2.Http2ConnectionEncoder;
+import io.netty.handler.codec.http2.Http2ConnectionHandler;
+import io.netty.handler.codec.http2.Http2DataFrame;
+import io.netty.handler.codec.http2.Http2Flags;
+import io.netty.handler.codec.http2.Http2FrameListener;
+import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2Settings;
+import io.netty.handler.codec.http2.HttpConversionUtil;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
@@ -228,11 +238,6 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
   }
 
-  static String getPathFromHeaders(Http2Headers headers) {
-    String uri = headers.path().toString();
-    return XUrl.getPath(uri);
-  }
-
   @Override
   public void onHeadersRead(
       ChannelHandlerContext ctx,
@@ -244,6 +249,11 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       int padding,
       boolean endOfStream) {
     onHeadersRead(ctx, streamId, headers, padding, endOfStream);
+  }
+
+  static String getPathFromHeaders(Http2Headers headers) {
+    String uri = headers.path().toString();
+    return XUrl.getPath(uri);
   }
 
   @Override

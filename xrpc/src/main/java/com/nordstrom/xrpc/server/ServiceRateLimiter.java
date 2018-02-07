@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import static com.codahale.metrics.MetricRegistry.name;
@@ -67,15 +68,15 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
 
   private RendezvousHash<CharSequence> buildHasher(
       Map<String, RateLimiter> limiterMap, int poolSize, double rate) {
-    List<String> _tempPool = new ArrayList<>();
+    List<String> tempPool = new ArrayList<>();
 
     for (int i = 0; i < poolSize; i++) {
       String id = UUID.randomUUID().toString();
-      _tempPool.add(id);
+      tempPool.add(id);
       limiterMap.put(id, RateLimiter.create(rate));
     }
 
-    return new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), _tempPool);
+    return new RendezvousHash<>(Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), tempPool);
   }
 
   @Override

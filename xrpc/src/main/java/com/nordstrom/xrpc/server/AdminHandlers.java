@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.MetricRegistry;
@@ -24,8 +25,9 @@ import com.nordstrom.xrpc.server.http.Recipes;
 import java.util.SortedMap;
 
 public class AdminHandlers {
+  // CHECKSTYLE:OFF
   /**
-   * Output metrics reporters in JSON format
+   * Output metrics reporters in JSON format.
    *
    * @param metrics MetricRegistry
    * @param mapper ObjectMapper
@@ -177,6 +179,7 @@ public class AdminHandlers {
    * }
    * }</pre>
    */
+  // CHECKSTYLE:ON
   public static Handler metricsHandler(MetricRegistry metrics, ObjectMapper mapper) {
     Preconditions.checkState(metrics != null);
     Preconditions.checkState(mapper != null);
@@ -215,7 +218,7 @@ public class AdminHandlers {
   }
 
   /**
-   * Run registered health checks
+   * Run registered health checks.
    *
    * @param healthCheckRegistry Health Check Registry
    * @param mapper ObjectMapper
@@ -251,7 +254,7 @@ public class AdminHandlers {
   }
 
   /**
-   * Readiness handler, for use with kubernetes or ELB healthchecks
+   * Readiness handler, for use with kubernetes or ELB healthchecks.
    *
    * @return xrpcRequest `200 OK` with `OK`
    */

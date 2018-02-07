@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
@@ -27,8 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class XConfigTest {
-  Config _config = ConfigFactory.load("test.conf");
-  XConfig config = new XConfig(_config.getConfig("xrpc"));
+  Config rawConfig = ConfigFactory.load("test.conf");
+  XConfig config = new XConfig(rawConfig.getConfig("xrpc"));
 
   @BeforeEach
   void setUp() {}

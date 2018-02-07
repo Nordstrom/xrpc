@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.client.retry;
 
 /*
@@ -33,10 +34,10 @@ package com.nordstrom.xrpc.client.retry;
 
 import java.util.concurrent.TimeUnit;
 
-/** Mechanism for timing methods and recording counters */
+/** Mechanism for timing methods and recording counters. */
 public interface TracerDriver {
   /**
-   * Record the given trace event
+   * Record the given trace event.
    *
    * @param name of the event
    * @param time time event took
@@ -45,7 +46,7 @@ public interface TracerDriver {
   void addTrace(String name, long time, TimeUnit unit);
 
   /**
-   * Add to a named counter
+   * Add to a named counter.
    *
    * @param name name of the counter
    * @param increment amount to increment

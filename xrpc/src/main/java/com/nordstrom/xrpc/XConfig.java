@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc;
 
 import com.google.common.collect.ImmutableSet;
@@ -169,7 +170,9 @@ public class XConfig {
   }
 
   private HttpMethod[] getHttpMethods(Config config, String key) {
-    if (!config.hasPath(key)) return new HttpMethod[0];
+    if (!config.hasPath(key)) {
+      return new HttpMethod[0];
+    }
     return config.getStringList(key).stream().map(HttpMethod::valueOf).toArray(HttpMethod[]::new);
   }
 
