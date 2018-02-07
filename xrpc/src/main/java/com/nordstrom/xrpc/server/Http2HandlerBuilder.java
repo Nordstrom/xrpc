@@ -13,9 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
-import io.netty.handler.codec.http2.*;
+import io.netty.handler.codec.http2.AbstractHttp2ConnectionHandlerBuilder;
+import io.netty.handler.codec.http2.Http2ConnectionDecoder;
+import io.netty.handler.codec.http2.Http2ConnectionEncoder;
+import io.netty.handler.codec.http2.Http2FrameLogger;
+import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.logging.LogLevel;
 
 public final class Http2HandlerBuilder

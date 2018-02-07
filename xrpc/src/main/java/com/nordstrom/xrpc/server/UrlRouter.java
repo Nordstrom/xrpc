@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
@@ -30,7 +32,13 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -97,6 +105,15 @@ public class UrlRouter extends ChannelDuplexHandler {
                       .get(XHttpMethod.ANY)
                       .handle(xrpcRequest);
             }
+
+            // Check here for the case of an admin endpoint (eg /metrics, /health, and all others
+            // configured
+            // in Router.serveAdmin()); we do not track metrics for admin endpoints.
+            Optional<Meter> routeMeter =
+                Optional.ofNullable(
+                    xctx.getMetersByRoute()
+                        .get(MetricsUtil.getMeterNameForRoute(route, request.method().name())));
+            routeMeter.ifPresent(Meter::mark);
 
             xctx.getMetersByStatusCode().get(resp.status()).mark();
 

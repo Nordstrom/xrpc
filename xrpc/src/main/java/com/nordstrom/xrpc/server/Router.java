@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
+
+import static com.codahale.metrics.MetricRegistry.name;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
@@ -300,13 +303,15 @@ public class Router {
             .globalConnectionLimiter(
                 new ConnectionLimiter(
                     metricRegistry, config.maxConnections())) // All endpoints for a given service
-            .rateLimiter(new ServiceRateLimiter(metricRegistry, config))
+            .rateLimiter(new ServiceRateLimiter(metricRegistry, config, ctx))
             .whiteListFilter(new WhiteListFilter(metricRegistry, config.ipWhiteList()))
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
             .tls(tls)
             .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
             .build();
+
+    configEndpointRequestCountMeters(metricRegistry, ctx);
 
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
@@ -364,6 +369,28 @@ public class Router {
     }
 
     channel = future.channel();
+  }
+
+  private void configEndpointRequestCountMeters(
+      MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
+    ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
+        ctx.getRoutes().get();
+
+    final String namePrefix = "routes.";
+
+    if (routes != null) {
+      for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
+        Route route = entry.getKey();
+
+        for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
+          for (XHttpMethod httpMethod : map.keySet()) {
+            String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
+            ctx.getMetersByRoute()
+                .put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
+          }
+        }
+      }
+    }
   }
 
   public void shutdown() {

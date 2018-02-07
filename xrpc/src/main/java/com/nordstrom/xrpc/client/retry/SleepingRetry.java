@@ -13,25 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.client.retry;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.TimeUnit;
 
 abstract class SleepingRetry implements RetryPolicy {
-  private final int n;
+  private final int maxRetries;
 
-  protected SleepingRetry(int n) {
-    this.n = n;
+  protected SleepingRetry(int maxRetries) {
+    this.maxRetries = maxRetries;
   }
 
   @VisibleForTesting
-  int getN() {
-    return n;
+  int getMaxRetries() {
+    return maxRetries;
   }
 
   public boolean allowRetry(int retryCount, long elapsedTimeMs, RetrySleeper sleeper) {
-    if (retryCount < n) {
+    if (retryCount < maxRetries) {
       try {
         sleeper.sleepFor(getSleepTimeMs(retryCount, elapsedTimeMs), TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {

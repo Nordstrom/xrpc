@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,7 +22,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +47,7 @@ class XrpcClientTest {
   void tearDown() {}
 
   @Test
-  void testURIString() throws Exception {
+  void testUriString() throws Exception {
     String uriString =
         "https://localhost:8888/v1/authinit?client_id=ios&scope=REGISTERED&code=-S1l05-YI9a3yfaw5CcbxKedtiyPXkSwBBgCMzw14VQ*&method=s256&redirect_uri=nothing";
     String qs = XUrl.stripUrlParameters(uriString);

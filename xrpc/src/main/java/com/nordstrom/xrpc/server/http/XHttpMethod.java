@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server.http;
 
 import io.netty.handler.codec.http.HttpMethod;
@@ -77,13 +78,13 @@ public class XHttpMethod extends HttpMethod implements Comparable<HttpMethod> {
 
   /**
    * This specification reserves the method name CONNECT for use with a proxy that can dynamically
-   * switch to being a tunnel
+   * switch to being a tunnel.
    */
   public static final XHttpMethod CONNECT = new XHttpMethod("CONNECT");
 
   /**
    * This specification reserves the method name ANY for use with a the UrlRoute to allow matching
-   * of any HttpMethod
+   * of any HttpMethod.
    */
   public static final XHttpMethod ANY = new XHttpMethod("ANY");
 

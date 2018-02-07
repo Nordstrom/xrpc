@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import com.google.auto.value.AutoValue;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.tls.Tls;
 
-/** State is a value object for storing server state */
+/** State is a value object for storing server state. */
 @AutoValue
 public abstract class State {
   public abstract XConfig config();

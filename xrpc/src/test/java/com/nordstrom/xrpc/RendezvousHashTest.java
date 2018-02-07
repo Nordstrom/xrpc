@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Funnels;
@@ -75,11 +77,11 @@ class RendezvousHashTest {
     String k1 = "foo";
     String k2 = "bar";
     String k3 = "baz";
-    String k4 = "biz";
 
     assertEquals(hasher.getOne(k1.getBytes()), hasher.getOne(k1.getBytes()));
     assertEquals(hasher.getOne(k2.getBytes()), hasher.getOne(k2.getBytes()));
     assertEquals(hasher.getOne(k3.getBytes()), hasher.getOne(k3.getBytes()));
+    String k4 = "biz";
     assertEquals(hasher.getOne(k4.getBytes()), hasher.getOne(k4.getBytes()));
 
     System.out.println(hasher.getOne(k1.getBytes()));

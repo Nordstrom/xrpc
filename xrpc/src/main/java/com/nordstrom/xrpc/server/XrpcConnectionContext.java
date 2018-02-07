@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
@@ -46,4 +47,6 @@ public class XrpcConnectionContext {
       routes = new AtomicReference<>();
 
   @Getter private final ObjectMapper mapper;
+
+  @Getter private final ConcurrentHashMap<String, Meter> metersByRoute = new ConcurrentHashMap<>();
 }

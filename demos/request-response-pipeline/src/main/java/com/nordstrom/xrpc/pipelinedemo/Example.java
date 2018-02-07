@@ -19,7 +19,6 @@ package com.nordstrom.xrpc.pipelinedemo;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.IdleDisconnectHandler;
 import com.nordstrom.xrpc.server.Router;
@@ -87,7 +86,7 @@ public class Example {
           state.tls().getEncryptionHandler(ch.alloc())); // Add Config for Certs
 
       // all of the following functionality replaces this line in ServerChannelInitializer
-      //cp.addLast("codec", state.h1h2());
+      // cp.addLast("codec", state.h1h2());
       cp.addLast(
           "codecNegotiation",
           new HttpNegotiationHandler(() -> new Http2HandlerBuilder().server(true).build()));
@@ -111,7 +110,6 @@ public class Example {
 
     // Build your router. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
     Map<Route, PipelineRequestHandler> map = new LinkedHashMap<>();
     map.put(
         Route.build("/hello/"),
@@ -122,7 +120,7 @@ public class Example {
     ImmutableMap<Route, PipelineRequestHandler> routes = ImmutableMap.copyOf(map);
 
     Router router =
-        new Router(xConfig) {
+        new Router(config) {
           @Override
           public ChannelInitializer<Channel> initializer(State state) {
             return new MyChannelInitializer(state, routes);
