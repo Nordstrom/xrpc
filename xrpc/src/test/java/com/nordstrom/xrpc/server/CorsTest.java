@@ -30,9 +30,11 @@ class CorsTest {
 
   @BeforeEach
   void beforeEach() {
-    config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    addConfigValue("serve_admin_routes", fromAnyRef(false));
-    addConfigValue("run_background_health_checks", fromAnyRef(false));
+    config =
+        ConfigFactory.load("test.conf")
+            .getConfig("xrpc")
+            .withValue("serve_admin_routes", fromAnyRef(false))
+            .withValue("run_background_health_checks", fromAnyRef(false));
     client = OkHttpUnsafe.getUnsafeClient();
   }
 
