@@ -379,13 +379,16 @@ public class Router {
 
     final String namePrefix = "routes.";
 
-    for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
-      Route route = entry.getKey();
+    if (routes != null) {
+      for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
+        Route route = entry.getKey();
 
-      for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
-        for (XHttpMethod httpMethod : map.keySet()) {
-          String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
-          ctx.getMetersByRoute().put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
+        for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
+          for (XHttpMethod httpMethod : map.keySet()) {
+            String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
+            ctx.getMetersByRoute()
+                .put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
+          }
         }
       }
     }
