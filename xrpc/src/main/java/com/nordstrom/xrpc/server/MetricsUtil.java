@@ -19,14 +19,14 @@ public class MetricsUtil {
 
     String routeIdentifier = routeIdentifierMap.get(route);
     if (routeIdentifier == null) {
-      if (route != null && route.toString() != null) {
-        routeIdentifier = route.toString().replace('/', '.');
-        routeIdentifierMap.put(route, routeIdentifier);
-      } else {
+      if (route == null || route.toString() == null) {
         throw new IllegalArgumentException("Route cannot be null.");
       }
+
+      routeIdentifier = route.toString().replace('/', '.');
+      routeIdentifierMap.put(route, routeIdentifier);
     }
 
-    return method + routeIdentifier;
+    return String.format("%s%s", method, routeIdentifier);
   }
 }
