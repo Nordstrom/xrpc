@@ -37,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 // TODO: (AD) Make Immutable.
 public class XrpcConnectionContext {
   @Getter private final Meter requestMeter;
-  @Getter private final int maxPayloadSize;
 
   @Singular("meterByStatusCode")
   @Getter
