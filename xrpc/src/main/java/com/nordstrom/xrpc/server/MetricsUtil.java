@@ -17,12 +17,12 @@ public class MetricsUtil {
   protected static String getMeterNameForRoute(Route route, String httpMethod) {
     String method = Optional.ofNullable(httpMethod).orElse("ANY");
 
+    if (route == null || route.toString() == null) {
+      throw new IllegalArgumentException("Route cannot be null.");
+    }
+
     String routeIdentifier = routeIdentifierMap.get(route);
     if (routeIdentifier == null) {
-      if (route == null || route.toString() == null) {
-        throw new IllegalArgumentException("Route cannot be null.");
-      }
-
       routeIdentifier = route.toString().replace('/', '.');
       routeIdentifierMap.put(route, routeIdentifier);
     }
