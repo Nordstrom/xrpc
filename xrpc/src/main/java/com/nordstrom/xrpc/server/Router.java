@@ -89,13 +89,13 @@ public class Router {
             .requestMeter(metricRegistry.meter("requests"))
             .maxPayloadSize(maxPayload)
             .mapper(new ObjectMapper());
-    configureResponseCodeMeters(contextBuilder);
+    addResponseCodeMeters(contextBuilder);
 
     this.ctx = contextBuilder.build();
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
-  private void configureResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
+  private void addResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
     Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
     namesByCode.put(HttpResponseStatus.OK, "ok");
     namesByCode.put(HttpResponseStatus.CREATED, "created");
@@ -109,9 +109,8 @@ public class Router {
     namesByCode.put(HttpResponseStatus.INTERNAL_SERVER_ERROR, "serverError");
 
     // Create the proper metrics containers.
-    String namePrefix = "responseCodes.";
     for (Map.Entry<HttpResponseStatus, String> entry : namesByCode.entrySet()) {
-      String meterName = namePrefix + entry.getValue();
+      String meterName = "responseCodes." + entry.getValue();
       contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
   }
