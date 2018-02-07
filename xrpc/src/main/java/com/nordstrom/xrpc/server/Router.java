@@ -77,10 +77,6 @@ public class Router {
   }
 
   public Router(XConfig config) {
-    this(config, 1024 * 1024);
-  }
-
-  public Router(XConfig config, int maxPayload) {
     this.config = config;
     this.workerNameFormat = config.workerNameFormat();
     this.bossThreadCount = config.bossThreadCount();
@@ -90,7 +86,6 @@ public class Router {
     XrpcConnectionContext.Builder contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .maxPayloadSize(maxPayload)
             .mapper(new ObjectMapper());
     addResponseCodeMeters(contextBuilder);
 
