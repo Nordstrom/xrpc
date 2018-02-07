@@ -2,13 +2,13 @@ package com.nordstrom.xrpc.server;
 
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.XHttpMethod;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MetricsUtil {
 
-  private static Map<Route, String> routeIdentifierMap = new HashMap<>();
+  private static Map<Route, String> routeIdentifierMap = new ConcurrentHashMap<>();
 
   protected static String getMeterNameForRoute(Route route, XHttpMethod httpMethod) {
     return getMeterNameForRoute(route, httpMethod.name());
