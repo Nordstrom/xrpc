@@ -16,6 +16,8 @@
 
 package com.nordstrom.xrpc.server;
 
+import static com.codahale.metrics.MetricRegistry.name;
+
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -43,6 +45,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,10 +58,6 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  private final String workerNameFormat;
-  private final int bossThreadCount;
-  private final int workerThreadCount;
-
   private final XConfig config;
   private final Tls tls;
   private final XrpcConnectionContext ctx;
@@ -74,46 +73,36 @@ public class Router {
   }
 
   public Router(XConfig config) {
-    this(config, 1024 * 1024);
-  }
-
-  public Router(XConfig config, int maxPayload) {
     this.config = config;
-    this.workerNameFormat = config.workerNameFormat();
-    this.bossThreadCount = config.bossThreadCount();
-    this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
 
-    this.ctx =
+    XrpcConnectionContext.Builder contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .maxPayloadSize(maxPayload)
-            .mapper(new ObjectMapper())
-            .build();
+            .mapper(new ObjectMapper());
+    addResponseCodeMeters(contextBuilder);
 
-    configResponseCodeMeters();
+    this.ctx = contextBuilder.build();
   }
 
-  private void configResponseCodeMeters() {
-    final Map<HttpResponseStatus, String> meterNamesByStatusCode = new ConcurrentHashMap<>(10);
+  /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
+  private void addResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
+    Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
+    namesByCode.put(HttpResponseStatus.OK, "ok");
+    namesByCode.put(HttpResponseStatus.CREATED, "created");
+    namesByCode.put(HttpResponseStatus.ACCEPTED, "accepted");
+    namesByCode.put(HttpResponseStatus.NO_CONTENT, "noContent");
+    namesByCode.put(HttpResponseStatus.BAD_REQUEST, "badRequest");
+    namesByCode.put(HttpResponseStatus.UNAUTHORIZED, "unauthorized");
+    namesByCode.put(HttpResponseStatus.FORBIDDEN, "forbidden");
+    namesByCode.put(HttpResponseStatus.NOT_FOUND, "notFound");
+    namesByCode.put(HttpResponseStatus.TOO_MANY_REQUESTS, "tooManyRequests");
+    namesByCode.put(HttpResponseStatus.INTERNAL_SERVER_ERROR, "serverError");
 
-    // Create the proper metrics containers
-    final String namePrefix = "responseCodes.";
-    meterNamesByStatusCode.put(HttpResponseStatus.OK, namePrefix + "ok");
-    meterNamesByStatusCode.put(HttpResponseStatus.CREATED, namePrefix + "created");
-    meterNamesByStatusCode.put(HttpResponseStatus.ACCEPTED, namePrefix + "accepted");
-    meterNamesByStatusCode.put(HttpResponseStatus.NO_CONTENT, namePrefix + "noContent");
-    meterNamesByStatusCode.put(HttpResponseStatus.BAD_REQUEST, namePrefix + "badRequest");
-    meterNamesByStatusCode.put(HttpResponseStatus.UNAUTHORIZED, namePrefix + "unauthorized");
-    meterNamesByStatusCode.put(HttpResponseStatus.FORBIDDEN, namePrefix + "forbidden");
-    meterNamesByStatusCode.put(HttpResponseStatus.NOT_FOUND, namePrefix + "notFound");
-    meterNamesByStatusCode.put(
-        HttpResponseStatus.TOO_MANY_REQUESTS, namePrefix + "tooManyRequests");
-    meterNamesByStatusCode.put(
-        HttpResponseStatus.INTERNAL_SERVER_ERROR, namePrefix + "serverError");
-
-    for (Map.Entry<HttpResponseStatus, String> entry : meterNamesByStatusCode.entrySet()) {
-      ctx.getMetersByStatusCode().put(entry.getKey(), metricRegistry.meter(entry.getValue()));
+    // Create the proper metrics containers.
+    for (Map.Entry<HttpResponseStatus, String> entry : namesByCode.entrySet()) {
+      String meterName = "responseCodes." + entry.getValue();
+      contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
   }
 
@@ -282,27 +271,20 @@ public class Router {
     return new ServerChannelInitializer(state);
   }
 
-  public void listenAndServe() throws IOException {
-    listenAndServe(true, true);
-  }
-
   /**
    * The listenAndServe method is the primary entry point for the server and should only be called
    * once and only from the main thread.
    *
-   * @param serveAdmin pass true to serve the admin handlers, false if not
-   * @param scheduleHealthChecks pass true to schedule periodic health checks, otherwise, the health
-   *     checks will be run every time the health endpoint is hit
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
-  public void listenAndServe(boolean serveAdmin, boolean scheduleHealthChecks) throws IOException {
+  public void listenAndServe() throws IOException {
     State state =
         State.builder()
             .config(config)
             .globalConnectionLimiter(
                 new ConnectionLimiter(
                     metricRegistry, config.maxConnections())) // All endpoints for a given service
-            .rateLimiter(new ServiceRateLimiter(metricRegistry, config))
+            .rateLimiter(new ServiceRateLimiter(metricRegistry, config, ctx))
             .whiteListFilter(new WhiteListFilter(metricRegistry, config.ipWhiteList()))
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
@@ -310,18 +292,21 @@ public class Router {
             .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
             .build();
 
+    configEndpointRequestCountMeters(metricRegistry, ctx);
+
     ServerBootstrap b =
-        XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
+        XrpcBootstrapFactory.buildBootstrap(
+            config.bossThreadCount(), config.workerThreadCount(), config.workerNameFormat());
 
     b.childHandler(initializer(state));
 
-    if (scheduleHealthChecks) {
+    if (config.runBackgroundHealthChecks()) {
       final EventLoopGroup _workerGroup = b.config().childGroup();
       healthCheckRegistry = new HealthCheckRegistry(_workerGroup);
       scheduleHealthChecks(_workerGroup);
     }
 
-    if (serveAdmin) {
+    if (config.serveAdminRoutes()) {
       serveAdmin();
     }
 
@@ -368,6 +353,28 @@ public class Router {
     }
 
     channel = future.channel();
+  }
+
+  private void configEndpointRequestCountMeters(
+      MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
+    ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
+        ctx.getRoutes().get();
+
+    final String namePrefix = "routes.";
+
+    if (routes != null) {
+      for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
+        Route route = entry.getKey();
+
+        for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
+          for (XHttpMethod httpMethod : map.keySet()) {
+            String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
+            ctx.getMetersByRoute()
+                .put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
+          }
+        }
+      }
+    }
   }
 
   public void shutdown() {

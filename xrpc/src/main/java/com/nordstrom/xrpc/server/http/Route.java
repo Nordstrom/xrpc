@@ -127,4 +127,18 @@ public class Route {
   public String toString() {
     return originalPath;
   }
+
+  /** Two routes are considered equal if their original path specification was identical. */
+  @Override
+  public boolean equals(Object that) {
+    if (!(that instanceof Route)) {
+      return false;
+    }
+    return ((Route) that).originalPath.equals(this.originalPath);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.originalPath.hashCode();
+  }
 }

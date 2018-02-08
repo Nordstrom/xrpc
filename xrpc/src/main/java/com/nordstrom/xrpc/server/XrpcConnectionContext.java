@@ -28,23 +28,25 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Builder
+@Builder(builderClassName = "Builder")
 // TODO: (AD) Merge with State
 // TODO: (AD) Make Immutable.
 public class XrpcConnectionContext {
-  @Getter private Meter requestMeter;
-  @Getter private int maxPayloadSize;
+  @Getter private final Meter requestMeter;
 
+  @Singular("meterByStatusCode")
   @Getter
-  private final ConcurrentHashMap<HttpResponseStatus, Meter> metersByStatusCode =
-      new ConcurrentHashMap<>(10);
+  private final ImmutableMap<HttpResponseStatus, Meter> metersByStatusCode;
 
   @Getter
   private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
       routes = new AtomicReference<>();
 
   @Getter private final ObjectMapper mapper;
+
+  @Getter private final ConcurrentHashMap<String, Meter> metersByRoute = new ConcurrentHashMap<>();
 }

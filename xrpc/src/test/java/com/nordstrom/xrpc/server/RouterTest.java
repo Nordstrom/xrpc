@@ -33,7 +33,7 @@ class RouterTest {
   @Test
   void addRoute() {
     XConfig config = new XConfig();
-    Router r = new Router(config, 1);
+    Router r = new Router(config);
 
     Handler h1 = request -> null;
     Handler h2 = request -> null;

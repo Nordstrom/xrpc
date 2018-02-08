@@ -53,8 +53,8 @@ class ServiceRateLimiter extends ChannelDuplexHandler {
   private Map<ChannelHandlerContext, Timer.Context> timerMap =
       PlatformDependent.newConcurrentHashMap();
 
-  public ServiceRateLimiter(MetricRegistry metrics, XConfig config) {
-    this.reqs = metrics.meter(name(Router.class, "requests", "Rate"));
+  public ServiceRateLimiter(MetricRegistry metrics, XConfig config, XrpcConnectionContext ctx) {
+    this.reqs = metrics.meter(name("requests", "Rate"));
     this.timer = metrics.timer("Request Latency");
     this.config = config;
     this.globalHardLimiter = RateLimiter.create(config.globalHardReqPerSec());
