@@ -70,7 +70,7 @@ public class Router {
   private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
 
   public Router(Config config) {
-    this(new XConfig(config));
+    this(new XConfig(config.getConfig("xrpc")));
   }
 
   public Router(XConfig config) {
@@ -325,7 +325,9 @@ public class Router {
       serveAdmin();
     }
 
-    ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
+    InetSocketAddress address = new InetSocketAddress(config.port());
+    log.error("Listening at {}", address);
+    ChannelFuture future = b.bind(address);
 
     try {
       // Build out the loggers that are specified in the config

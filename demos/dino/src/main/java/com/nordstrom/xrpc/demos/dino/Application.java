@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Nordstrom, Inc.
+ * Copyright 2018 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.demo;
+package com.nordstrom.xrpc.demos.dino;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
-import com.nordstrom.xrpc.demo.proto.Dino;
-import com.nordstrom.xrpc.demo.proto.DinoGetReply;
-import com.nordstrom.xrpc.demo.proto.DinoGetRequest;
-import com.nordstrom.xrpc.demo.proto.DinoSetReply;
-import com.nordstrom.xrpc.demo.proto.DinoSetRequest;
+import com.nordstrom.xrpc.demos.dino.proto.Dino;
+import com.nordstrom.xrpc.demos.dino.proto.DinoGetReply;
+import com.nordstrom.xrpc.demos.dino.proto.DinoGetRequest;
+import com.nordstrom.xrpc.demos.dino.proto.DinoSetReply;
+import com.nordstrom.xrpc.demos.dino.proto.DinoSetRequest;
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
 import com.nordstrom.xrpc.server.XrpcRequest;
@@ -42,7 +42,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Example {
+public class Application {
   public static void main(String[] args) {
     final List<Dino> dinos = new ArrayList<>();
 
@@ -67,9 +67,6 @@ public class Example {
               return Recipes.newResponseBadRequest("Method not found in DinoService");
           }
         };
-
-    // Add handlers for /people routes
-    new PeopleRoutes(router);
 
     // Add predefined handler for HTTP ANY:/DinoService/{method}
     router.any("/DinoService/{method}", dinoHandler);
