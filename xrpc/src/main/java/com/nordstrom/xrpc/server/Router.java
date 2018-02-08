@@ -311,7 +311,7 @@ public class Router {
     }
 
     InetSocketAddress address = new InetSocketAddress(config.port());
-    log.error("Listening at {}", address);
+    log.info("Listening at {}", address);
     ChannelFuture future = b.bind(address);
 
     try {
