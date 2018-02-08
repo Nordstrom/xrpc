@@ -58,10 +58,6 @@ import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class Router {
-  private final String workerNameFormat;
-  private final int bossThreadCount;
-  private final int workerThreadCount;
-
   private final XConfig config;
   private final Tls tls;
   private final XrpcConnectionContext ctx;
@@ -78,9 +74,6 @@ public class Router {
 
   public Router(XConfig config) {
     this.config = config;
-    this.workerNameFormat = config.workerNameFormat();
-    this.bossThreadCount = config.bossThreadCount();
-    this.workerThreadCount = config.workerThreadCount();
     this.tls = new Tls(config.cert(), config.key());
 
     XrpcConnectionContext.Builder contextBuilder =
@@ -302,7 +295,8 @@ public class Router {
     configEndpointRequestCountMeters(metricRegistry, ctx);
 
     ServerBootstrap b =
-        XrpcBootstrapFactory.buildBootstrap(bossThreadCount, workerThreadCount, workerNameFormat);
+        XrpcBootstrapFactory.buildBootstrap(
+            config.bossThreadCount(), config.workerThreadCount(), config.workerNameFormat());
 
     b.childHandler(initializer(state));
 
