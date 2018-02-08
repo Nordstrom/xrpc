@@ -181,8 +181,8 @@ public class AdminHandlers {
    */
   // CHECKSTYLE:ON
   public static Handler metricsHandler(MetricRegistry metrics, ObjectMapper mapper) {
-    Preconditions.checkState(metrics != null);
-    Preconditions.checkState(mapper != null);
+    Preconditions.checkArgument(metrics != null, "metrics may not be null");
+    Preconditions.checkArgument(mapper != null, "mapper may not be null");
     return xrpcRequest ->
         Recipes.newResponseOk(
             xrpcRequest
@@ -238,19 +238,18 @@ public class AdminHandlers {
    */
   public static Handler healthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
-    Preconditions.checkState(healthCheckRegistry != null);
-    Preconditions.checkState(mapper != null);
+    Preconditions.checkArgument(healthCheckRegistry != null, "healthCheckRegistry may not be null");
+    Preconditions.checkArgument(mapper != null, "mapper may not be null");
 
-    SortedMap<String, HealthCheck.Result> healthChecks = healthCheckRegistry.runHealthChecks();
-
-    return xrpcRequest ->
-        Recipes.newResponseOk(
-            xrpcRequest
-                .getAlloc()
-                .directBuffer()
-                .writeBytes(
-                    mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(healthChecks)),
-            Recipes.ContentType.Application_Json);
+    return xrpcRequest -> {
+      SortedMap<String, HealthCheck.Result> healthChecks = healthCheckRegistry.runHealthChecks();
+      return Recipes.newResponseOk(
+          xrpcRequest
+              .getAlloc()
+              .directBuffer()
+              .writeBytes(mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(healthChecks)),
+          Recipes.ContentType.Application_Json);
+    };
   }
 
   /**

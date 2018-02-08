@@ -52,6 +52,7 @@ public class XConfig {
   private final String workerNameFormat;
   private final int bossThreadCount;
   private final int workerThreadCount;
+  private final int asyncHealthCheckThreadCount;
   private final int maxConnections;
   private final double softReqPerSec;
   private final double hardReqPerSec;
@@ -103,6 +104,7 @@ public class XConfig {
     workerNameFormat = config.getString("worker_name_format");
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
+    asyncHealthCheckThreadCount = config.getInt("async_health_check_thread_count");
     maxConnections = config.getInt("max_connections");
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
