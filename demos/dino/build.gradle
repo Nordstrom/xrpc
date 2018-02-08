@@ -16,7 +16,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 group = 'com.nordstrom.xrpc'
 version = '0.1.1-SNAPSHOT'
-archivesBaseName = 'xrpc-dino--demo'
+archivesBaseName = 'xrpc-dino-demo'
 
 description = """xrpc dino demo project."""
 

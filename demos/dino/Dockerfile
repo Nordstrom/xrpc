@@ -45,7 +45,7 @@ WORKDIR /app
 COPY . .
 
 RUN ./gradlew clean shadowJar && \
-  mv demos/demo/build/libs/xrpc-demo-0.1.1-SNAPSHOT-all.jar app.jar
+  mv demos/demo/build/libs/xrpc-dino-demo-0.1.1-SNAPSHOT-all.jar app.jar
 
 CMD java  \
   -Dconfig.file=application.conf \

@@ -24,10 +24,10 @@ $ ./gradlew shadowJar
 $ java -jar app.jar
 ```
 
-# Running the demo app in a test server
+# Running the people demo app in a test server
 
 ```shell
-$ ./bin/startTestServer.sh
+$ ./bin/startPeopleTestServer.sh
 ```
 
 # Basic http set
@@ -47,6 +47,13 @@ $ curl -k  https://localhost:8080/people
 ```shell
 $ curl -k  https://localhost:8080/people --http1.1
 [{"name":"bob"}]
+```
+
+# Running the dino demo app in a test server
+Run the dino app server to demo proto
+
+```shell
+$ ./bin/startDinoTestServer.sh
 ```
 
 # Proto http set
