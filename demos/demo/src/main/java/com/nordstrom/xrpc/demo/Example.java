@@ -25,7 +25,8 @@ import com.nordstrom.xrpc.demo.proto.DinoGetRequest;
 import com.nordstrom.xrpc.demo.proto.DinoSetReply;
 import com.nordstrom.xrpc.demo.proto.DinoSetRequest;
 import com.nordstrom.xrpc.server.Handler;
-import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.server.XrpcRequest;
 import com.nordstrom.xrpc.server.http.Recipes;
 import com.typesafe.config.Config;
@@ -50,11 +51,14 @@ public class Example {
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
 
-    // Build your router. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
-    Router router = new Router(config);
+    // Create your route builder. You use this to register request handlers.
+    Routes routes = new Routes();
 
-    // RPC style endpoint
+    // Build your server. This overrides the default configuration with values from
+    // src/main/resources/demo.conf.
+    Server server = new Server(config, routes);
+
+    // RPC style endpoint.
     Handler dinoHandler =
         request -> {
           String path = request.variable("method");
@@ -68,18 +72,18 @@ public class Example {
           }
         };
 
-    // Add handlers for /people routes
-    new PeopleRoutes(router);
+    // Add handlers for /people routes.
+    new PeopleRoutes(routes);
 
-    // Add predefined handler for HTTP ANY:/DinoService/{method}
-    router.any("/DinoService/{method}", dinoHandler);
+    // Add predefined handler for HTTP GET:/DinoService/{method}.
+    routes.get("/DinoService/{method}", dinoHandler);
 
-    // Add a service specific health check
-    router.addHealthCheck("simple", new SimpleHealthCheck());
+    // Add a service specific health check.
+    server.addHealthCheck("simple", new SimpleHealthCheck());
 
     try {
-      // Fire away
-      router.listenAndServe();
+      // Start the server!
+      server.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
