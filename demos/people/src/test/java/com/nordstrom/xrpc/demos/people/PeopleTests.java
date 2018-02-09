@@ -45,8 +45,42 @@ class PeopleTests {
   }
 
   @Test
-  void testGetPeople() {}
+  void testGetPeople() throws IOException {
+    client
+        .newCall(
+            new Request.Builder()
+                .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
+                .url(endpoint + "/people")
+                .build())
+        .execute();
+
+    Response response =
+        client.newCall(new Request.Builder().get().url(endpoint + "/people").build()).execute();
+
+    assertEquals("[{\"name\":\"bob\"}]", response.body().string());
+  }
 
   @Test
-  void testGetPerson() {}
+  void testGetPerson() throws IOException {
+    client
+        .newCall(
+            new Request.Builder()
+                .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
+                .url(endpoint + "/people")
+                .build())
+        .execute();
+
+    Response response =
+        client.newCall(new Request.Builder().get().url(endpoint + "/people/bob").build()).execute();
+
+    assertEquals("{\"name\":\"bob\"}", response.body().string());
+  }
+
+  @Test
+  void testGetPersonNotFound() throws IOException {
+    Response response =
+        client.newCall(new Request.Builder().get().url(endpoint + "/people/bob").build()).execute();
+
+    assertEquals(404, response.code());
+  }
 }
