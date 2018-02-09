@@ -69,7 +69,7 @@ public class Router {
   private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
 
   public Router(Config config) {
-    this(new XConfig(config.getConfig("xrpc")));
+    this(new XConfig(config));
   }
 
   public Router(XConfig config) {
