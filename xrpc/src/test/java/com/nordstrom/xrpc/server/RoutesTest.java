@@ -37,7 +37,6 @@ class RoutesTest {
   @Test
   public void addRoute_trivialMatch() throws Exception {
     Handler mockHandler = mock(Handler.class);
-    XrpcRequest mockRequest = mock(XrpcRequest.class);
     MetricRegistry registry = new MetricRegistry();
 
     CompiledRoutes routes = new Routes().get("/get", mockHandler).compile(registry);
@@ -50,6 +49,7 @@ class RoutesTest {
     Optional<CompiledRoutes.Match> getMatch = routes.match("/get", HttpMethod.GET);
     assertTrue(getMatch.isPresent(), "expected match to be returned for GET");
 
+    XrpcRequest mockRequest = mock(XrpcRequest.class);
     getMatch.get().getHandler().handle(mockRequest);
     verify(mockHandler, times(1)).handle(mockRequest);
     assertEquals(new HashMap<>(), getMatch.get().getGroups());
@@ -62,8 +62,6 @@ class RoutesTest {
   public void addRoute_samePath() throws Exception {
     Handler mockGetHandler = mock(Handler.class);
     Handler mockPostHandler = mock(Handler.class);
-    XrpcRequest mockGetRequest = mock(XrpcRequest.class);
-    XrpcRequest mockPostRequest = mock(XrpcRequest.class);
     MetricRegistry registry = new MetricRegistry();
 
     CompiledRoutes routes =
@@ -74,11 +72,13 @@ class RoutesTest {
     assertTrue(getMatch.isPresent(), "expected match to be returned for GET");
     assertTrue(postMatch.isPresent(), "expected match to be returned for POST");
 
+    XrpcRequest mockGetRequest = mock(XrpcRequest.class);
     getMatch.get().getHandler().handle(mockGetRequest);
     verify(mockGetHandler, times(1)).handle(mockGetRequest);
     assertEquals(new HashMap<>(), getMatch.get().getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "GET", "/path")).getCount());
 
+    XrpcRequest mockPostRequest = mock(XrpcRequest.class);
     postMatch.get().getHandler().handle(mockPostRequest);
     verify(mockPostHandler, times(1)).handle(mockPostRequest);
     assertEquals(new HashMap<>(), postMatch.get().getGroups());
@@ -90,7 +90,6 @@ class RoutesTest {
   public void addRoute_groupsCapture() throws Exception {
     Handler mockGroupsHandler = mock(Handler.class);
     Handler mockGetHandler = mock(Handler.class);
-    XrpcRequest mockGroupsRequest = mock(XrpcRequest.class);
     MetricRegistry registry = new MetricRegistry();
 
     CompiledRoutes routes =
@@ -102,6 +101,7 @@ class RoutesTest {
     Optional<CompiledRoutes.Match> match = routes.match("/path/subpath", HttpMethod.GET);
     assertTrue(match.isPresent(), "expected match to be returned for GET");
 
+    XrpcRequest mockGroupsRequest = mock(XrpcRequest.class);
     match.get().getHandler().handle(mockGroupsRequest);
     verify(mockGetHandler, never()).handle(any());
     verify(mockGroupsHandler, times(1)).handle(mockGroupsRequest);
