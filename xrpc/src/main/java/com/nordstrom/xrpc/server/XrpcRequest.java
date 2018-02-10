@@ -195,12 +195,6 @@ public class XrpcRequest {
       Recipes.ContentType contentType,
       Map<String, String> customHeaders)
       throws IOException {
-    log.debug(
-        "response: status={}, body={}, contentType={}, headers={}",
-        status,
-        body,
-        contentType,
-        customHeaders);
     return Recipes.newResponse(status, bodyToByteBuf(body), contentType, customHeaders);
   }
 
