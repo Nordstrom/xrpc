@@ -10,7 +10,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.OkHttpClient;
 
-public class Http {
+/** DO NOT USE OUTSIDE OF TESTING. This class is used to help test HTTP. */
+public class UnsafeHttp {
   public static OkHttpClient unsafeClient() {
     try {
       X509TrustManager trustManager = unsafeTrustManager();
