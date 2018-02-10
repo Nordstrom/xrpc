@@ -18,7 +18,6 @@ package com.nordstrom.xrpc.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,7 +28,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import io.netty.handler.codec.http.HttpMethod;
 import java.util.HashMap;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /** Tests for Routes and CompiledRoutes. */
@@ -42,18 +40,17 @@ class RoutesTest {
 
     CompiledRoutes routes = new Routes().get("/get", mockHandler).compile(registry);
 
-    Optional<CompiledRoutes.Match> putMatch = routes.match("/get", HttpMethod.PUT);
-    assertEquals(Optional.empty(), putMatch, "expected no match for PUT");
-    Optional<CompiledRoutes.Match> missingMatch = routes.match("/ge", HttpMethod.GET);
-    assertEquals(Optional.empty(), missingMatch, "expected no match for bad path");
+    CompiledRoutes.Match putMatch = routes.match("/get", HttpMethod.PUT);
+    assertEquals(CompiledRoutes.Match.METHOD_NOT_ALLOWED, putMatch, "expected 405 for PUT");
+    CompiledRoutes.Match missingMatch = routes.match("/ge", HttpMethod.GET);
+    assertEquals(CompiledRoutes.Match.NOT_FOUND, missingMatch, "expected 404 for bad path");
 
-    Optional<CompiledRoutes.Match> getMatch = routes.match("/get", HttpMethod.GET);
-    assertTrue(getMatch.isPresent(), "expected match to be returned for GET");
+    CompiledRoutes.Match getMatch = routes.match("/get", HttpMethod.GET);
 
     XrpcRequest mockRequest = mock(XrpcRequest.class);
-    getMatch.get().getHandler().handle(mockRequest);
+    getMatch.getHandler().handle(mockRequest);
     verify(mockHandler, times(1)).handle(mockRequest);
-    assertEquals(new HashMap<>(), getMatch.get().getGroups());
+    assertEquals(new HashMap<>(), getMatch.getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "GET", "/get")).getCount());
     assertEquals(0L, registry.meter(MetricRegistry.name("routes", "PUT", "/get")).getCount());
   }
@@ -68,21 +65,19 @@ class RoutesTest {
     CompiledRoutes routes =
         new Routes().get("/path", mockGetHandler).post("/path", mockPostHandler).compile(registry);
 
-    Optional<CompiledRoutes.Match> getMatch = routes.match("/path", HttpMethod.GET);
-    Optional<CompiledRoutes.Match> postMatch = routes.match("/path", HttpMethod.POST);
-    assertTrue(getMatch.isPresent(), "expected match to be returned for GET");
-    assertTrue(postMatch.isPresent(), "expected match to be returned for POST");
+    CompiledRoutes.Match getMatch = routes.match("/path", HttpMethod.GET);
+    CompiledRoutes.Match postMatch = routes.match("/path", HttpMethod.POST);
 
     XrpcRequest mockGetRequest = mock(XrpcRequest.class);
-    getMatch.get().getHandler().handle(mockGetRequest);
+    getMatch.getHandler().handle(mockGetRequest);
     verify(mockGetHandler, times(1)).handle(mockGetRequest);
-    assertEquals(new HashMap<>(), getMatch.get().getGroups());
+    assertEquals(new HashMap<>(), getMatch.getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "GET", "/path")).getCount());
 
     XrpcRequest mockPostRequest = mock(XrpcRequest.class);
-    postMatch.get().getHandler().handle(mockPostRequest);
+    postMatch.getHandler().handle(mockPostRequest);
     verify(mockPostHandler, times(1)).handle(mockPostRequest);
-    assertEquals(new HashMap<>(), postMatch.get().getGroups());
+    assertEquals(new HashMap<>(), postMatch.getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "POST", "/path")).getCount());
   }
 
@@ -99,14 +94,13 @@ class RoutesTest {
             .get("/path", mockGetHandler)
             .compile(registry);
 
-    Optional<CompiledRoutes.Match> match = routes.match("/path/subpath", HttpMethod.GET);
-    assertTrue(match.isPresent(), "expected match to be returned for GET");
+    CompiledRoutes.Match match = routes.match("/path/subpath", HttpMethod.GET);
 
     XrpcRequest mockGroupsRequest = mock(XrpcRequest.class);
-    match.get().getHandler().handle(mockGroupsRequest);
+    match.getHandler().handle(mockGroupsRequest);
     verify(mockGetHandler, never()).handle(any());
     verify(mockGroupsHandler, times(1)).handle(mockGroupsRequest);
-    assertEquals(ImmutableMap.of("grp", "subpath"), match.get().getGroups());
+    assertEquals(ImmutableMap.of("grp", "subpath"), match.getGroups());
     assertEquals(
         1L, registry.meter(MetricRegistry.name("routes", "GET", "/path/{grp}")).getCount());
   }

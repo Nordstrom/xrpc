@@ -16,9 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
@@ -27,13 +24,9 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -59,31 +52,18 @@ public class UrlRouter extends ChannelDuplexHandler {
     if (msg instanceof FullHttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
-      Optional<CompiledRoutes.Match> matchOpt = xctx.getRoutes().match(path, request.method());
+      CompiledRoutes.Match match = xctx.getRoutes().match(path, request.method());
 
-      if (matchOpt.isPresent()) {
-        CompiledRoutes.Match match = matchOpt.get();
-        ObjectMapper mapper = xctx.getMapper();
-        XrpcRequest xrpcRequest =
-            new XrpcRequest(request, xctx.getMapper(), match.getGroups(), ctx.channel());
-        xrpcRequest.setData(request.content());
+      ObjectMapper mapper = xctx.getMapper();
+      XrpcRequest xrpcRequest =
+          new XrpcRequest(request, xctx.getMapper(), match.getGroups(), ctx.channel());
+      xrpcRequest.setData(request.content());
 
-        HttpResponse resp = match.getHandler().handle(xrpcRequest);
+      HttpResponse resp = match.getHandler().handle(xrpcRequest);
 
-        xctx.getMetersByStatusCode().get(resp.status()).mark();
+      xctx.getMetersByStatusCode().get(resp.status()).mark();
 
-        ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-        ctx.fireChannelRead(msg);
-        return;
-      }
-
-      // No matching route.
-      FullHttpResponse response =
-          new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-      ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-      xctx.getMetersByStatusCode().get(HttpResponseStatus.NOT_FOUND).mark();
+      ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
     }
     ctx.fireChannelRead(msg);
   }

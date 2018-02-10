@@ -151,37 +151,27 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
     String path = getPathFromHeaders(headers);
     HttpMethod method = HttpMethod.valueOf(headers.method().toString());
-    Optional<CompiledRoutes.Match> matchOpt = xctx.getRoutes().match(path, method);
-    if (matchOpt.isPresent()) {
-      CompiledRoutes.Match match = matchOpt.get();
-      XrpcRequest request =
-          new XrpcRequest(headers, xctx.getMapper(), match.getGroups(), channel, streamId);
-      Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
-      if (!contentLength.isPresent()) {
-        // No request body expected; execute handler now with empty body.
-        try {
-          FullHttpResponse response = (FullHttpResponse) match.getHandler().handle(request);
-          sendResponse(ctx, response, streamId);
-          return;
-        } catch (IOException e) {
-          log.error("Error in handling Route", e);
-          // Error
-          ByteBuf buf = channel.alloc().directBuffer();
-          buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
-          writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
-        }
-      } else {
-        // Save request & handler for use when data is received.
-        channel.attr(XrpcConstants.XRPC_REQUEST).set(request);
-        channel.attr(XrpcConstants.XRPC_HANDLER).set(match.getHandler());
-        return;
+    CompiledRoutes.Match match = xctx.getRoutes().match(path, method);
+    XrpcRequest request =
+        new XrpcRequest(headers, xctx.getMapper(), match.getGroups(), channel, streamId);
+    Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
+    if (!contentLength.isPresent()) {
+      // No request body expected; execute handler now with empty body.
+      try {
+        FullHttpResponse response = (FullHttpResponse) match.getHandler().handle(request);
+        sendResponse(ctx, response, streamId);
+      } catch (IOException e) {
+        log.error("Error in handling Route", e);
+        // Error
+        ByteBuf buf = channel.alloc().directBuffer();
+        buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
+        writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
       }
+    } else {
+      // Save request & handler for use when data is received.
+      channel.attr(XrpcConstants.XRPC_REQUEST).set(request);
+      channel.attr(XrpcConstants.XRPC_HANDLER).set(match.getHandler());
     }
-
-    // No Valid Route
-    ByteBuf buf = channel.alloc().directBuffer();
-    buf.writeBytes("Endpoint not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
-    writeResponse(ctx, streamId, HttpResponseStatus.NOT_FOUND, buf);
   }
 
   @Override

@@ -20,10 +20,14 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.nordstrom.xrpc.XrpcConstants;
+import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.server.http.Route;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Map;
-import java.util.Optional;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
@@ -78,11 +82,11 @@ public class CompiledRoutes {
   /**
    * Gets the handler and matched groups for the given path and method.
    *
-   * @return the handler for the given path and method, if a handler matched. The handler returned
-   *     will set the match groups on the request when passed in, then forward the request to the
-   *     user-provided handler.
+   * @return the handler for the given path and method. If a path matched, but no method matched, a
+   *     handler returning 405 (method not allowed) will be returned. If no path matched, a handler
+   *     returning 404 (not found) will be returned.
    */
-  public Optional<Match> match(String path, HttpMethod method) {
+  public Match match(String path, HttpMethod method) {
     boolean pathMatched = false;
     for (Map.Entry<Route, ImmutableMap<HttpMethod, Handler>> routeToHandlers : routes.entrySet()) {
       Map<String, String> groups = routeToHandlers.getKey().groups(path);
@@ -90,22 +94,16 @@ public class CompiledRoutes {
         pathMatched = true;
         Handler handler = routeToHandlers.getValue().get(method);
         if (handler != null) {
-          return Optional.of(new Match(handler, groups));
+          return new Match(handler, groups);
         }
       }
     }
 
-    return Optional.empty();
-  }
-
-  /** Container class for storing a route coupled with the handler implementations for it. */
-  @Value
-  private static class RouteWithHandlers {
-    /** The route that this matches. */
-    Route route;
-
-    /** A map of HttpMethod to the handler for that method. Will not be empty. */
-    ImmutableMap<HttpMethod, Handler> handlers;
+    if (pathMatched) {
+      return Match.METHOD_NOT_ALLOWED;
+    } else {
+      return Match.NOT_FOUND;
+    }
   }
 
   /** Container for a matched Route. */
@@ -116,5 +114,35 @@ public class CompiledRoutes {
 
     /** Groups which were pulled out of the request path. */
     Map<String, String> groups;
+
+    /** A match returning 404 responses. */
+    static final Match NOT_FOUND;
+
+    /** A match returning 405 responses. */
+    static final Match METHOD_NOT_ALLOWED;
+
+    static {
+      // Singleton, static response strings, built once.
+      ByteBuf notFound =
+          Unpooled.wrappedBuffer("Not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
+      ByteBuf methodNotAllowed =
+          Unpooled.wrappedBuffer("Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET));
+      NOT_FOUND =
+          new Match(
+              request -> {
+                return Recipes.newResponse(
+                    HttpResponseStatus.NOT_FOUND, notFound, Recipes.ContentType.Text_Plain);
+              },
+              ImmutableMap.of());
+      METHOD_NOT_ALLOWED =
+          new Match(
+              request -> {
+                return Recipes.newResponse(
+                    HttpResponseStatus.METHOD_NOT_ALLOWED,
+                    methodNotAllowed,
+                    Recipes.ContentType.Text_Plain);
+              },
+              ImmutableMap.of());
+    }
   }
 }
