@@ -146,7 +146,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     }
 
     // After headers are read, we can determine if we have a route that handles the request. If
-    // there is no handler, we short-circuit 404 and drop and data. Otherwise, we'll pass through to
+    // there is no handler, we short-circuit 404 and drop data. Otherwise, we'll pass through to
     // the handler iff there is no data expected.
     XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
     String path = getPathFromHeaders(headers);

@@ -34,8 +34,9 @@ import org.junit.jupiter.api.Test;
 
 /** Tests for Routes and CompiledRoutes. */
 class RoutesTest {
+  /** Tests basic routing features. */
   @Test
-  public void addRoute_trivialMatch() throws Exception {
+  public void trivialRouteMatch() throws Exception {
     Handler mockHandler = mock(Handler.class);
     MetricRegistry registry = new MetricRegistry();
 
@@ -59,7 +60,7 @@ class RoutesTest {
 
   /** Tests that two handlers on the same path with different methods get handled correctly. */
   @Test
-  public void addRoute_samePath() throws Exception {
+  public void samePathDifferentMethods() throws Exception {
     Handler mockGetHandler = mock(Handler.class);
     Handler mockPostHandler = mock(Handler.class);
     MetricRegistry registry = new MetricRegistry();
@@ -87,7 +88,7 @@ class RoutesTest {
 
   /** Tests that groups are passed through correctly when captured. */
   @Test
-  public void addRoute_groupsCapture() throws Exception {
+  public void groupsCapture() throws Exception {
     Handler mockGroupsHandler = mock(Handler.class);
     Handler mockGetHandler = mock(Handler.class);
     MetricRegistry registry = new MetricRegistry();
@@ -112,7 +113,7 @@ class RoutesTest {
 
   /** Adding the same path+method should throw an exception. */
   @Test
-  public void addRoute_duplicateHandlerThrows() {
+  public void duplicateHandlerThrows() {
     Routes routes = new Routes().get("/twice", request -> null);
     assertThrows(IllegalArgumentException.class, () -> routes.get("/twice", request -> null));
   }

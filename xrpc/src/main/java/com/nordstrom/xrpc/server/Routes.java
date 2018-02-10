@@ -134,11 +134,11 @@ public class Routes {
     }
 
     // Verify that this method doesn't already exist.
-    if (methods.containsKey(method)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "route %s already has a handler defined for method %s", route, method.toString()));
-    }
+    Preconditions.checkArgument(
+        !methods.containsKey(method),
+        String.format(
+            "route %s already has a handler defined for method %s", route, method.toString()));
+
     methods.put(method, handler);
 
     return this;
