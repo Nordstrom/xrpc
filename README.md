@@ -50,7 +50,7 @@ $ curl -k  https://localhost:8080/people --http1.1
 ```
 
 # Running the dino demo app in a test server
-Run the dino app server to demo proto
+Run the dino app server to demo proto buffer handling.
 
 ```shell
 $ ./bin/startDinoTestServer.sh

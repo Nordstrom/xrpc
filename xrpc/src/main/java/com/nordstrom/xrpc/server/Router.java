@@ -49,7 +49,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
@@ -65,8 +64,7 @@ public class Router {
   private final MetricRegistry metricRegistry = new MetricRegistry();
 
   @Getter private Channel channel;
-  @Getter private HealthCheckRegistry healthCheckRegistry;
-  private final Map<String, HealthCheck> healthCheckMap = new ConcurrentHashMap<>();
+  @Getter private final HealthCheckRegistry healthCheckRegistry;
 
   public Router(Config config) {
     this(new XConfig(config.getConfig("xrpc")));
@@ -75,6 +73,7 @@ public class Router {
   public Router(XConfig config) {
     this.config = config;
     this.tls = new Tls(config.cert(), config.key());
+    this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     XrpcConnectionContext.Builder contextBuilder =
         XrpcConnectionContext.builder()
@@ -101,15 +100,13 @@ public class Router {
 
     // Create the proper metrics containers.
     for (Map.Entry<HttpResponseStatus, String> entry : namesByCode.entrySet()) {
-      String meterName = "responseCodes." + entry.getValue();
+      String meterName = name("responseCodes", entry.getValue());
       contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
   }
 
-  public void addHealthCheck(String s, HealthCheck check) {
-    Preconditions.checkState(
-        !healthCheckMap.containsKey(s), "A Health Check by that name has already been registered");
-    healthCheckMap.put(s, check);
+  public void addHealthCheck(String name, HealthCheck check) {
+    healthCheckRegistry.register(name, check);
   }
 
   public void scheduleHealthChecks(EventLoopGroup workerGroup) {
@@ -118,10 +115,6 @@ public class Router {
 
   public void scheduleHealthChecks(
       EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
-
-    for (Map.Entry<String, HealthCheck> entry : healthCheckMap.entrySet()) {
-      healthCheckRegistry.register(entry.getKey(), entry.getValue());
-    }
 
     workerGroup.scheduleWithFixedDelay(
         () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
@@ -301,9 +294,7 @@ public class Router {
     b.childHandler(initializer(state));
 
     if (config.runBackgroundHealthChecks()) {
-      final EventLoopGroup _workerGroup = b.config().childGroup();
-      healthCheckRegistry = new HealthCheckRegistry(_workerGroup);
-      scheduleHealthChecks(_workerGroup);
+      scheduleHealthChecks(b.config().childGroup());
     }
 
     if (config.serveAdminRoutes()) {
@@ -360,8 +351,6 @@ public class Router {
     ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
         ctx.getRoutes().get();
 
-    final String namePrefix = "routes.";
-
     if (routes != null) {
       for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
         Route route = entry.getKey();
@@ -369,8 +358,7 @@ public class Router {
         for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
           for (XHttpMethod httpMethod : map.keySet()) {
             String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
-            ctx.getMetersByRoute()
-                .put(routeName, metricRegistry.meter(name(namePrefix + routeName)));
+            ctx.getMetersByRoute().put(routeName, metricRegistry.meter(name("routes", routeName)));
           }
         }
       }
