@@ -9,7 +9,9 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCESS_CONTROL_REQUEST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableList;
+import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.http.Recipes;
+import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
@@ -35,7 +37,7 @@ class CorsTest {
             .getConfig("xrpc")
             .withValue("serve_admin_routes", fromAnyRef(false))
             .withValue("run_background_health_checks", fromAnyRef(false));
-    client = OkHttpUnsafe.getUnsafeClient();
+    client = UnsafeHttp.unsafeClient();
   }
 
   @AfterEach
@@ -143,7 +145,7 @@ class CorsTest {
   }
 
   private void init() {
-    router = new Router(config);
+    router = new Router(new XConfig(config));
   }
 
   private void start() throws IOException {

@@ -301,7 +301,9 @@ public class Router {
       serveAdmin();
     }
 
-    ChannelFuture future = b.bind(new InetSocketAddress(config.port()));
+    InetSocketAddress address = new InetSocketAddress(config.port());
+    log.info("Listening at {}", address);
+    ChannelFuture future = b.bind(address);
 
     try {
       // Build out the loggers that are specified in the config

@@ -18,7 +18,7 @@ syntax = "proto3";
 
 package nordstrom.dino;
 
-option java_package = "com.nordstrom.xrpc.demo.proto";
+option java_package = "com.nordstrom.xrpc.demos.dino.proto";
 option java_multiple_files = true;
 
 // The Dino service definition.

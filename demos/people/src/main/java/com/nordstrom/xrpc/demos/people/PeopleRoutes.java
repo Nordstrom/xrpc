@@ -1,4 +1,4 @@
-package com.nordstrom.xrpc.demo;
+package com.nordstrom.xrpc.demos.people;
 
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Router;
@@ -32,7 +32,7 @@ public class PeopleRoutes {
     router.get("/people/{person}", getPerson);
   }
 
-  // Example POJO for use in request / response.
+  // Application POJO for use in request / response.
   @Value
   public static class Person {
     private String name;
