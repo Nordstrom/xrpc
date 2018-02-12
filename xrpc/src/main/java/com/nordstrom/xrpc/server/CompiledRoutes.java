@@ -122,25 +122,23 @@ public class CompiledRoutes {
     static final Match METHOD_NOT_ALLOWED;
 
     static {
-      // Singleton, static response strings, built once.
-      ByteBuf notFound =
-          Unpooled.wrappedBuffer("Not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
-      ByteBuf methodNotAllowed =
-          Unpooled.wrappedBuffer("Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET));
+      byte[] notFound = "Not found".getBytes(XrpcConstants.DEFAULT_CHARSET);
       NOT_FOUND =
           new Match(
               request -> {
+                ByteBuf data = Unpooled.wrappedBuffer(notFound);
                 return Recipes.newResponse(
-                    HttpResponseStatus.NOT_FOUND, notFound, Recipes.ContentType.Text_Plain);
+                    HttpResponseStatus.NOT_FOUND, data, Recipes.ContentType.Text_Plain);
               },
               ImmutableMap.of());
+
+      byte[] methodNotAllowed = "Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET);
       METHOD_NOT_ALLOWED =
           new Match(
               request -> {
+                ByteBuf data = Unpooled.wrappedBuffer(methodNotAllowed);
                 return Recipes.newResponse(
-                    HttpResponseStatus.METHOD_NOT_ALLOWED,
-                    methodNotAllowed,
-                    Recipes.ContentType.Text_Plain);
+                    HttpResponseStatus.METHOD_NOT_ALLOWED, data, Recipes.ContentType.Text_Plain);
               },
               ImmutableMap.of());
     }
