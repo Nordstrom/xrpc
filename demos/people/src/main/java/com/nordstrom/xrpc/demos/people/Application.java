@@ -17,7 +17,8 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
@@ -30,19 +31,21 @@ public class Application {
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
 
-    // Build your router. This overrides the default configuration with values from
+    Routes routes = new Routes();
+
+    // Build your server. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    Router router = new Router(config);
+    Server server = new Server(config, routes);
 
     // Add handlers for /people routes
-    new PeopleRoutes(router);
+    new PeopleRoutes(routes);
 
     // Add a service specific health check
-    router.addHealthCheck("simple", new SimpleHealthCheck());
+    server.addHealthCheck("simple", new SimpleHealthCheck());
 
     try {
       // Fire away
-      router.listenAndServe();
+      server.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }

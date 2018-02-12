@@ -16,32 +16,17 @@
 
 package com.nordstrom.xrpc.server;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-
-import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
-import com.nordstrom.xrpc.server.http.Route;
-import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -64,72 +49,21 @@ public class UrlRouter extends ChannelDuplexHandler {
       return;
     }
 
-    if (msg instanceof HttpRequest) {
+    if (msg instanceof FullHttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
       String path = XUrl.getPath(request.uri());
+      CompiledRoutes.Match match = xctx.getRoutes().match(path, request.method());
+
       ObjectMapper mapper = xctx.getMapper();
-      ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
-          xctx.getRoutes().get();
-      if (routes != null) {
-        for (Route route : routes.descendingKeySet()) {
-          Optional<Map<String, String>> groups = Optional.ofNullable(route.groups(path));
-          if (groups.isPresent()) {
-            XrpcRequest xrpcRequest = new XrpcRequest(request, mapper, groups.get(), ctx.channel());
-            xrpcRequest.setData(request.content());
-            HttpResponse resp;
-            Optional<ImmutableMap<XHttpMethod, Handler>> handlerMapOptional =
-                xctx.getRoutes()
-                    .get()
-                    .get(route)
-                    .stream()
-                    .filter(
-                        m ->
-                            m.keySet().stream().anyMatch(mx -> mx.compareTo(request.method()) == 0))
-                    .findFirst();
+      XrpcRequest xrpcRequest =
+          new XrpcRequest(request, xctx.getMapper(), match.getGroups(), ctx.channel());
+      xrpcRequest.setData(request.content());
 
-            if (handlerMapOptional.isPresent()) {
-              resp =
-                  handlerMapOptional
-                      .get()
-                      .get(handlerMapOptional.get().keySet().asList().get(0))
-                      .handle(xrpcRequest);
-            } else {
-              resp =
-                  xctx.getRoutes()
-                      .get()
-                      .get(route)
-                      .stream()
-                      .filter(mx -> mx.containsKey(XHttpMethod.ANY))
-                      .findFirst()
-                      .get()
-                      .get(XHttpMethod.ANY)
-                      .handle(xrpcRequest);
-            }
+      HttpResponse resp = match.getHandler().handle(xrpcRequest);
 
-            // Check here for the case of an admin endpoint (eg /metrics, /health, and all others
-            // configured
-            // in Router.serveAdmin()); we do not track metrics for admin endpoints.
-            Optional<Meter> routeMeter =
-                Optional.ofNullable(
-                    xctx.getMetersByRoute()
-                        .get(MetricsUtil.getMeterNameForRoute(route, request.method().name())));
-            routeMeter.ifPresent(Meter::mark);
+      xctx.getMetersByStatusCode().get(resp.status()).mark();
 
-            xctx.getMetersByStatusCode().get(resp.status()).mark();
-
-            ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
-            ctx.fireChannelRead(msg);
-            return;
-          }
-        }
-      }
-      // No matching route.
-      FullHttpResponse response =
-          new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
-      response.headers().set(CONTENT_TYPE, "text/plain");
-      response.headers().setInt(CONTENT_LENGTH, 0);
-      ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-      xctx.getMetersByStatusCode().get(HttpResponseStatus.NOT_FOUND).mark();
+      ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
     }
     ctx.fireChannelRead(msg);
   }
