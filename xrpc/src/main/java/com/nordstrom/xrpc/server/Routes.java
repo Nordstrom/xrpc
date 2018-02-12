@@ -26,100 +26,11 @@ import lombok.extern.slf4j.Slf4j;
 
 /** Class to build routes for a server to handle. */
 @Slf4j
-public class Routes {
+public class Routes implements RouteBuilder {
   private final Map<Route, Map<HttpMethod, Handler>> routes = new HashMap<>();
 
-  /**
-   * Binds a handler for GET requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a GET handler for the route.
-   */
-  public Routes get(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.GET);
-  }
-
-  /**
-   * Binds a handler for POST requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a POST handler for the route.
-   */
-  public Routes post(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.POST);
-  }
-
-  /**
-   * Binds a handler for PUT requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a PUT handler for the route.
-   */
-  public Routes put(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.PUT);
-  }
-
-  /**
-   * Binds a handler for DELETE requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a DELETE handler for the route.
-   */
-  public Routes delete(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.DELETE);
-  }
-
-  /**
-   * Binds a handler for HEAD requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a HEAD handler for the route.
-   */
-  public Routes head(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.HEAD);
-  }
-
-  /**
-   * Binds a handler for OPTIONS requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a OPTIONS handler for the route.
-   */
-  public Routes options(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.OPTIONS);
-  }
-
-  /**
-   * Binds a handler for PATCH requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a PATCH handler for the route.
-   */
-  public Routes patch(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.PATCH);
-  }
-
-  /**
-   * Binds a handler for TRACE requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a TRACE handler for the route.
-   */
-  public Routes trace(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.TRACE);
-  }
-
-  /**
-   * Binds a handler for CONNECT requests to the given route.
-   *
-   * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
-   *     or if there is already a CONNECT handler for the route.
-   */
-  public Routes connect(String route, Handler handler) {
-    return addRoute(route, handler, HttpMethod.CONNECT);
-  }
-
-  private Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
+  @Override
+  public RouteBuilder addRoute(String routePattern, Handler handler, HttpMethod method) {
     Preconditions.checkArgument(routePattern != null, "routePattern must not be null");
     Preconditions.checkArgument(!routePattern.isEmpty(), "routePattern must not be empty");
     Preconditions.checkArgument(handler != null, "handler must not be null");

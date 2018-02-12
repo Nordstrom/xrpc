@@ -32,6 +32,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -44,36 +45,25 @@ import org.slf4j.LoggerFactory;
 
 /** An xprc server. */
 @Slf4j
-public class Server {
+public class Server implements RouteBuilder {
   private final XConfig config;
-  private final Routes routes;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
+  @Getter private final Routes routes = new Routes();
 
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
-  /**
-   * Build a server handling the given routes. Routes configuration will be captured when the server
-   * starts with listenAndServe (they may be modified after calling the constructor).
-   *
-   * @param config overrides for the default configuration values
-   */
-  public Server(Config config, Routes routes) {
-    this(new XConfig(config), routes);
+  /** Build a server with the given configuration. */
+  public Server(Config config) {
+    this(new XConfig(config));
   }
 
-  /**
-   * Build a server handling the given routes. Routes configuration will be captured when the server
-   * starts with listenAndServe (they may be modified after calling the constructor).
-   *
-   * @param config the configuration for the server
-   */
-  public Server(XConfig config, Routes routes) {
+  /** Build a server with the given configuration. */
+  public Server(XConfig config) {
     this.config = config;
-    this.routes = routes;
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
@@ -86,6 +76,13 @@ public class Server {
             .requestMeter(metricRegistry.meter("requests"))
             .mapper(new ObjectMapper());
     addResponseCodeMeters(contextBuilder);
+  }
+
+  @Override
+  public RouteBuilder addRoute(String routePattern, Handler handler, HttpMethod method) {
+    routes.addRoute(routePattern, handler, method);
+    // Return a this-reference to adhere to contract.
+    return this;
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
