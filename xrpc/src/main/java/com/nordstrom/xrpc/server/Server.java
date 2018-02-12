@@ -16,8 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import static com.codahale.metrics.MetricRegistry.name;
-
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -26,14 +24,7 @@ import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.server.http.Route;
-import com.nordstrom.xrpc.server.http.XHttpMethod;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import io.netty.bootstrap.ServerBootstrap;
@@ -41,47 +32,60 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
+/** An xprc server. */
 @Slf4j
-public class Router {
+public class Server {
   private final XConfig config;
+  private final Routes routes;
   private final Tls tls;
-  private final XrpcConnectionContext ctx;
+  private final XrpcConnectionContext.Builder contextBuilder;
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
 
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
-  public Router(Config config) {
-    this(new XConfig(config.getConfig("xrpc")));
+  /**
+   * Build a server handling the given routes. Routes configuration will be captured when the server
+   * starts with listenAndServe (they may be modified after calling the constructor).
+   *
+   * @param config overrides for the default configuration values
+   */
+  public Server(Config config, Routes routes) {
+    this(new XConfig(config), routes);
   }
 
-  public Router(XConfig config) {
+  /**
+   * Build a server handling the given routes. Routes configuration will be captured when the server
+   * starts with listenAndServe (they may be modified after calling the constructor).
+   *
+   * @param config the configuration for the server
+   */
+  public Server(XConfig config, Routes routes) {
     this.config = config;
+    this.routes = routes;
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
-    XrpcConnectionContext.Builder contextBuilder =
+    if (config.serveAdminRoutes()) {
+      addAdminRoutes(routes);
+    }
+
+    this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .mapper(new ObjectMapper());
     addResponseCodeMeters(contextBuilder);
-
-    this.ctx = contextBuilder.build();
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
@@ -100,7 +104,7 @@ public class Router {
 
     // Create the proper metrics containers.
     for (Map.Entry<HttpResponseStatus, String> entry : namesByCode.entrySet()) {
-      String meterName = name("responseCodes", entry.getValue());
+      String meterName = MetricRegistry.name("responseCodes", entry.getValue());
       contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
   }
@@ -120,114 +124,11 @@ public class Router {
         () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
   }
 
-  /** Binds a handler for GET requests to the given route. */
-  public void get(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.GET);
-  }
-
-  /** Binds a handler for POST requests to the given route. */
-  public void post(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.POST);
-  }
-
-  /** Binds a handler for PUT requests to the given route. */
-  public void put(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.PUT);
-  }
-
-  /** Binds a handler for DELETE requests to the given route. */
-  public void delete(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.DELETE);
-  }
-
-  /** Binds a handler for HEAD requests to the given route. */
-  public void head(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.HEAD);
-  }
-
-  /** Binds a handler for OPTIONS requests to the given route. */
-  public void options(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.OPTIONS);
-  }
-
-  /** Binds a handler for PATCH requests to the given route. */
-  public void patch(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.PATCH);
-  }
-
-  /** Binds a handler for TRACE requests to the given route. */
-  public void trace(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.TRACE);
-  }
-
-  /** Binds a handler for CONNECT requests to the given route. */
-  public void connect(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.CONNECT);
-  }
-
-  /** Binds a handler for ANY requests to the given route. */
-  public void any(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.ANY);
-  }
-
-  @Deprecated
-  public void addRoute(String route, Handler handler) {
-    addRoute(route, handler, XHttpMethod.ANY);
-  }
-
-  public void addRoute(String routePattern, Handler handler, HttpMethod method) {
-    Preconditions.checkState(!routePattern.isEmpty());
-    Preconditions.checkState(handler != null);
-    Preconditions.checkState(method != null);
-
-    ImmutableMap<XHttpMethod, Handler> handlerMap =
-        new ImmutableMap.Builder<XHttpMethod, Handler>()
-            .put(new XHttpMethod(method.name()), handler)
-            .build();
-
-    Route route = Route.build(routePattern);
-    Optional<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>> routesOptional =
-        Optional.ofNullable(ctx.getRoutes().get());
-
-    if (routesOptional.isPresent()) {
-
-      if (routesOptional.get().containsKey(route)) {
-        ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
-            routesOptional.get();
-        routes.get(route).add(handlerMap);
-        ctx.getRoutes().set(routes);
-
-      } else {
-        ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
-            new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
-                    Ordering.usingToString())
-                .put(Route.build(routePattern), Lists.newArrayList(handlerMap));
-
-        routesOptional.map(value -> routeMap.putAll(value.descendingMap()));
-
-        ctx.getRoutes().set(routeMap.build());
-      }
-    } else {
-      ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>> routeMap =
-          new ImmutableSortedMap.Builder<Route, List<ImmutableMap<XHttpMethod, Handler>>>(
-                  Ordering.usingToString())
-              .put(Route.build(routePattern), Lists.newArrayList(handlerMap));
-
-      ctx.getRoutes().set(routeMap.build());
-    }
-  }
-
-  public AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
-      getRoutes() {
-
-    return ctx.getRoutes();
-  }
-
   public MetricRegistry getMetricRegistry() {
     return metricRegistry;
   }
 
-  public void serveAdmin() {
+  private void addAdminRoutes(Routes routes) {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
     ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
     ObjectMapper healthMapper = new ObjectMapper();
@@ -242,15 +143,15 @@ public class Router {
      '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)```
      */
 
-    get("/info", AdminHandlers.infoHandler());
-    get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
-    get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
-    get("/ping", AdminHandlers.pingHandler());
-    get("/ready", AdminHandlers.readyHandler());
-    get("/restart", AdminHandlers.restartHandler(this));
-    get("/killkillkill", AdminHandlers.killHandler(this));
+    routes.get("/info", AdminHandlers.infoHandler());
+    routes.get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
+    routes.get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
+    routes.get("/ping", AdminHandlers.pingHandler());
+    routes.get("/ready", AdminHandlers.readyHandler());
+    routes.get("/restart", AdminHandlers.restartHandler(this));
+    routes.get("/killkillkill", AdminHandlers.killHandler(this));
 
-    get("/gc", AdminHandlers.pingHandler());
+    routes.get("/gc", AdminHandlers.pingHandler());
   }
 
   /**
@@ -266,11 +167,16 @@ public class Router {
 
   /**
    * The listenAndServe method is the primary entry point for the server and should only be called
-   * once and only from the main thread.
+   * once and only from the main thread. Routes added after this is invoked will not be served.
    *
    * @throws IOException throws in the event the network services, as specified, cannot be accessed
    */
   public void listenAndServe() throws IOException {
+    // Finalize the routes this serves.
+    contextBuilder.routes(routes.compile(metricRegistry));
+
+    XrpcConnectionContext ctx = contextBuilder.build();
+
     State state =
         State.builder()
             .config(config)
@@ -285,8 +191,6 @@ public class Router {
             .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
             .build();
 
-    configEndpointRequestCountMeters(metricRegistry, ctx);
-
     ServerBootstrap b =
         XrpcBootstrapFactory.buildBootstrap(
             config.bossThreadCount(), config.workerThreadCount(), config.workerNameFormat());
@@ -295,10 +199,6 @@ public class Router {
 
     if (config.runBackgroundHealthChecks()) {
       scheduleHealthChecks(b.config().childGroup());
-    }
-
-    if (config.serveAdminRoutes()) {
-      serveAdmin();
     }
 
     InetSocketAddress address = new InetSocketAddress(config.port());
@@ -311,7 +211,7 @@ public class Router {
       if (config.slf4jReporter()) {
         final Slf4jReporter slf4jReporter =
             Slf4jReporter.forRegistry(metricRegistry)
-                .outputTo(LoggerFactory.getLogger(Router.class))
+                .outputTo(LoggerFactory.getLogger(Server.class))
                 .convertRatesTo(TimeUnit.SECONDS)
                 .convertDurationsTo(TimeUnit.MILLISECONDS)
                 .build();
@@ -346,25 +246,6 @@ public class Router {
     channel = future.channel();
   }
 
-  private void configEndpointRequestCountMeters(
-      MetricRegistry metricRegistry, XrpcConnectionContext ctx) {
-    ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>> routes =
-        ctx.getRoutes().get();
-
-    if (routes != null) {
-      for (Map.Entry<Route, List<ImmutableMap<XHttpMethod, Handler>>> entry : routes.entrySet()) {
-        Route route = entry.getKey();
-
-        for (ImmutableMap<XHttpMethod, Handler> map : entry.getValue()) {
-          for (XHttpMethod httpMethod : map.keySet()) {
-            String routeName = MetricsUtil.getMeterNameForRoute(route, httpMethod);
-            ctx.getMetersByRoute().put(routeName, metricRegistry.meter(name("routes", routeName)));
-          }
-        }
-      }
-    }
-  }
-
   public void shutdown() {
     if (channel == null || !channel.isOpen()) {
       return;
@@ -377,7 +258,7 @@ public class Router {
               if (!future.isSuccess()) {
                 log.warn("Error shutting down server", future.cause());
               }
-              synchronized (Router.this) {
+              synchronized (Server.this) {
                 // TODO(JR): We should probably be more thoughtful here.
                 shutdown();
               }

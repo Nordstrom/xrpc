@@ -17,7 +17,8 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
@@ -25,18 +26,19 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Application {
-  private final Router router;
+  private final Server server;
 
   public Application(Config config) {
     // Build your router. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    this.router = new Router(config);
+    Routes routes = new Routes();
+    this.server = new Server(config, routes);
 
     // Add handlers for /people routes
-    new PeopleRoutes(this.router);
+    new PeopleRoutes(routes);
 
     // Add a service specific health check
-    this.router.addHealthCheck(
+    this.server.addHealthCheck(
         "simple",
         new HealthCheck() {
           @Override
@@ -48,11 +50,11 @@ public class Application {
   }
 
   public void start() throws IOException {
-    router.listenAndServe();
+    server.listenAndServe();
   }
 
   public void stop() {
-    router.shutdown();
+    server.shutdown();
   }
 
   public static void main(String[] args) {

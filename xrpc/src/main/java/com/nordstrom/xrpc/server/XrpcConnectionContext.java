@@ -19,13 +19,7 @@ package com.nordstrom.xrpc.server;
 import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.nordstrom.xrpc.server.http.Route;
-import com.nordstrom.xrpc.server.http.XHttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
@@ -34,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Builder(builderClassName = "Builder")
 // TODO: (AD) Merge with State
-// TODO: (AD) Make Immutable.
 public class XrpcConnectionContext {
   @Getter private final Meter requestMeter;
 
@@ -42,11 +35,7 @@ public class XrpcConnectionContext {
   @Getter
   private final ImmutableMap<HttpResponseStatus, Meter> metersByStatusCode;
 
-  @Getter
-  private final AtomicReference<ImmutableSortedMap<Route, List<ImmutableMap<XHttpMethod, Handler>>>>
-      routes = new AtomicReference<>();
-
   @Getter private final ObjectMapper mapper;
 
-  @Getter private final ConcurrentHashMap<String, Meter> metersByRoute = new ConcurrentHashMap<>();
+  @Getter private final CompiledRoutes routes;
 }
