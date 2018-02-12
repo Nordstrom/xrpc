@@ -66,7 +66,6 @@ class RoutesTest {
         new Routes().get("/path", mockGetHandler).post("/path", mockPostHandler).compile(registry);
 
     CompiledRoutes.Match getMatch = routes.match("/path", HttpMethod.GET);
-    CompiledRoutes.Match postMatch = routes.match("/path", HttpMethod.POST);
 
     XrpcRequest mockGetRequest = mock(XrpcRequest.class);
     getMatch.getHandler().handle(mockGetRequest);
@@ -74,6 +73,7 @@ class RoutesTest {
     assertEquals(new HashMap<>(), getMatch.getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "GET", "/path")).getCount());
 
+    CompiledRoutes.Match postMatch = routes.match("/path", HttpMethod.POST);
     XrpcRequest mockPostRequest = mock(XrpcRequest.class);
     postMatch.getHandler().handle(mockPostRequest);
     verify(mockPostHandler, times(1)).handle(mockPostRequest);
