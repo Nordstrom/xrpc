@@ -38,7 +38,7 @@ public class AdminHandlers {
    *   "version": "3.1.3",
    *   "gauges": null,
    *   "counters": {
-   *     "com.nordstrom.xrpc.server.Router.Active Connections": {
+   *     "com.nordstrom.xrpc.server.Server.Active Connections": {
    *       "count": 1
    *     }
    *   },
@@ -52,7 +52,7 @@ public class AdminHandlers {
    *       "mean_rate": 0.0,
    *       "units": "events/second"
    *     },
-   *     "com.nordstrom.xrpc.server.Router.requests.Rate": {
+   *     "com.nordstrom.xrpc.server.Server.requests.Rate": {
    *       "count": 5,
    *       "m15_rate": 0.00441373963469717,
    *       "m1_rate": 0.060230960459854356,
@@ -261,12 +261,12 @@ public class AdminHandlers {
     return xrpcRequest -> Recipes.newResponseOk("OK");
   }
 
-  public static Handler restartHandler(Router router) {
+  public static Handler restartHandler(Server server) {
     return xrpcRequest -> Recipes.newResponseOk("TODO");
   }
 
-  public static Handler killHandler(Router router) {
-    router.shutdown();
+  public static Handler killHandler(Server server) {
+    server.shutdown();
 
     return xrpcRequest -> Recipes.newResponseOk("OK");
   }

@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc;
 
+import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.XrpcConnectionContext;
 import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.buffer.ByteBuf;
@@ -25,7 +26,17 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class XrpcConstants {
+  /**
+   * Stores the request object for HTTP/2 requests. The request is created when headers are read,
+   * and will be stored in the context if there is a request body coming in a later data frame.
+   */
   public static final AttributeKey<XrpcRequest> XRPC_REQUEST = AttributeKey.valueOf("XrpcRequest");
+  /**
+   * Stores the handler for HTTP/2 requests. The handler is matched when headers are read, and will
+   * be stored in the context if there is a request body coming in a later data frame.
+   */
+  public static final AttributeKey<Handler> XRPC_HANDLER = AttributeKey.valueOf("XrpcHandler");
+
   public static final AttributeKey<Boolean> XRPC_SOFT_RATE_LIMITED =
       AttributeKey.valueOf("XrpcSoftRateLimited");
   public static final AttributeKey<Boolean> XRPC_HARD_RATE_LIMITED =

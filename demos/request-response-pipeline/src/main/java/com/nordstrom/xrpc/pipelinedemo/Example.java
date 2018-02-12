@@ -21,7 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.IdleDisconnectHandler;
-import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.server.State;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -108,8 +109,6 @@ public class Example {
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
 
-    // Build your router. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
     Map<Route, PipelineRequestHandler> map = new LinkedHashMap<>();
     map.put(
         Route.build("/hello/"),
@@ -119,8 +118,10 @@ public class Example {
         });
     ImmutableMap<Route, PipelineRequestHandler> routes = ImmutableMap.copyOf(map);
 
-    Router router =
-        new Router(config) {
+    // Build your server. This overrides the default configuration with values from
+    // src/main/resources/demo.conf.
+    Server server =
+        new Server(config, new Routes()) {
           @Override
           public ChannelInitializer<Channel> initializer(State state) {
             return new MyChannelInitializer(state, routes);
@@ -128,8 +129,8 @@ public class Example {
         };
 
     try {
-      // Fire away
-      router.listenAndServe();
+      // Fire away!
+      server.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }

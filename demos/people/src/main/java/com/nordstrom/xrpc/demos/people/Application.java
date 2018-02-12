@@ -17,7 +17,8 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.nordstrom.xrpc.server.Router;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
@@ -25,37 +26,51 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Application {
+  private final Server server;
+
+  public Application(Config config) {
+    // Build your router. This overrides the default configuration with values from
+    // src/main/resources/demo.conf.
+    Routes routes = new Routes();
+    this.server = new Server(config, routes);
+
+    // Add handlers for /people routes
+    new PeopleRoutes(routes);
+
+    // Add a service specific health check
+    this.server.addHealthCheck(
+        "simple",
+        new HealthCheck() {
+          @Override
+          protected Result check() {
+            System.out.println("Health Check Ran");
+            return Result.healthy();
+          }
+        });
+  }
+
+  public void start() throws IOException {
+    server.listenAndServe();
+  }
+
+  public void stop() {
+    server.shutdown();
+  }
+
   public static void main(String[] args) {
     // Load application config from jar resources. The 'load' method below also allows supports
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
 
-    // Build your router. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
-    Router router = new Router(config);
-
-    // Add handlers for /people routes
-    new PeopleRoutes(router);
-
-    // Add a service specific health check
-    router.addHealthCheck("simple", new SimpleHealthCheck());
+    Application app = new Application(config);
 
     try {
       // Fire away
-      router.listenAndServe();
+      app.start();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
-  }
 
-  public static class SimpleHealthCheck extends HealthCheck {
-
-    public SimpleHealthCheck() {}
-
-    @Override
-    protected Result check() throws Exception {
-      System.out.println("Health Check Ran");
-      return Result.healthy();
-    }
+    Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
   }
 }

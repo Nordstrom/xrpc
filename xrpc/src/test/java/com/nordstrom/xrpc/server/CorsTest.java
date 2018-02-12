@@ -28,7 +28,8 @@ class CorsTest {
 
   private OkHttpClient client;
   private Config config;
-  private Router router;
+  private Server server;
+  private Routes routes;
 
   @BeforeEach
   void beforeEach() {
@@ -38,11 +39,12 @@ class CorsTest {
             .withValue("serve_admin_routes", fromAnyRef(false))
             .withValue("run_background_health_checks", fromAnyRef(false));
     client = UnsafeHttp.unsafeClient();
+    routes = new Routes();
   }
 
   @AfterEach
   void afterEach() {
-    router.shutdown();
+    server.shutdown();
   }
 
   @Test
@@ -85,8 +87,8 @@ class CorsTest {
   void testCorsEnabledInFlight() throws IOException {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    routes.get("/people", req -> Recipes.newResponseOk("hello foo.bar"));
     init();
-    router.get("/people", req -> Recipes.newResponseOk("hello foo.bar"));
     start();
 
     Request request =
@@ -145,10 +147,10 @@ class CorsTest {
   }
 
   private void init() {
-    router = new Router(new XConfig(config));
+    server = new Server(new XConfig(config), routes);
   }
 
   private void start() throws IOException {
-    router.listenAndServe();
+    server.listenAndServe();
   }
 }

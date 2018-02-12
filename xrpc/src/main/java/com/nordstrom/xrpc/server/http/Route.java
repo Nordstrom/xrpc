@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
  * built out of {route, handler} pairs.
  */
 @Slf4j
-public class Route {
+public class Route implements Comparable<Route> {
   /**
    * Pattern to extract a variable from a URL path. This captures the variable name and any
    * associated regular expression.
@@ -140,5 +140,11 @@ public class Route {
   @Override
   public int hashCode() {
     return this.originalPath.hashCode();
+  }
+
+  /** Sort routes based on lexographic sort of their paths. */
+  @Override
+  public int compareTo(Route that) {
+    return that.originalPath.compareTo(this.originalPath);
   }
 }
