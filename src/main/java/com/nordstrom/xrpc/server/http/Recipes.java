@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Nordstrom, Inc.
+ * Copyright 2017 Nordstrom, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,35 +19,28 @@ package com.nordstrom.xrpc.server.http;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpRequest;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 /** Container for utility methods and helpers. */
 public final class Recipes {
   private Recipes() {}
 
   public static enum ContentType {
-    Application_Json(HttpHeaderValues.APPLICATION_JSON),
-    Application_Octet_Stream(HttpHeaderValues.APPLICATION_OCTET_STREAM),
-    Text_Plain(HttpHeaderValues.TEXT_PLAIN),
+    Application_Json("application/json"),
+    Text_Plain("text/plain"),
     Text_Html("text/html");
 
-    private final CharSequence value;
+    private final String value;
 
-    ContentType(CharSequence value) {
+    ContentType(String value) {
       this.value = value;
     }
   }
@@ -97,7 +90,7 @@ public final class Recipes {
 
   // Response {{{
   public static FullHttpResponse newResponse(HttpResponseStatus status) {
-    return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
+    return (FullHttpResponse) new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
   }
 
   public static FullHttpResponse newResponse(
@@ -108,23 +101,21 @@ public final class Recipes {
   /**
    * Returns a full HTTP response with the specified status, content type, and custom headers.
    *
-   * <p>Headers should be specified as a map of strings. For example, to allow CORS, add the
-   * following key and value: "access-control-allow-origin", "http://foo.example"
+   * Headers should be specified as a map of strings. For example, to allow CORS, add the
+   * following key and value:
+   *     "access-control-allow-origin", "http://foo.example"
    *
-   * <p>If content type or content length are passed in as custom headers, they will be ignored.
-   * Instead, content type will be as specified by the parameter contentType and content length will
-   * be the length of the parameter contentLength.
+   * If content type or content length are passed in as custom headers, they will be ignored.
+   * Instead, content type will be as specified by the parameter contentType and content
+   * length will be the length of the parameter contentLength.
    */
   public static FullHttpResponse newResponse(
-      HttpResponseStatus status,
-      ByteBuf payload,
-      ContentType contentType,
-      Map<String, String> customHeaders) {
+    HttpResponseStatus status, ByteBuf payload, ContentType contentType, Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     if (customHeaders != null) {
-      for (Map.Entry<String, String> entry : customHeaders.entrySet()) {
-        response.headers().set(entry.getKey(), entry.getValue());
+      for (String header : customHeaders.keySet()) {
+        response.headers().set(header, customHeaders.get(header));
       }
     }
 

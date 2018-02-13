@@ -5,4 +5,3 @@ include 'demos:people'
 include 'demos:request-response-pipeline'
 
 rootProject.name = 'xrpc'
-
