@@ -115,7 +115,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
         FullHttpResponse response = (FullHttpResponse) handler.handle(request);
         sendResponse(ctx, response, streamId);
         return processed;
-      } catch (IOException e) {
+      } catch (Exception e) {
         log.error("Error in handling Route", e);
         // Error
         ByteBuf buf = ctx.channel().alloc().directBuffer();
@@ -160,7 +160,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       try {
         FullHttpResponse response = (FullHttpResponse) match.getHandler().handle(request);
         sendResponse(ctx, response, streamId);
-      } catch (IOException e) {
+      } catch (Exception e) {
         log.error("Error in handling Route", e);
         // Error
         ByteBuf buf = channel.alloc().directBuffer();

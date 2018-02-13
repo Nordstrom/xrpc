@@ -27,7 +27,6 @@ import com.nordstrom.xrpc.server.http.Route;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Map;
 import lombok.Value;
@@ -72,9 +71,7 @@ public class CompiledRoutes {
             request -> {
               meter.mark();
               timer.time();
-              HttpResponse response = userHandler.handle(request);
-              timer.time().stop();
-              return response;
+              return timer.time(() -> userHandler.handle(request));
             };
         handlers.put(method, meteredHandler);
       }
