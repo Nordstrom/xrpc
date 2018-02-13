@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XrpcConstants;
@@ -26,6 +27,7 @@ import com.nordstrom.xrpc.server.http.Route;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Map;
 import lombok.Value;
@@ -62,13 +64,17 @@ public class CompiledRoutes {
 
         // Wrap the user-provided handler in one that tracks request rates.
         String metricName = MetricRegistry.name("routes", method.name(), route.toString());
+        String timerName = MetricRegistry.name("routeLatency", method.name(), route.toString());
         final Handler userHandler = methodHandlerEntry.getValue();
         final Meter meter = metricRegistry.meter(metricName);
+        final Timer timer = metricRegistry.timer(timerName);
         Handler meteredHandler =
             request -> {
               meter.mark();
-              // TODO(jkinkead): Add a timer here per https://github.com/Nordstrom/xrpc/issues/121
-              return userHandler.handle(request);
+              timer.time();
+              HttpResponse response = userHandler.handle(request);
+              timer.time().stop();
+              return response;
             };
         handlers.put(method, meteredHandler);
       }
