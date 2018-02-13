@@ -1,0 +1,26 @@
+{
+  "package": {
+    "name": "xrpc",
+    "repo": "oss_maven",
+    "subject": "nordstromoss",
+    "desc": "I was pushed completely automatically",
+    "website_url": "https://github.com/Nordstrom/xrpc",
+    "issue_tracker_url": "https://github.com/Nordstrom/xrpc/issues",
+    "vcs_url": "https://github.com/Nordstrom/xrpc.git",
+    "licenses": ["Apache-2.0"]
+  },
+
+  "version": {
+    "name": "VERSION_NUMBER",
+    "released": "RELEASE_DATE",
+    "vcs_tag": "VERSION_NUMBER",
+    "gpgSign": false
+  },
+
+  "files":
+  [
+    {"includePattern": "build/libs/(.*\.jar)", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/$1"},
+    {"includePattern": "build/publications/xrpcMaven/pom-default.xml", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/xrpc-VERSION_NUMBER.pom"}
+  ],
+  "publish": true
+}

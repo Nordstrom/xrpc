@@ -1,3 +1,7 @@
-include 'demo'
+include 'xrpc'
+include 'xrpc-testing'
+include 'demos:dino'
+include 'demos:people'
+include 'demos:request-response-pipeline'
 
 rootProject.name = 'xrpc'

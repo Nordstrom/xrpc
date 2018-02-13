@@ -1,0 +1,60 @@
+/*
+ * Copyright 2017 Nordstrom, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package nordstrom.dino;
+
+option java_package = "com.nordstrom.xrpc.demos.dino.proto";
+option java_multiple_files = true;
+
+// The Dino service definition.
+service DinoService {
+  // Adds a Dino to a list of Dinos
+  rpc SetDino (DinoSetRequest) returns (DinoSetReply) {}
+  // Requests a Dino from the list
+  rpc GetDino (DinoGetRequest) returns (DinoGetReply) {}
+
+}
+
+// The request message containing the Dino to store
+message DinoSetRequest {
+  Dino dino = 1;
+}
+
+// The response message containing the response code
+message DinoSetReply {
+  string responseCode = 1;
+}
+
+// The request message containing name of the Dino to get
+message DinoGetRequest {
+  string name = 1;
+}
+
+// The response message containing the requests Dino
+message DinoGetReply {
+  Dino dino = 1;
+}
+
+// The Dino Object definition.
+message Dino {
+  // Name of the Person
+  string name = 1;
+
+  // Fav Color
+  string fav_color = 2;
+}

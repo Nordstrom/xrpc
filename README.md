@@ -1,93 +1,17 @@
 xrpc
 ====
+[![Build Status][ci-image]][ci-link] [ ![Download][artifact-image]][artifact-download]
 
-Simple, production ready Java API server built on top of functional composition.
+Xrpc is a framework for creating production quality API services on top of Netty. The framework helps to encapsulate our
+best practices and provides sane (and safe) defaults.
 
-What you get:
-1) Openssl Native TLS w/ direct x509 pem support (vs keytool)
-2) Epoll native
-3) RateLimiting
-4) Connection Limiting
-5) Log forwarder Integration
-6) Metrics & Logs
-7) Binary Debug for packet level inspection
-8) Protobuf support
-9) Docker
-10) k8s
-11) Many Much more
+It currently supports the http/1.1 and the http/2 protocols. It does so interchangeably, 
+i.e your implementation does not need to change and it will automatically respond to a http/1.1 
+and a http/2 client the same way. The user is free to determine whatever payload they would like, 
+but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do.
 
-Make .jar not .war ...
-
-Example.java
-```java
-@Slf4j
-public class Example {
-  /** Example POJO for use in request / response. */
-  @AllArgsConstructor
-  private static class Person {
-    private String name;
-  }
-
-  public static void main(String[] args) {
-    final List<Person> people = new ArrayList<>();
-
-    // See https://github.com/square/moshi for the Moshi Magic.
-    Moshi moshi = new Moshi.Builder().build();
-    Type type = Types.newParameterizedType(List.class, Person.class);
-    JsonAdapter<List<Person>> adapter = moshi.adapter(type);
-
-    // Load application config from jar resources. The 'load' method below also allows supports
-    // overrides from environment variables.
-    Config config = ConfigFactory.load("demo.conf");
-
-    // Build your router. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
-    XConfig xConfig = new XConfig(config.getConfig("xrpc"));
-    Router router = new Router(xConfig);
-
-    // Define a simple function call.
-    Handler peopleHandler =
-        context -> {
-          return Recipes.newResponse(
-            HttpResponseStatus.OK,
-            context.getAlloc().directBuffer().writeBytes(adapter.toJson(people).getBytes()),
-            Recipes.ContentType.Application_Json);
-        };
-
-    // Define a complex function call
-    Handler personHandler =
-        context -> {
-          Person p = new Person(context.variable("person"));
-          people.add(p);
-
-          return Recipes.newResponseOk("");
-        };
-
-
-    // Define a simple function call
-    Handler healthCheckHandler =
-        context -> {
-          return Recipes.newResponseOk("");
-     };
-
-    // Create your route mapping
-    router.addRoute("/people/{person}", personHandler);
-    router.addRoute("/people", peopleHandler);
-
-    // Health Check for k8s
-    router.addRoute("/health", healthCheckHandler);
-
-    try {
-      // Fire away
-      router.listenAndServe();
-    } catch (IOException e) {
-      log.error("Failed to start people server", e);
-    }
-  }
-}
- 
+# Testing with the Example class  
 ```
-
 # Building the jar
 
 ```shell
@@ -97,43 +21,71 @@ $ ./gradlew shadowJar
 # Running the jar
 
 ```shell
-$ java -jar build/libs/xrpc-0.1.0-SNAPSHOT-all.jar
+$ java -jar app.jar
+```
+
+# Running the people demo app in a test server
+
+```shell
+$ ./bin/startPeopleTestServer.sh
 ```
 
 # Basic http set
 
 ```shell
-$ curl -k  https://localhost:8080/people/bob
+$ curl -k -d "bob" -X POST https://localhost:8080/people
 ```
 
-# Basic http get
-
+# Basic http/2 get
+--! This demo requires curl with http/2 !--
+(see https://simonecarletti.com/blog/2016/01/http2-curl-macosx/)
 ```shell
 $ curl -k  https://localhost:8080/people
 [{"name":"bob"}]
 ```
 
-# Proto encode/decode
+```shell
+$ curl -k  https://localhost:8080/people --http1.1
+[{"name":"bob"}]
+```
+
+# Running the dino demo app in a test server
+Run the dino app server to demo proto buffer handling.
 
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue > out
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder < out
-Dino{name=trex, fav_color=blue}
+$ ./bin/startDinoTestServer.sh
 ```
 
 # Proto http set
-
+--! This demo requires curl with http/2 !--
+(see https://simonecarletti.com/blog/2016/01/http2-curl-macosx/)
 ```shell
-$ java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoEncoder trex blue | curl -k  https://localhost:8080/dinos/trex --data-binary @-
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoSetEncoder trex blue | curl -k  https://localhost:8080/DinoService/SetDino --data-binary @- -vv
 ```
 
 # Proto http get
 
 ```shell
-$ curl -k -s   https://localhost:8080/dinos/ | java -cp build/libs/xrpc-0.1.0-SNAPSHOT-all.jar com.nordstrom.xrpc.DinoDecoder
-Dino{name=trex, fav_color=blue}
+$ java -cp app.jar com.nordstrom.xrpc.demo.DinoGetRequestEncoder trex | curl -k -s https://localhost:8080/DinoService/GetDino --data-binary @-
+trexblue
 ```
+
+# Admin routes
+
+xrpc comes with some built in admin routes. See also [Router.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/Router.java#L262-L270) and [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java)
+* `/metrics` -> Returns the metrics reporters in JSON format
+* `/health` -> Expose a summary of downstream health checks
+* `/ping` -> Responds with a 200-OK status code and the text 'PONG'
+* `/ready` -> Exposes a Kubernetes or ELB specific healthcheck for liveliness
+* `/restart` -> Restart service (should be restricted to approved devs / tooling)
+* `/killkillkill` -> Shutdown service (should be restricted to approved devs / tooling)
 
 # Contributing
 
 Please see [the contributing guide](CONTRIBUTING.md) for details on contributing to this repository.
+
+
+[ci-image]:https://travis-ci.org/Nordstrom/xrpc.svg?branch=master
+[ci-link]:https://travis-ci.org/Nordstrom/xrpc
+[artifact-image]:https://api.bintray.com/packages/nordstromoss/oss_maven/xrpc/images/download.svg
+[artifact-download]:https://bintray.com/nordstromoss/oss_maven/xrpc/_latestVersion
