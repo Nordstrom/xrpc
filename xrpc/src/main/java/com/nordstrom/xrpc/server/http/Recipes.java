@@ -58,9 +58,9 @@ public final class Recipes {
 
   // Request {{{
   public static FullHttpRequest newFullRequest(
-    HttpMethod method, String urlPath, ByteBuf payload, ContentType contentType) {
+      HttpMethod method, String urlPath, ByteBuf payload, ContentType contentType) {
     FullHttpRequest request =
-      new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, payload);
+        new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, urlPath, payload);
     request.headers().set(CONTENT_TYPE, contentType.value);
     request.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
     return request;
@@ -75,22 +75,22 @@ public final class Recipes {
   }
 
   public static FullHttpRequest newRequestPost(
-    String urlPath, ByteBuf payload, ContentType contentType) {
+      String urlPath, ByteBuf payload, ContentType contentType) {
     return newFullRequest(HttpMethod.POST, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPost(
-    String urlPath, String payload, ContentType contentType) {
+      String urlPath, String payload, ContentType contentType) {
     return newRequestPost(urlPath, unpooledBuffer(payload), contentType);
   }
 
   public static FullHttpRequest newRequestPut(
-    String urlPath, ByteBuf payload, ContentType contentType) {
+      String urlPath, ByteBuf payload, ContentType contentType) {
     return newFullRequest(HttpMethod.PUT, urlPath, payload, contentType);
   }
 
   public static FullHttpRequest newRequestPut(
-    String urlPath, String payload, ContentType contentType) {
+      String urlPath, String payload, ContentType contentType) {
     return newRequestPut(urlPath, unpooledBuffer(payload), contentType);
   }
   // Request }}}
@@ -101,7 +101,7 @@ public final class Recipes {
   }
 
   public static FullHttpResponse newResponse(
-    HttpResponseStatus status, ByteBuf payload, ContentType contentType) {
+      HttpResponseStatus status, ByteBuf payload, ContentType contentType) {
     return newResponse(status, payload, contentType, Collections.emptyMap());
   }
 
@@ -116,10 +116,10 @@ public final class Recipes {
    * be the length of the parameter contentLength.
    */
   public static FullHttpResponse newResponse(
-    HttpResponseStatus status,
-    ByteBuf payload,
-    ContentType contentType,
-    Map<String, String> customHeaders) {
+      HttpResponseStatus status,
+      ByteBuf payload,
+      ContentType contentType,
+      Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
     if (customHeaders != null) {
@@ -135,7 +135,7 @@ public final class Recipes {
   }
 
   public static FullHttpResponse newResponse(
-    HttpResponseStatus status, String payload, ContentType contentType) {
+      HttpResponseStatus status, String payload, ContentType contentType) {
     return newResponse(status, unpooledBuffer(payload), contentType);
   }
 
