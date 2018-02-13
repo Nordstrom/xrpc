@@ -70,7 +70,6 @@ public class CompiledRoutes {
         Handler meteredHandler =
             request -> {
               meter.mark();
-              timer.time();
               return timer.time(() -> userHandler.handle(request));
             };
         handlers.put(method, meteredHandler);
