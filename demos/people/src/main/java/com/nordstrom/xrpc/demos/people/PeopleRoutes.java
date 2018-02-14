@@ -2,13 +2,14 @@ package com.nordstrom.xrpc.demos.people;
 
 import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.Routes;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Value;
 
 public class PeopleRoutes {
-  private final List<Person> people = new ArrayList<>();
+  private final List<Person> people = new CopyOnWriteArrayList<>();
 
   public PeopleRoutes(Routes routes) {
     Handler getPeople = request -> request.okJsonResponse(people);
@@ -22,9 +23,15 @@ public class PeopleRoutes {
 
     Handler getPerson =
         request -> {
-          String person = request.variable("person");
-          return request.okJsonResponse(
-              people.stream().anyMatch(p -> Objects.equals(p.name, person)));
+          String name = request.variable("person");
+          final Optional<Person> person =
+              people.stream().filter(p -> Objects.equals(p.name, name)).findFirst();
+
+          if (person.isPresent()) {
+            return request.okJsonResponse(person.get());
+          }
+
+          return request.notFoundJsonResponse("Person Not Found");
         };
 
     routes.get("/people", getPeople);

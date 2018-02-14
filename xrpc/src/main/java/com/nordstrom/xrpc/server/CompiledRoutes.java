@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XrpcConstants;
@@ -27,6 +28,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import java.io.IOException;
 import java.util.Map;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -62,13 +64,22 @@ public class CompiledRoutes {
 
         // Wrap the user-provided handler in one that tracks request rates.
         String metricName = MetricRegistry.name("routes", method.name(), route.toString());
+        String timerName = MetricRegistry.name("routeLatency", method.name(), route.toString());
         final Handler userHandler = methodHandlerEntry.getValue();
         final Meter meter = metricRegistry.meter(metricName);
+        final Timer timer = metricRegistry.timer(timerName);
         Handler meteredHandler =
             request -> {
               meter.mark();
-              // TODO(jkinkead): Add a timer here per https://github.com/Nordstrom/xrpc/issues/121
-              return userHandler.handle(request);
+              try {
+                return timer.time(() -> userHandler.handle(request));
+              } catch (IOException | RuntimeException ioe) {
+                // From child handler.
+                throw ioe;
+              } catch (Exception e) {
+                // Should be impossible.
+                throw new IllegalStateException("unexpected exception", e);
+              }
             };
         handlers.put(method, meteredHandler);
       }
@@ -122,25 +133,23 @@ public class CompiledRoutes {
     static final Match METHOD_NOT_ALLOWED;
 
     static {
-      // Singleton, static response strings, built once.
-      ByteBuf notFound =
-          Unpooled.wrappedBuffer("Not found".getBytes(XrpcConstants.DEFAULT_CHARSET));
-      ByteBuf methodNotAllowed =
-          Unpooled.wrappedBuffer("Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET));
+      byte[] notFound = "Not found".getBytes(XrpcConstants.DEFAULT_CHARSET);
       NOT_FOUND =
           new Match(
               request -> {
+                ByteBuf data = Unpooled.wrappedBuffer(notFound);
                 return Recipes.newResponse(
-                    HttpResponseStatus.NOT_FOUND, notFound, Recipes.ContentType.Text_Plain);
+                    HttpResponseStatus.NOT_FOUND, data, Recipes.ContentType.Text_Plain);
               },
               ImmutableMap.of());
+
+      byte[] methodNotAllowed = "Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET);
       METHOD_NOT_ALLOWED =
           new Match(
               request -> {
+                ByteBuf data = Unpooled.wrappedBuffer(methodNotAllowed);
                 return Recipes.newResponse(
-                    HttpResponseStatus.METHOD_NOT_ALLOWED,
-                    methodNotAllowed,
-                    Recipes.ContentType.Text_Plain);
+                    HttpResponseStatus.METHOD_NOT_ALLOWED, data, Recipes.ContentType.Text_Plain);
               },
               ImmutableMap.of());
     }
