@@ -109,7 +109,13 @@ public class Server {
     }
   }
 
-  public void registerExceptionHandler(ExceptionHandler handler) {
+  /**
+   * Set the customer exception handler. This handler is called to handle any exceptions thrown from
+   * route handlers. This replaces any other exception handlers previously set.
+   *
+   * @param handler Exception Handler
+   */
+  public void exceptionHandler(ExceptionHandler handler) {
     contextBuilder.exceptionHandler(handler);
   }
 
