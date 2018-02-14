@@ -49,7 +49,6 @@ public class Server {
   private final Routes routes;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
-
   private final MetricRegistry metricRegistry = new MetricRegistry();
 
   @Getter private Channel channel;
@@ -84,6 +83,7 @@ public class Server {
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
+            .exceptionHandler(new DefaultExceptionHandler())
             .mapper(new ObjectMapper());
     addResponseCodeMeters(contextBuilder);
   }
@@ -107,6 +107,10 @@ public class Server {
       String meterName = MetricRegistry.name("responseCodes", entry.getValue());
       contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
+  }
+
+  public void registerExceptionHandler(ExceptionHandler handler) {
+    contextBuilder.exceptionHandler(handler);
   }
 
   public void addHealthCheck(String name, HealthCheck check) {

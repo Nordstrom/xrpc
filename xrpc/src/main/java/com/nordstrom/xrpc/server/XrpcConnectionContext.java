@@ -38,4 +38,6 @@ public class XrpcConnectionContext {
   @Getter private final ObjectMapper mapper;
 
   @Getter private final CompiledRoutes routes;
+
+  @Getter private final ExceptionHandler exceptionHandler;
 }
