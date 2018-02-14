@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.logging.ExceptionLogger;
 import com.nordstrom.xrpc.server.IdleDisconnectHandler;
-import com.nordstrom.xrpc.server.Routes;
 import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.server.State;
 import com.typesafe.config.Config;
@@ -121,7 +120,7 @@ public class Example {
     // Build your server. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
     Server server =
-        new Server(config, new Routes()) {
+        new Server(config) {
           @Override
           public ChannelInitializer<Channel> initializer(State state) {
             return new MyChannelInitializer(state, routes);

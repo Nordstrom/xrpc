@@ -30,22 +30,25 @@ import io.netty.handler.codec.http.HttpMethod;
 import java.util.HashMap;
 import org.junit.jupiter.api.Test;
 
-/** Tests for Routes and CompiledRoutes. */
+/** Tests for RouteBuilder and CompiledRoutes. */
 class RoutesTest {
   /** Tests basic routing features. */
   @Test
   public void trivialRouteMatch() throws Exception {
     Handler mockHandler = mock(Handler.class);
+
+    RouteBuilder routes = new RouteBuilder();
+    routes.get("/get", mockHandler);
+
     MetricRegistry registry = new MetricRegistry();
+    CompiledRoutes compiledRoutes = routes.compile(registry);
 
-    CompiledRoutes routes = new Routes().get("/get", mockHandler).compile(registry);
-
-    CompiledRoutes.Match putMatch = routes.match("/get", HttpMethod.PUT);
+    CompiledRoutes.Match putMatch = compiledRoutes.match("/get", HttpMethod.PUT);
     assertEquals(CompiledRoutes.Match.METHOD_NOT_ALLOWED, putMatch, "expected 405 for PUT");
-    CompiledRoutes.Match missingMatch = routes.match("/ge", HttpMethod.GET);
+    CompiledRoutes.Match missingMatch = compiledRoutes.match("/ge", HttpMethod.GET);
     assertEquals(CompiledRoutes.Match.NOT_FOUND, missingMatch, "expected 404 for bad path");
 
-    CompiledRoutes.Match getMatch = routes.match("/get", HttpMethod.GET);
+    CompiledRoutes.Match getMatch = compiledRoutes.match("/get", HttpMethod.GET);
 
     XrpcRequest mockRequest = mock(XrpcRequest.class);
     getMatch.getHandler().handle(mockRequest);
@@ -60,12 +63,14 @@ class RoutesTest {
   public void samePathDifferentMethods() throws Exception {
     Handler mockGetHandler = mock(Handler.class);
     Handler mockPostHandler = mock(Handler.class);
+
+    RouteBuilder routes = new RouteBuilder();
+    routes.get("/path", mockGetHandler).post("/path", mockPostHandler);
+
     MetricRegistry registry = new MetricRegistry();
+    CompiledRoutes compiledRoutes = routes.compile(registry);
 
-    CompiledRoutes routes =
-        new Routes().get("/path", mockGetHandler).post("/path", mockPostHandler).compile(registry);
-
-    CompiledRoutes.Match getMatch = routes.match("/path", HttpMethod.GET);
+    CompiledRoutes.Match getMatch = compiledRoutes.match("/path", HttpMethod.GET);
 
     XrpcRequest mockGetRequest = mock(XrpcRequest.class);
     getMatch.getHandler().handle(mockGetRequest);
@@ -73,7 +78,7 @@ class RoutesTest {
     assertEquals(new HashMap<>(), getMatch.getGroups());
     assertEquals(1L, registry.meter(MetricRegistry.name("routes", "GET", "/path")).getCount());
 
-    CompiledRoutes.Match postMatch = routes.match("/path", HttpMethod.POST);
+    CompiledRoutes.Match postMatch = compiledRoutes.match("/path", HttpMethod.POST);
     XrpcRequest mockPostRequest = mock(XrpcRequest.class);
     postMatch.getHandler().handle(mockPostRequest);
     verify(mockPostHandler, times(1)).handle(mockPostRequest);
@@ -86,15 +91,14 @@ class RoutesTest {
   public void groupsCapture() throws Exception {
     Handler mockGroupsHandler = mock(Handler.class);
     Handler mockGetHandler = mock(Handler.class);
+
+    RouteBuilder routes = new RouteBuilder();
+    routes.get("/path/{grp}", mockGroupsHandler).get("/path", mockGetHandler);
+
     MetricRegistry registry = new MetricRegistry();
+    CompiledRoutes compiledRoutes = routes.compile(registry);
 
-    CompiledRoutes routes =
-        new Routes()
-            .get("/path/{grp}", mockGroupsHandler)
-            .get("/path", mockGetHandler)
-            .compile(registry);
-
-    CompiledRoutes.Match match = routes.match("/path/subpath", HttpMethod.GET);
+    CompiledRoutes.Match match = compiledRoutes.match("/path/subpath", HttpMethod.GET);
 
     XrpcRequest mockGroupsRequest = mock(XrpcRequest.class);
     match.getHandler().handle(mockGroupsRequest);
@@ -108,7 +112,7 @@ class RoutesTest {
   /** Adding the same path+method should throw an exception. */
   @Test
   public void duplicateHandlerThrows() {
-    Routes routes = new Routes().get("/twice", request -> null);
+    Routes routes = new RouteBuilder().get("/twice", request -> null);
     assertThrows(IllegalArgumentException.class, () -> routes.get("/twice", request -> null));
   }
 }
