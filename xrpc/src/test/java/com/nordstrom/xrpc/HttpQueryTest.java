@@ -54,7 +54,7 @@ class HttpQueryTest {
   void testH2Query() {
     DefaultHttp2Headers headers = new DefaultHttp2Headers();
     headers.path("?p1=v1");
-    XrpcRequest r = new XrpcRequest(headers, null, null, new EmbeddedChannel(), 0);
+    XrpcRequest r = new XrpcRequest(headers, null, null, new EmbeddedChannel());
     assertNotNull(r);
     assertEquals("v1", r.query().parameter("p1").get());
   }
@@ -63,6 +63,6 @@ class HttpQueryTest {
   void testQueryWithIllegalState() {
     assertThrows(
         IllegalStateException.class,
-        () -> new XrpcRequest(null, null, null, new EmbeddedChannel()).query());
+        () -> new XrpcRequest((FullHttpRequest) null, null, null, new EmbeddedChannel()).query());
   }
 }

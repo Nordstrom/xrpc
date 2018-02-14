@@ -152,8 +152,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     String path = getPathFromHeaders(headers);
     HttpMethod method = HttpMethod.valueOf(headers.method().toString());
     CompiledRoutes.Match match = xctx.getRoutes().match(path, method);
-    XrpcRequest request =
-        new XrpcRequest(headers, xctx.getMapper(), match.getGroups(), channel, streamId);
+    XrpcRequest request = new XrpcRequest(headers, xctx.getMapper(), match.getGroups(), channel);
     Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
     if (!contentLength.isPresent()) {
       // No request body expected; execute handler now with empty body.

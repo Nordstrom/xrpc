@@ -59,7 +59,6 @@ public class XrpcRequest {
   /** The parsed query string. */
   private HttpQuery query;
 
-  private final int streamId;
   private ByteBuf data;
 
   public XrpcRequest(
@@ -71,15 +70,10 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.streamId = -1;
   }
 
   public XrpcRequest(
-      Http2Headers headers,
-      ObjectMapper mapper,
-      Map<String, String> groups,
-      Channel channel,
-      int streamId) {
+      Http2Headers headers, ObjectMapper mapper, Map<String, String> groups, Channel channel) {
     this.h1Request = null;
     this.h2Headers = headers;
     this.mapper = mapper;
@@ -87,7 +81,6 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.streamId = streamId;
   }
 
   public HttpQuery query() {
