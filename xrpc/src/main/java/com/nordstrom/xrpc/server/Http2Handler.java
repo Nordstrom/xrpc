@@ -47,11 +47,17 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class Http2Handler extends Http2ConnectionHandler implements Http2FrameListener {
+
+  private final int maxPayloadBytes;
+
   Http2Handler(
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
-      Http2Settings initialSettings) {
+      Http2Settings initialSettings,
+      int maxPayloadBytes) {
     super(decoder, encoder, initialSettings);
+
+    this.maxPayloadBytes = maxPayloadBytes;
   }
 
   @Override
@@ -105,13 +111,41 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
   @Override
   public int onDataRead(
       ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) {
+    // Both request and handler should be set if endOfStream wasn't set earlier. The checks below
+    // shouldn't be triggered without a bad request coming in (end of stream marked twice).
+    // TODO(jkinkead): Check if the codec will even pass through a data frame if END_STREAM was set
+    // previously.
+    XrpcRequest request = ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get();
+    if (request == null) {
+      log.error("Missing request attribute in channel; can't process request");
+      // TODO(jkinkead): Return a 500?
+      return 0;
+    }
+
+    int totalRead = request.addData(data);
     int processed = data.readableBytes() + padding;
+    if (totalRead > maxPayloadBytes) {
+      // Close request & channel to prevent overflow.
+      writeResponse(
+          ctx,
+          streamId,
+          HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+          Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE));
+      ctx.flush();
+      ctx.close();
+      return processed;
+    }
 
     if (endOfStream) {
-      // TODO(jkinkead): Will this trigger on a not found with a request body?
-      XrpcRequest request = ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get();
-      request.setData(data);
       Handler handler = ctx.channel().attr(XrpcConstants.XRPC_HANDLER).get();
+      if (handler == null) {
+        // This is an error in our handler if it happens, since we already verified the request was
+        // set, and they should always BOTH be set.
+        log.error("Missing handler attribute in channel; can't process request");
+        // TODO(jkinkead): Return a 500 here? It seems appropriate.
+        return processed;
+      }
+
       try {
         FullHttpResponse response = (FullHttpResponse) handler.handle(request);
         sendResponse(ctx, response, streamId);
@@ -145,16 +179,36 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       return;
     }
 
+    // Check content-length and short-circuit the channel if it's too big.
+    long contentLength = 0;
+    try {
+      contentLength = headers.getLong(CONTENT_LENGTH, 0);
+    } catch (NumberFormatException nfe) {
+      // Malformed header, ignore.
+      // This isn't supposed to happen, but does; see https://github.com/netty/netty/issues/7710 .
+    }
+
+    if (contentLength > maxPayloadBytes) {
+      // Friendly short-circuit if someone intends to send us a huge payload.
+      writeResponse(
+          ctx,
+          streamId,
+          HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+          Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE));
+      ctx.flush();
+      ctx.close();
+      return;
+    }
+
     // After headers are read, we can determine if we have a route that handles the request. If
-    // there is no handler, we short-circuit 404 and drop data. Otherwise, we'll pass through to
-    // the handler iff there is no data expected.
+    // there's no data expected, we immediately call the handler. Else, we'll pass the handler and
+    // request through in the context.
     XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
     String path = getPathFromHeaders(headers);
     HttpMethod method = HttpMethod.valueOf(headers.method().toString());
     CompiledRoutes.Match match = xctx.getRoutes().match(path, method);
     XrpcRequest request = new XrpcRequest(headers, xctx.getMapper(), match.getGroups(), channel);
-    Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
-    if (!contentLength.isPresent()) {
+    if (endOfStream) {
       // No request body expected; execute handler now with empty body.
       try {
         FullHttpResponse response = (FullHttpResponse) match.getHandler().handle(request);

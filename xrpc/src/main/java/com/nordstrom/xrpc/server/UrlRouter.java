@@ -58,7 +58,6 @@ public class UrlRouter extends ChannelDuplexHandler {
       ObjectMapper mapper = xctx.getMapper();
       XrpcRequest xrpcRequest =
           new XrpcRequest(request, xctx.getMapper(), match.getGroups(), ctx.channel());
-      xrpcRequest.setData(request.content());
 
       HttpResponse resp = match.getHandler().handle(xrpcRequest);
 

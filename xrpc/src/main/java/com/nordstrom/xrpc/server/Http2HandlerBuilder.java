@@ -28,7 +28,11 @@ public final class Http2HandlerBuilder
 
   private final Http2FrameLogger logger = new Http2FrameLogger(LogLevel.INFO, Http2Handler.class);
 
-  public Http2HandlerBuilder(XrpcConnectionContext xctx) {
+  private final int maxPayloadBytes;
+
+  public Http2HandlerBuilder(int maxPayloadBytes) {
+    this.maxPayloadBytes = maxPayloadBytes;
+
     frameLogger(logger);
   }
 
@@ -42,7 +46,7 @@ public final class Http2HandlerBuilder
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
-    Http2Handler handler = new Http2Handler(decoder, encoder, initialSettings);
+    Http2Handler handler = new Http2Handler(decoder, encoder, initialSettings, maxPayloadBytes);
     frameListener(handler);
     return handler;
   }

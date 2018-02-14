@@ -42,6 +42,8 @@ public class XrpcConstants {
   public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
   public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+  public static final byte[] PAYLOAD_EXCEEDED_RESPONSE =
+      "Request payload too large".getBytes(DEFAULT_CHARSET);
   public static final byte[] RATE_LIMIT_RESPONSE =
       "This response is being send due to too many requests being sent to the server"
           .getBytes(DEFAULT_CHARSET);
