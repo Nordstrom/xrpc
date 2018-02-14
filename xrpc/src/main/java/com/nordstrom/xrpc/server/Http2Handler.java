@@ -23,6 +23,7 @@ import com.codahale.metrics.Meter;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -140,8 +141,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
           ctx,
           streamId,
           HttpResponseStatus.TOO_MANY_REQUESTS,
-          XrpcConstants.RATE_LIMIT_RESPONSE.retain());
-
+          Unpooled.wrappedBuffer(XrpcConstants.RATE_LIMIT_RESPONSE));
       return;
     }
 

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -42,7 +43,7 @@ public class UrlRouter extends ChannelDuplexHandler {
       ctx.writeAndFlush(
               Recipes.newResponse(
                   HttpResponseStatus.TOO_MANY_REQUESTS,
-                  XrpcConstants.RATE_LIMIT_RESPONSE.retain(),
+                  Unpooled.wrappedBuffer(XrpcConstants.RATE_LIMIT_RESPONSE),
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
       xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();
