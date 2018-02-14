@@ -267,10 +267,15 @@ public class AdminHandlers {
 
   /**
    * Registers informational admin routes. These may contain sensitive information, and should have
-   * sensible access controls imposed on them. Routes are: '/info': exposes version number, git
-   * commit number, etc '/metrics': returns the metrics reporters in JSON format '/health': exposes
-   * a summary of downstream health checks '/ping': responds with a 200-OK status code and the text
-   * 'PONG' '/ready': expose a Kubernetes or ELB specific healthcheck for liveliness
+   * sensible access controls imposed on them. Routes are:
+   *
+   * <ul>
+   *   <li>'/info': exposes version number, git commit number, etc
+   *   <li>'/metrics': returns the metrics reporters in JSON format
+   *   <li>'/health': exposes a summary of downstream health checks
+   *   <li>'/ping': responds with a 200-OK status code and the text 'PONG'
+   *   <li>'/ready': expose a Kubernetes or ELB specific healthcheck for liveliness
+   * </ul>
    */
   static void registerInfoAdminRoutes(Server server) {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
@@ -289,9 +294,13 @@ public class AdminHandlers {
 
   /**
    * Registers admin routes to which access should be tightly restricted. These mutate server state,
-   * and may not be needed in all deployment environments. Routes are: '/restart': restart service
-   * (should be restricted to approved devs / tooling) '/killkillkill': shutdown service (should be
-   * restricted to approved devs / tooling) '/gc': request a garbage collection from the JVM
+   * and may not be needed in all deployment environments. Routes are:
+   *
+   * <ul>
+   *   <li>'/restart': restart service
+   *   <li>'/killkillkill': shutdown service
+   *   <li>'/gc': request a garbage collection from the JVM
+   * </ul>
    */
   static void registerUnsafeAdminRoutes(Server server) {
     server.get("/restart", AdminHandlers.getRestartHandler(server));
