@@ -1,7 +1,7 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.nordstrom.xrpc.server.Handler;
-import com.nordstrom.xrpc.server.RouteBuilder;
+import com.nordstrom.xrpc.server.Routes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -10,7 +10,7 @@ import lombok.Value;
 public class PeopleRoutes {
   private final List<Person> people = new ArrayList<>();
 
-  public PeopleRoutes(RouteBuilder routes) {
+  public PeopleRoutes(Routes routes) {
     Handler getPeople = request -> request.okJsonResponse(people);
 
     Handler postPerson =

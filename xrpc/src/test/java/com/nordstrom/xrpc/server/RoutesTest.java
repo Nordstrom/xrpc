@@ -30,14 +30,14 @@ import io.netty.handler.codec.http.HttpMethod;
 import java.util.HashMap;
 import org.junit.jupiter.api.Test;
 
-/** Tests for Routes and CompiledRoutes. */
+/** Tests for RouteBuilder and CompiledRoutes. */
 class RoutesTest {
   /** Tests basic routing features. */
   @Test
   public void trivialRouteMatch() throws Exception {
     Handler mockHandler = mock(Handler.class);
 
-    Routes routes = new Routes();
+    RouteBuilder routes = new RouteBuilder();
     routes.get("/get", mockHandler);
 
     MetricRegistry registry = new MetricRegistry();
@@ -64,7 +64,7 @@ class RoutesTest {
     Handler mockGetHandler = mock(Handler.class);
     Handler mockPostHandler = mock(Handler.class);
 
-    Routes routes = new Routes();
+    RouteBuilder routes = new RouteBuilder();
     routes.get("/path", mockGetHandler).post("/path", mockPostHandler);
 
     MetricRegistry registry = new MetricRegistry();
@@ -92,7 +92,7 @@ class RoutesTest {
     Handler mockGroupsHandler = mock(Handler.class);
     Handler mockGetHandler = mock(Handler.class);
 
-    Routes routes = new Routes();
+    RouteBuilder routes = new RouteBuilder();
     routes.get("/path/{grp}", mockGroupsHandler).get("/path", mockGetHandler);
 
     MetricRegistry registry = new MetricRegistry();
@@ -112,7 +112,7 @@ class RoutesTest {
   /** Adding the same path+method should throw an exception. */
   @Test
   public void duplicateHandlerThrows() {
-    RouteBuilder routes = new Routes().get("/twice", request -> null);
+    Routes routes = new RouteBuilder().get("/twice", request -> null);
     assertThrows(IllegalArgumentException.class, () -> routes.get("/twice", request -> null));
   }
 }

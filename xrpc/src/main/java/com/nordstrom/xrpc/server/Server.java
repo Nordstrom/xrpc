@@ -45,13 +45,13 @@ import org.slf4j.LoggerFactory;
 
 /** An xprc server. */
 @Slf4j
-public class Server implements RouteBuilder {
+public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
 
   private final MetricRegistry metricRegistry = new MetricRegistry();
-  @Getter private final Routes routes = new Routes();
+  @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
@@ -68,7 +68,7 @@ public class Server implements RouteBuilder {
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     if (config.serveAdminRoutes()) {
-      addAdminRoutes(routes);
+      addAdminRoutes();
     }
 
     this.contextBuilder =
@@ -79,8 +79,8 @@ public class Server implements RouteBuilder {
   }
 
   @Override
-  public RouteBuilder addRoute(String routePattern, Handler handler, HttpMethod method) {
-    routes.addRoute(routePattern, handler, method);
+  public Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
+    routeBuilder.addRoute(routePattern, handler, method);
     // Return a this-reference to adhere to contract.
     return this;
   }
@@ -125,7 +125,7 @@ public class Server implements RouteBuilder {
     return metricRegistry;
   }
 
-  private void addAdminRoutes(Routes routes) {
+  private void addAdminRoutes() {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
     ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
     ObjectMapper healthMapper = new ObjectMapper();
@@ -137,18 +137,18 @@ public class Server implements RouteBuilder {
     '/ping' -> should respond with a 200-OK status code and the text 'PONG'
     '/ready' -> should expose a Kubernetes or ELB specific healthcheck for liveliness
     '/restart' -> restart service (should be restricted to approved devs / tooling)
-     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)```
+     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)
      */
 
-    routes.get("/info", AdminHandlers.infoHandler());
-    routes.get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
-    routes.get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
-    routes.get("/ping", AdminHandlers.pingHandler());
-    routes.get("/ready", AdminHandlers.readyHandler());
-    routes.get("/restart", AdminHandlers.restartHandler(this));
-    routes.get("/killkillkill", AdminHandlers.killHandler(this));
+    get("/info", AdminHandlers.infoHandler());
+    get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
+    get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
+    get("/ping", AdminHandlers.pingHandler());
+    get("/ready", AdminHandlers.readyHandler());
+    get("/restart", AdminHandlers.restartHandler(this));
+    get("/killkillkill", AdminHandlers.killHandler(this));
 
-    routes.get("/gc", AdminHandlers.pingHandler());
+    get("/gc", AdminHandlers.pingHandler());
   }
 
   /**
@@ -170,7 +170,7 @@ public class Server implements RouteBuilder {
    */
   public void listenAndServe() throws IOException {
     // Finalize the routes this serves.
-    contextBuilder.routes(routes.compile(metricRegistry));
+    contextBuilder.routes(routeBuilder.compile(metricRegistry));
 
     XrpcConnectionContext ctx = contextBuilder.build();
 
