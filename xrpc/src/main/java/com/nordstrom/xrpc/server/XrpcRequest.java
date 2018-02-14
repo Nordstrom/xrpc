@@ -16,7 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -44,8 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 /** Xprc specific Request object. */
 @Slf4j
 public class XrpcRequest {
-  private final ObjectMapper mapper;
-
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
 
@@ -53,6 +50,7 @@ public class XrpcRequest {
   @Getter private final EventLoop eventLoop;
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
+  @Getter private final XrpcConnectionContext connectionContext;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
@@ -63,10 +61,13 @@ public class XrpcRequest {
   private ByteBuf data;
 
   public XrpcRequest(
-      FullHttpRequest request, ObjectMapper mapper, Map<String, String> groups, Channel channel) {
+      FullHttpRequest request,
+      XrpcConnectionContext ctx,
+      Map<String, String> groups,
+      Channel channel) {
     this.h1Request = request;
     this.h2Headers = null;
-    this.mapper = mapper;
+    this.connectionContext = ctx;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
@@ -76,13 +77,13 @@ public class XrpcRequest {
 
   public XrpcRequest(
       Http2Headers headers,
-      ObjectMapper mapper,
+      XrpcConnectionContext ctx,
       Map<String, String> groups,
       Channel channel,
       int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
-    this.mapper = mapper;
+    this.connectionContext = ctx;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
@@ -222,7 +223,7 @@ public class XrpcRequest {
   private ByteBuf bodyToByteBuf(Object body) throws IOException {
     ByteBuf buf = getAlloc().directBuffer();
     OutputStream stream = new ByteBufOutputStream(buf);
-    mapper.writeValue(stream, body);
+    this.connectionContext.getMapper().writeValue(stream, body);
     return buf;
   }
 }

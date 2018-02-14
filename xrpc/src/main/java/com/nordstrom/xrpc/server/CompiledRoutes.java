@@ -68,20 +68,26 @@ public class CompiledRoutes {
         final Handler userHandler = methodHandlerEntry.getValue();
         final Meter meter = metricRegistry.meter(metricName);
         final Timer timer = metricRegistry.timer(timerName);
-        Handler meteredHandler =
+
+        // TODO (AD): Pull this out into an adapted handler in a separate class.
+        Handler adaptedHandler =
             request -> {
               meter.mark();
               try {
                 return timer.time(() -> userHandler.handle(request));
-              } catch (IOException | RuntimeException ioe) {
-                // From child handler.
-                throw ioe;
               } catch (Exception e) {
-                // Should be impossible.
-                throw new IllegalStateException("unexpected exception", e);
+                try {
+                  return request.getConnectionContext().getExceptionHandler().handle(request, e);
+                } catch (IOException | RuntimeException ioe) {
+                  // From child handler.
+                  throw ioe;
+                } catch (Exception ee) {
+                  // Should be impossible.
+                  throw new IllegalStateException("unexpected exception", ee);
+                }
               }
             };
-        handlers.put(method, meteredHandler);
+        handlers.put(method, adaptedHandler);
       }
 
       routesBuilder.put(route, handlers.build());
