@@ -39,7 +39,7 @@ import java.util.Map;
 public final class Recipes {
   private Recipes() {}
 
-  public static enum ContentType {
+  public enum ContentType {
     Application_Json(HttpHeaderValues.APPLICATION_JSON),
     Application_Octet_Stream(HttpHeaderValues.APPLICATION_OCTET_STREAM),
     Text_Plain(HttpHeaderValues.TEXT_PLAIN),
