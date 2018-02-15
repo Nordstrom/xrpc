@@ -28,7 +28,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import java.io.IOException;
 import java.util.Map;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -76,15 +75,7 @@ public class CompiledRoutes {
               try {
                 return timer.time(() -> userHandler.handle(request));
               } catch (Exception e) {
-                try {
-                  return request.getConnectionContext().getExceptionHandler().handle(request, e);
-                } catch (IOException | RuntimeException ioe) {
-                  // From child handler.
-                  throw ioe;
-                } catch (Exception ee) {
-                  // Should be impossible.
-                  throw new IllegalStateException("unexpected exception", ee);
-                }
+                return request.getConnectionContext().getExceptionHandler().handle(request, e);
               }
             };
         handlers.put(method, adaptedHandler);

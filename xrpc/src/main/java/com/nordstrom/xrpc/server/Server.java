@@ -110,10 +110,8 @@ public class Server {
   }
 
   /**
-   * Set the customer exception handler. This handler is called to handle any exceptions thrown from
+   * Set the custom exception handler. This handler is called to handle any exceptions thrown from
    * route handlers. This replaces any other exception handlers previously set.
-   *
-   * @param handler Exception Handler
    */
   public void exceptionHandler(ExceptionHandler handler) {
     contextBuilder.exceptionHandler(handler);
