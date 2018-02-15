@@ -1,4 +1,4 @@
-package com.nordstrom.xrpc.codec;
+package com.nordstrom.xrpc.encoding;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.server.XrpcConnectionContext;
@@ -8,10 +8,10 @@ import io.netty.buffer.ByteBufOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class JsonEncoder implements Encoder {
+public class JsonResponseEncoder implements ResponseEncoder {
   private final ObjectMapper mapper;
 
-  public JsonEncoder(ObjectMapper mapper) {
+  public JsonResponseEncoder(ObjectMapper mapper) {
     this.mapper = mapper;
   }
 
