@@ -16,7 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -38,14 +37,13 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /** Xprc specific Request object. */
 @Slf4j
 public class XrpcRequest {
-  private final ObjectMapper mapper;
-
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
 
@@ -53,6 +51,9 @@ public class XrpcRequest {
   @Getter private final EventLoop eventLoop;
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
+
+  @Getter(AccessLevel.PACKAGE)
+  private final XrpcConnectionContext connectionContext;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
@@ -63,10 +64,13 @@ public class XrpcRequest {
   private ByteBuf data;
 
   public XrpcRequest(
-      FullHttpRequest request, ObjectMapper mapper, Map<String, String> groups, Channel channel) {
+      FullHttpRequest request,
+      XrpcConnectionContext connectionContext,
+      Map<String, String> groups,
+      Channel channel) {
     this.h1Request = request;
     this.h2Headers = null;
-    this.mapper = mapper;
+    this.connectionContext = connectionContext;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
@@ -76,13 +80,13 @@ public class XrpcRequest {
 
   public XrpcRequest(
       Http2Headers headers,
-      ObjectMapper mapper,
+      XrpcConnectionContext connectionContext,
       Map<String, String> groups,
       Channel channel,
       int streamId) {
     this.h1Request = null;
     this.h2Headers = headers;
-    this.mapper = mapper;
+    this.connectionContext = connectionContext;
     this.groups = groups;
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
@@ -189,17 +193,9 @@ public class XrpcRequest {
     throw new IllegalStateException("Cannot get the http request for an empty XrpcRequest");
   }
 
-  public FullHttpResponse response(
-      HttpResponseStatus status,
-      Object body,
-      Recipes.ContentType contentType,
-      Map<String, String> customHeaders)
-      throws IOException {
-    return Recipes.newResponse(status, bodyToByteBuf(body), contentType, customHeaders);
-  }
-
   public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) throws IOException {
-    return response(status, body, Recipes.ContentType.Application_Json, Collections.emptyMap());
+    return Recipes.newResponse(
+        status, encodeJsonBody(body), Recipes.ContentType.Application_Json, Collections.emptyMap());
   }
 
   public FullHttpResponse okResponse() {
@@ -219,10 +215,10 @@ public class XrpcRequest {
     return jsonResponse(HttpResponseStatus.BAD_REQUEST, body);
   }
 
-  private ByteBuf bodyToByteBuf(Object body) throws IOException {
+  private ByteBuf encodeJsonBody(Object body) throws IOException {
     ByteBuf buf = getAlloc().directBuffer();
     OutputStream stream = new ByteBufOutputStream(buf);
-    mapper.writeValue(stream, body);
+    connectionContext.getMapper().writeValue(stream, body);
     return buf;
   }
 }
