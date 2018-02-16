@@ -29,6 +29,7 @@ class CorsTest {
   private OkHttpClient client;
   private Config config;
   private Server server;
+  private String endpoint;
 
   @BeforeEach
   void beforeEach() {
@@ -54,7 +55,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .build();
@@ -71,7 +72,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -91,7 +92,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .get()
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -112,7 +113,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -131,7 +132,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -150,5 +151,6 @@ class CorsTest {
 
   private void start() throws IOException {
     server.listenAndServe();
+    endpoint = "https://127.0.0.1:" + server.port();
   }
 }

@@ -40,19 +40,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
 /** An xprc server. */
 @Slf4j
+@Accessors(fluent = true)
 public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
-
   private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
+  @Getter private int port;
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
@@ -199,7 +201,6 @@ public class Server implements Routes {
     }
 
     InetSocketAddress address = new InetSocketAddress(config.port());
-    log.info("Listening at {}", address);
     ChannelFuture future = b.bind(address);
 
     try {
@@ -241,6 +242,9 @@ public class Server implements Routes {
     }
 
     channel = future.channel();
+    InetSocketAddress actualAddress = (InetSocketAddress) channel.localAddress();
+    port = actualAddress.getPort();
+    log.info("Listening at {}", actualAddress);
   }
 
   public void shutdown() {
