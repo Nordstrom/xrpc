@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -54,23 +55,46 @@ public class Server implements Routes {
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
-  /**
-   * Actual port on which this server is running. This will differ from the configured port of it is
-   * set to 0, in which case the system pick up an ephemeral port.
-   */
-  @Getter private int port;
+  /** Configured port. */
+  @Getter private final int port;
 
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
-  /** Build a server with the given configuration. */
-  public Server(Config config) {
-    this(new XConfig(config));
+  /** Construct a server with the default configuration. */
+  public Server() {
+    this(new XConfig(ConfigFactory.empty()), -1);
   }
 
-  /** Build a server with the given configuration. */
+  /**
+   * Construct a server with configured port. If the port is < 0, the port will be taken from
+   * configuration. If it is 0, the system will pick up an ephemeral port.
+   */
+  public Server(int port) {
+    this(new XConfig(ConfigFactory.empty()), port);
+  }
+
+  /** Construct a server with the given configuration. * */
+  public Server(Config config) {
+    this(new XConfig(config), -1);
+  }
+
+  /**
+   * Construct a server with the given configuration and port. If the port is < 0, the port will be
+   * taken from configuration. If it is 0, the system will pick up an ephemeral port.
+   */
+  public Server(Config config, int port) {
+    this(new XConfig(config), port);
+  }
+
+  @Deprecated()
   public Server(XConfig config) {
+    this(config, -1);
+  }
+
+  private Server(XConfig config, int port) {
     this.config = config;
+    this.port = port >= 0 ? port : config.port();
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
@@ -187,7 +211,7 @@ public class Server implements Routes {
       scheduleHealthChecks(b.config().childGroup());
     }
 
-    InetSocketAddress address = new InetSocketAddress(config.port());
+    InetSocketAddress address = new InetSocketAddress(port);
     ChannelFuture future = b.bind(address);
 
     try {
@@ -230,8 +254,12 @@ public class Server implements Routes {
 
     channel = future.channel();
     InetSocketAddress actualAddress = (InetSocketAddress) channel.localAddress();
-    port = actualAddress.getPort();
-    log.info("Listening at {}", actualAddress);
+    log.info("Listening at {}", actualAddress.getAddress().getCanonicalHostName());
+  }
+
+  public String localEndpoint() {
+    InetSocketAddress actualAddress = (InetSocketAddress) channel.localAddress();
+    return String.format("https://127.0.0.1:%d", actualAddress.getPort());
   }
 
   public void shutdown() {

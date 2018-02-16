@@ -21,26 +21,16 @@ import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
-import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Application {
-  @Getter
-  @Accessors(fluent = true)
-  private final Server server;
-
-  public Application(Config config) {
-    // Build your server. This overrides the default configuration with values from
-    // src/main/resources/demo.conf.
-    this.server = new Server(config);
-
+  public static void configure(Server server) {
     // Add handlers for /people routes
     new PeopleRoutes(server);
 
     // Add a service specific health check
-    this.server.addHealthCheck(
+    server.addHealthCheck(
         "simple",
         new HealthCheck() {
           @Override
@@ -51,28 +41,20 @@ public class Application {
         });
   }
 
-  public void start() throws IOException {
-    server.listenAndServe();
-  }
-
-  public void stop() {
-    server.shutdown();
-  }
-
   public static void main(String[] args) {
     // Load application config from jar resources. The 'load' method below also allows supports
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
-
-    Application app = new Application(config);
+    Server server = new Server(config);
+    Application.configure(server);
 
     try {
       // Fire away
-      app.start();
+      server.listenAndServe();
     } catch (IOException e) {
       log.error("Failed to start people server", e);
     }
 
-    Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
+    Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
   }
 }
