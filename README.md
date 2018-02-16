@@ -72,13 +72,25 @@ trexblue
 
 # Admin routes
 
-xrpc comes with some built in admin routes. See also [Router.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/Router.java#L262-L270) and [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java)
+xrpc comes with some built in admin routes. See also [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java).
+
+Admin routes are split into two groups: Informational routes, which may contain internally-sensitive
+info; and unsafe routes, which can update a running server, and should be exposed only to a subset
+of users. These can be enabled with the `admin_routes.enable_info` and `admin_routes.enable_unsafe`
+flags.
+
+Informational routes are enabled by default, while unsafe routes are disabled by default.
+
+Informational routes:
 * `/metrics` -> Returns the metrics reporters in JSON format
 * `/health` -> Expose a summary of downstream health checks
 * `/ping` -> Responds with a 200-OK status code and the text 'PONG'
 * `/ready` -> Exposes a Kubernetes or ELB specific healthcheck for liveliness
-* `/restart` -> Restart service (should be restricted to approved devs / tooling)
-* `/killkillkill` -> Shutdown service (should be restricted to approved devs / tooling)
+
+Unsafe routes:
+* `/restart` -> Restart service
+* `/killkillkill` -> Shutdown service
+* `/gc`: Request a garbage collection from the JVM
 
 # Contributing
 

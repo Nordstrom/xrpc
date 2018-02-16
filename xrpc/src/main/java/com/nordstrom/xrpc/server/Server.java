@@ -22,7 +22,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.tls.Tls;
@@ -49,7 +48,8 @@ public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
-  private final MetricRegistry metricRegistry = new MetricRegistry();
+
+  @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
   @Getter private Channel channel;
@@ -65,10 +65,6 @@ public class Server implements Routes {
     this.config = config;
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
-
-    if (config.serveAdminRoutes()) {
-      addAdminRoutes();
-    }
 
     this.contextBuilder =
         XrpcConnectionContext.builder()
@@ -129,36 +125,6 @@ public class Server implements Routes {
         () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
   }
 
-  public MetricRegistry getMetricRegistry() {
-    return metricRegistry;
-  }
-
-  private void addAdminRoutes() {
-    MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
-    ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
-    ObjectMapper healthMapper = new ObjectMapper();
-
-    /*
-    '/info' -> should expose version number, git commit number, etc
-    '/metrics' -> should return the metrics reporters in JSON format
-    '/health' -> should expose a summary of downstream health checks
-    '/ping' -> should respond with a 200-OK status code and the text 'PONG'
-    '/ready' -> should expose a Kubernetes or ELB specific healthcheck for liveliness
-    '/restart' -> restart service (should be restricted to approved devs / tooling)
-     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)
-     */
-
-    get("/info", AdminHandlers.infoHandler());
-    get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
-    get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
-    get("/ping", AdminHandlers.pingHandler());
-    get("/ready", AdminHandlers.readyHandler());
-    get("/restart", AdminHandlers.restartHandler(this));
-    get("/killkillkill", AdminHandlers.killHandler(this));
-
-    get("/gc", AdminHandlers.pingHandler());
-  }
-
   /**
    * Builds an initializer that sets up the server pipeline, override this method to customize your
    * pipeline.
@@ -178,6 +144,13 @@ public class Server implements Routes {
    */
   public void listenAndServe() throws IOException {
     // Finalize the routes this serves.
+    if (config.adminRoutesEnableInfo()) {
+      AdminHandlers.registerInfoAdminRoutes(this);
+    }
+    if (config.adminRoutesEnableUnsafe()) {
+      AdminHandlers.registerUnsafeAdminRoutes(this);
+    }
+
     contextBuilder.routes(routeBuilder.compile(metricRegistry));
 
     XrpcConnectionContext ctx = contextBuilder.build();
