@@ -39,7 +39,7 @@ public class DefaultExceptionHandler implements ExceptionHandler {
     }
     return Recipes.newResponse(
         HttpResponseStatus.INTERNAL_SERVER_ERROR,
-        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESONSE),
+        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESPONSE),
         Recipes.ContentType.Text_Plain);
   }
 }
