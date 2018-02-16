@@ -13,10 +13,10 @@ public class DefaultExceptionHandler implements ExceptionHandler {
   public HttpResponse handle(XrpcRequest request, Exception exception) {
     // TODO (AD): Use configured response content/type and response specific exceptions to default
     // to meaningful responses here
-    log.error("Handler Exception: {}", exception.toString());
+    log.error("Handler Exception:", exception);
     return Recipes.newResponse(
         HttpResponseStatus.INTERNAL_SERVER_ERROR,
-        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESONSE),
+        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESPONSE),
         Recipes.ContentType.Text_Plain);
   }
 }
