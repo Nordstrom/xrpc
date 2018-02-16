@@ -54,7 +54,12 @@ public class Server implements Routes {
   private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
+  /**
+   * Actual port on which this server is running. This will differ from the configured port of it is
+   * set to 0, in which case the system pick up an ephemeral port.
+   */
   @Getter private int port;
+
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
