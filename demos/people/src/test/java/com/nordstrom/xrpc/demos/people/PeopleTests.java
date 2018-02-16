@@ -18,13 +18,14 @@ import org.junit.jupiter.api.Test;
 class PeopleTests {
   // don't use 8080 here as it may conflict with a running local app server
   private static final Config config = ConfigFactory.load("test.conf");
-  private static final String endpoint = "https://127.0.0.1:" + config.getInt("xrpc.server.port");
+  private String endpoint;
   private final Application app = new Application(config.getConfig("xrpc"));
   private final OkHttpClient client = UnsafeHttp.unsafeClient();
 
   @BeforeEach
   void beforeEach() throws IOException {
     app.start();
+    endpoint = "https://127.0.0.1:" + app.server().port();
   }
 
   @AfterEach

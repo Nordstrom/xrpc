@@ -25,6 +25,9 @@ import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.encoding.Encoders;
+import com.nordstrom.xrpc.encoding.JsonEncoder;
+import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import io.netty.bootstrap.ServerBootstrap;
@@ -32,6 +35,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,11 +43,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 
 /** An xprc server. */
 @Slf4j
+@Accessors(fluent = true)
 public class Server {
   private final XConfig config;
   private final Routes routes;
@@ -51,6 +57,7 @@ public class Server {
   private final XrpcConnectionContext.Builder contextBuilder;
   private final MetricRegistry metricRegistry = new MetricRegistry();
 
+  @Getter private int port;
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
@@ -84,7 +91,14 @@ public class Server {
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .exceptionHandler(new DefaultExceptionHandler())
-            .mapper(new ObjectMapper());
+            .mapper(new ObjectMapper())
+            .encoders(
+                Encoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .encoder(HttpHeaderValues.APPLICATION_JSON.toString(), new JsonEncoder())
+                    .encoder(HttpHeaderValues.TEXT_PLAIN.toString(), new TextEncoder())
+                    // TODO (AD): Add encoders for binary/proto
+                    .build());
     addResponseCodeMeters(contextBuilder);
   }
 
@@ -210,7 +224,6 @@ public class Server {
     }
 
     InetSocketAddress address = new InetSocketAddress(config.port());
-    log.info("Listening at {}", address);
     ChannelFuture future = b.bind(address);
 
     try {
@@ -252,6 +265,9 @@ public class Server {
     }
 
     channel = future.channel();
+    InetSocketAddress actualAddress = (InetSocketAddress) channel.localAddress();
+    port = actualAddress.getPort();
+    log.info("Listening at {}", actualAddress);
   }
 
   public void shutdown() {

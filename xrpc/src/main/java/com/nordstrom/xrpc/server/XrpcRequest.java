@@ -37,7 +37,6 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,8 +51,7 @@ public class XrpcRequest {
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
 
-  @Getter(AccessLevel.PACKAGE)
-  private final XrpcConnectionContext connectionContext;
+  @Getter private final XrpcConnectionContext connectionContext;
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 

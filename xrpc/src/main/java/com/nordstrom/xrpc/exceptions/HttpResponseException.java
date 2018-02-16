@@ -16,10 +16,17 @@
 
 package com.nordstrom.xrpc.exceptions;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.nordstrom.xrpc.encoding.TextEncodable;
+import java.io.IOException;
 import lombok.Getter;
 
 /** Base exception for Exceptions that are meant to convert to HTTP Responses. */
-public abstract class HttpResponseException extends RuntimeException {
+@JsonSerialize(using = HttpResponseException.JsonSerializer.class)
+public abstract class HttpResponseException extends RuntimeException implements TextEncodable {
   /** HTTP Status Code. */
   @Getter private final int statusCode;
 
@@ -60,5 +67,31 @@ public abstract class HttpResponseException extends RuntimeException {
     this.statusCode = statusCode;
     this.errorCode = errorCode;
     this.detailedMessage = detailedMessage;
+  }
+
+  @Override
+  public String encode() {
+    return String.format("[%s] %s", getErrorCode(), getMessage());
+  }
+
+  public static class JsonSerializer extends StdSerializer<HttpResponseException> {
+
+    public JsonSerializer() {
+      this(null);
+    }
+
+    public JsonSerializer(Class<HttpResponseException> t) {
+      super(t);
+    }
+
+    @Override
+    public void serialize(
+        HttpResponseException value, JsonGenerator jgen, SerializerProvider provider)
+        throws IOException {
+      jgen.writeStartObject();
+      jgen.writeStringField("errorCode", value.getErrorCode());
+      jgen.writeStringField("message", value.getMessage());
+      jgen.writeEndObject();
+    }
   }
 }

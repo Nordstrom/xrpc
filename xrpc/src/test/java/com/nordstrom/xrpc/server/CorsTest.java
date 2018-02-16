@@ -30,6 +30,7 @@ class CorsTest {
   private Config config;
   private Server server;
   private Routes routes;
+  private String endpoint;
 
   @BeforeEach
   void beforeEach() {
@@ -51,12 +52,11 @@ class CorsTest {
   void testCorsEnabledWithShortCircuit() throws IOException {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.short_circuit", fromAnyRef(true));
-    init();
     start();
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .build();
@@ -68,12 +68,11 @@ class CorsTest {
   void testCorsEnabledPreFlight() throws IOException {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
-    init();
     start();
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -88,12 +87,11 @@ class CorsTest {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
     routes.get("/people", req -> Recipes.newResponseOk("hello foo.bar"));
-    init();
     start();
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .get()
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -109,12 +107,11 @@ class CorsTest {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
     addConfigValue("cors.allowed_methods", fromIterable(ImmutableList.of("GET")));
-    init();
     start();
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -128,12 +125,11 @@ class CorsTest {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
     addConfigValue("cors.allowed_headers", fromIterable(ImmutableList.of("foo-header")));
-    init();
     start();
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -146,11 +142,9 @@ class CorsTest {
     config = config.withValue(path, value);
   }
 
-  private void init() {
-    server = new Server(new XConfig(config), routes);
-  }
-
   private void start() throws IOException {
+    server = new Server(new XConfig(config), routes);
     server.listenAndServe();
+    endpoint = "https://127.0.0.1:" + server.port();
   }
 }

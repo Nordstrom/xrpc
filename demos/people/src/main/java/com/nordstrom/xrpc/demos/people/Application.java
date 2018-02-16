@@ -22,10 +22,14 @@ import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Application {
+  @Getter
+  @Accessors(fluent = true)
   private final Server server;
 
   public Application(Config config) {
