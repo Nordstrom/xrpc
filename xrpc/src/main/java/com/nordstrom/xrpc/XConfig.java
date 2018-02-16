@@ -68,6 +68,7 @@ public class XConfig {
   private final boolean consoleReporter;
   private final int slf4jReporterPollingRate;
   private final int consoleReporterPollingRate;
+  private final boolean logHttp2Frames;
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
   private final boolean runBackgroundHealthChecks;
@@ -110,6 +111,7 @@ public class XConfig {
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
+    logHttp2Frames = config.getBoolean("log_http2_frames");
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
     runBackgroundHealthChecks = config.getBoolean("run_background_health_checks");

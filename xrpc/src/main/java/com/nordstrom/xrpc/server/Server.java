@@ -166,7 +166,9 @@ public class Server implements Routes {
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
             .tls(tls)
-            .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
+            .h1h2(
+                new Http2OrHttpHandler(
+                    new UrlRouter(), ctx, config.corsConfig(), config.logHttp2Frames()))
             .build();
 
     ServerBootstrap b =

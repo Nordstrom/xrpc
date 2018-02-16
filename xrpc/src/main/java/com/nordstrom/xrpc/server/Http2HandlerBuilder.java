@@ -26,10 +26,16 @@ import io.netty.handler.logging.LogLevel;
 public final class Http2HandlerBuilder
     extends AbstractHttp2ConnectionHandlerBuilder<Http2Handler, Http2HandlerBuilder> {
 
-  private final Http2FrameLogger logger = new Http2FrameLogger(LogLevel.INFO, Http2Handler.class);
-
-  public Http2HandlerBuilder(XrpcConnectionContext xctx) {
-    frameLogger(logger);
+  /**
+   * Builds a new builder with the given configuration values.
+   *
+   * @param logHttp2Frames if true, log each HTTP2 frame as it comes in. Should be false for
+   *     production deploys.
+   */
+  public Http2HandlerBuilder(boolean logHttp2Frames) {
+    if (logHttp2Frames) {
+      frameLogger(new Http2FrameLogger(LogLevel.INFO, Http2Handler.class.getName() + ".frames"));
+    }
   }
 
   @Override

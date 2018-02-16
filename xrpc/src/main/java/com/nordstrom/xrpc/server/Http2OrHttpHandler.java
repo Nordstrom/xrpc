@@ -35,13 +35,15 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
   private final UrlRouter router;
   private final XrpcConnectionContext xctx;
   private final CorsConfig corsConfig;
+  private final boolean logHttp2Frames;
 
   protected Http2OrHttpHandler(
-      UrlRouter router, XrpcConnectionContext xctx, CorsConfig corsConfig) {
+      UrlRouter router, XrpcConnectionContext xctx, CorsConfig corsConfig, boolean logHttp2Frames) {
     super(ApplicationProtocolNames.HTTP_1_1);
     this.router = router;
     this.xctx = xctx;
     this.corsConfig = corsConfig;
+    this.logHttp2Frames = logHttp2Frames;
   }
 
   @Override
@@ -50,7 +52,7 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       ChannelPipeline cp = ctx.pipeline();
-      cp.addLast("codec", new Http2HandlerBuilder(xctx).build());
+      cp.addLast("codec", new Http2HandlerBuilder(logHttp2Frames).build());
       return;
     }
 
