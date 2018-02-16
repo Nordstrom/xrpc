@@ -68,7 +68,8 @@ public class XConfig {
   private final boolean consoleReporter;
   private final int slf4jReporterPollingRate;
   private final int consoleReporterPollingRate;
-  private final boolean serveAdminRoutes;
+  private final boolean adminRoutesEnableInfo;
+  private final boolean adminRoutesEnableUnsafe;
   private final boolean runBackgroundHealthChecks;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
@@ -109,7 +110,8 @@ public class XConfig {
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
-    serveAdminRoutes = config.getBoolean("serve_admin_routes");
+    adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
+    adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
     runBackgroundHealthChecks = config.getBoolean("run_background_health_checks");
 
     // Check to see if path_to_cert and path_to_key are configured. If they are not configured,

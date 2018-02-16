@@ -19,10 +19,12 @@ package com.nordstrom.xrpc.server;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.nordstrom.xrpc.server.http.Recipes;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 
 public class AdminHandlers {
   // CHECKSTYLE:OFF
@@ -180,7 +182,7 @@ public class AdminHandlers {
    * }</pre>
    */
   // CHECKSTYLE:ON
-  public static Handler metricsHandler(MetricRegistry metrics, ObjectMapper mapper) {
+  public static Handler getMetricsHandler(MetricRegistry metrics, ObjectMapper mapper) {
     Preconditions.checkArgument(metrics != null, "metrics may not be null");
     Preconditions.checkArgument(mapper != null, "mapper may not be null");
     return xrpcRequest ->
@@ -192,30 +194,22 @@ public class AdminHandlers {
             Recipes.ContentType.Application_Json);
   }
 
-  // TODO(JR): Need to impl a fell admin handler here
-  public static Handler adminHandler() {
-    return xrpcRequest -> Recipes.newResponseOk("TODO");
-  }
-
   /**
    * Simple ping, indicates service is up.
    *
    * @return xrpcRequest - `200 OK` with `PONG`
    */
-  public static Handler pingHandler() {
-    return xrpcRequest -> Recipes.newResponseOk("PONG");
-  }
+  public static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
-  public static Handler infoHandler() {
+  /** Unimplemented; see https://github.com/Nordstrom/xrpc/issues/52 . */
+  public static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
 
-    return xrpcRequest -> Recipes.newResponseOk("TODO");
-  }
-
-  public static Handler gcHandler() {
-    Runtime.getRuntime().gc();
-
-    return xrpcRequest -> Recipes.newResponseOk("OK");
-  }
+  /** Requests a garbage collection from the JVM. */
+  public static Handler gcHandler =
+      xrpcRequest -> {
+        Runtime.getRuntime().gc();
+        return Recipes.newResponseOk("OK");
+      };
 
   /**
    * Run registered health checks.
@@ -236,7 +230,7 @@ public class AdminHandlers {
    *
    * }</pre>
    */
-  public static Handler healthCheckHandler(
+  public static Handler getHealthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
     Preconditions.checkArgument(healthCheckRegistry != null, "healthCheckRegistry may not be null");
     Preconditions.checkArgument(mapper != null, "mapper may not be null");
@@ -257,17 +251,60 @@ public class AdminHandlers {
    *
    * @return xrpcRequest `200 OK` with `OK`
    */
-  public static Handler readyHandler() {
-    return xrpcRequest -> Recipes.newResponseOk("OK");
-  }
+  public static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
 
-  public static Handler restartHandler(Server server) {
+  /** Unimplemented. */
+  public static Handler getRestartHandler(Server server) {
     return xrpcRequest -> Recipes.newResponseOk("TODO");
   }
 
-  public static Handler killHandler(Server server) {
-    server.shutdown();
+  public static Handler getKillHandler(Server server) {
+    return xrpcRequest -> {
+      server.shutdown();
+      return Recipes.newResponseOk("OK");
+    };
+  }
 
-    return xrpcRequest -> Recipes.newResponseOk("OK");
+  /**
+   * Registers informational admin routes. These may contain sensitive information, and should have
+   * sensible access controls imposed on them. Routes are:
+   *
+   * <ul>
+   *   <li>'/info': exposes version number, git commit number, etc
+   *   <li>'/metrics': returns the metrics reporters in JSON format
+   *   <li>'/health': exposes a summary of downstream health checks
+   *   <li>'/ping': responds with a 200-OK status code and the text 'PONG'
+   *   <li>'/ready': expose a Kubernetes or ELB specific healthcheck for liveliness
+   * </ul>
+   */
+  static void registerInfoAdminRoutes(Server server) {
+    MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
+    // TODO(jkinkead): This should optionally use a custom mapper.
+    ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
+    server.get(
+        "/metrics", AdminHandlers.getMetricsHandler(server.getMetricRegistry(), metricsMapper));
+    // TODO(jkinkead): This should optionally use a custom mapper.
+    server.get(
+        "/health",
+        AdminHandlers.getHealthCheckHandler(server.getHealthCheckRegistry(), new ObjectMapper()));
+    server.get("/info", AdminHandlers.infoHandler);
+    server.get("/ping", AdminHandlers.pingHandler);
+    server.get("/ready", AdminHandlers.readyHandler);
+  }
+
+  /**
+   * Registers admin routes to which access should be tightly restricted. These mutate server state,
+   * and may not be needed in all deployment environments. Routes are:
+   *
+   * <ul>
+   *   <li>'/restart': restart service
+   *   <li>'/killkillkill': shutdown service
+   *   <li>'/gc': request a garbage collection from the JVM
+   * </ul>
+   */
+  static void registerUnsafeAdminRoutes(Server server) {
+    server.get("/restart", AdminHandlers.getRestartHandler(server));
+    server.get("/killkillkill", AdminHandlers.getKillHandler(server));
+    server.get("/gc", AdminHandlers.gcHandler);
   }
 }

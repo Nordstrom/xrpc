@@ -36,7 +36,6 @@ class CorsTest {
     config =
         ConfigFactory.load("test.conf")
             .getConfig("xrpc")
-            .withValue("serve_admin_routes", fromAnyRef(false))
             .withValue("run_background_health_checks", fromAnyRef(false));
     client = UnsafeHttp.unsafeClient();
   }
