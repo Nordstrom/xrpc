@@ -24,41 +24,12 @@ class ExceptionTest {
   private OkHttpClient client;
   private Config config;
   private Server server;
-  private Routes routes;
   private String endpoint;
 
   @BeforeEach
   void beforeEach() {
     config = ConfigFactory.load("test.conf").getConfig("xrpc");
     client = UnsafeHttp.unsafeClient();
-    routes = new Routes();
-    routes
-        .get(
-            "/bad-request",
-            r -> {
-              throw new BadRequestException("bad request message", "bad request detailed message");
-            })
-        .get(
-            "/unauthorized",
-            r -> {
-              throw new UnauthorizedException(
-                  "unauthorized message", "unauthorized detailed message");
-            })
-        .get(
-            "/forbidden",
-            r -> {
-              throw new ForbiddenException("forbidden message", "forbidden detailed message");
-            })
-        .get(
-            "/not-found",
-            r -> {
-              throw new NotFoundException("not found message", "not found detailed message");
-            })
-        .get(
-            "/unhandled",
-            r -> {
-              throw new RuntimeException("unhandled message");
-            });
   }
 
   @AfterEach
@@ -68,6 +39,13 @@ class ExceptionTest {
 
   @Test
   void testBadRequestJson() throws IOException {
+    init();
+    server.get(
+        "/bad-request",
+        r -> {
+          throw new BadRequestException("bad request message", "bad request detailed message");
+        });
+
     start();
     Response response =
         client
@@ -82,6 +60,12 @@ class ExceptionTest {
 
   @Test
   void testNotFoundJson() throws IOException {
+    init();
+    server.get(
+        "/not-found",
+        r -> {
+          throw new NotFoundException("not found message", "not found detailed message");
+        });
     start();
     Response response =
         client.newCall(new Request.Builder().get().url(endpoint + "/not-found").build()).execute();
@@ -93,6 +77,12 @@ class ExceptionTest {
 
   @Test
   void testUnauthorizedJson() throws IOException {
+    init();
+    server.get(
+        "/unauthorized",
+        r -> {
+          throw new UnauthorizedException("unauthorized message", "unauthorized detailed message");
+        });
     start();
     Response response =
         client
@@ -107,6 +97,12 @@ class ExceptionTest {
 
   @Test
   void testForbiddenJson() throws IOException {
+    init();
+    server.get(
+        "/forbidden",
+        r -> {
+          throw new ForbiddenException("forbidden message", "forbidden detailed message");
+        });
     start();
     Response response =
         client.newCall(new Request.Builder().get().url(endpoint + "/forbidden").build()).execute();
@@ -120,6 +116,12 @@ class ExceptionTest {
   @Test
   void testBadRequestText() throws IOException {
     addConfigValue("default_content_type", fromAnyRef("text/plain"));
+    init();
+    server.get(
+        "/bad-request",
+        r -> {
+          throw new BadRequestException("bad request message", "bad request detailed message");
+        });
     start();
     Response response =
         client
@@ -132,6 +134,12 @@ class ExceptionTest {
 
   @Test
   void testBadRequestTextFromAccept() throws IOException {
+    init();
+    server.get(
+        "/bad-request",
+        r -> {
+          throw new BadRequestException("bad request message", "bad request detailed message");
+        });
     start();
     Response response =
         client
@@ -149,6 +157,12 @@ class ExceptionTest {
 
   @Test
   void testUnhandled() throws IOException {
+    init();
+    server.get(
+        "/unhandled",
+        r -> {
+          throw new RuntimeException("unhandled message");
+        });
     start();
     Response response =
         client.newCall(new Request.Builder().get().url(endpoint + "/unhandled").build()).execute();
@@ -160,8 +174,11 @@ class ExceptionTest {
     config = config.withValue(path, value);
   }
 
+  private void init() {
+    server = new Server(new XConfig(config));
+  }
+
   private void start() throws IOException {
-    server = new Server(new XConfig(config), routes);
     server.listenAndServe();
     endpoint = "https://127.0.0.1:" + server.port();
   }

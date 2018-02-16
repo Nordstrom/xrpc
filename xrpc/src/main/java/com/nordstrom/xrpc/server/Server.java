@@ -36,6 +36,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -50,41 +51,30 @@ import org.slf4j.LoggerFactory;
 /** An xprc server. */
 @Slf4j
 @Accessors(fluent = true)
-public class Server {
+public class Server implements Routes {
   private final XConfig config;
-  private final Routes routes;
   private final Tls tls;
   private final XrpcConnectionContext.Builder contextBuilder;
   private final MetricRegistry metricRegistry = new MetricRegistry();
+  @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
 
   @Getter private int port;
   @Getter private Channel channel;
   @Getter private final HealthCheckRegistry healthCheckRegistry;
 
-  /**
-   * Build a server handling the given routes. Routes configuration will be captured when the server
-   * starts with listenAndServe (they may be modified after calling the constructor).
-   *
-   * @param config overrides for the default configuration values
-   */
-  public Server(Config config, Routes routes) {
-    this(new XConfig(config), routes);
+  /** Build a server with the given configuration. */
+  public Server(Config config) {
+    this(new XConfig(config));
   }
 
-  /**
-   * Build a server handling the given routes. Routes configuration will be captured when the server
-   * starts with listenAndServe (they may be modified after calling the constructor).
-   *
-   * @param config the configuration for the server
-   */
-  public Server(XConfig config, Routes routes) {
+  /** Build a server with the given configuration. */
+  public Server(XConfig config) {
     this.config = config;
-    this.routes = routes;
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     if (config.serveAdminRoutes()) {
-      addAdminRoutes(routes);
+      addAdminRoutes();
     }
 
     this.contextBuilder =
@@ -100,6 +90,13 @@ public class Server {
                     // TODO (AD): Add encoders for binary/proto
                     .build());
     addResponseCodeMeters(contextBuilder);
+  }
+
+  @Override
+  public Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
+    routeBuilder.addRoute(routePattern, handler, method);
+    // Return a this-reference to adhere to contract.
+    return this;
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
@@ -150,7 +147,7 @@ public class Server {
     return metricRegistry;
   }
 
-  private void addAdminRoutes(Routes routes) {
+  private void addAdminRoutes() {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
     ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
     ObjectMapper healthMapper = new ObjectMapper();
@@ -162,18 +159,18 @@ public class Server {
     '/ping' -> should respond with a 200-OK status code and the text 'PONG'
     '/ready' -> should expose a Kubernetes or ELB specific healthcheck for liveliness
     '/restart' -> restart service (should be restricted to approved devs / tooling)
-     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)```
+     '/killkillkill' -> shutdown service (should be restricted to approved devs / tooling)
      */
 
-    routes.get("/info", AdminHandlers.infoHandler());
-    routes.get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
-    routes.get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
-    routes.get("/ping", AdminHandlers.pingHandler());
-    routes.get("/ready", AdminHandlers.readyHandler());
-    routes.get("/restart", AdminHandlers.restartHandler(this));
-    routes.get("/killkillkill", AdminHandlers.killHandler(this));
+    get("/info", AdminHandlers.infoHandler());
+    get("/metrics", AdminHandlers.metricsHandler(metricRegistry, metricsMapper));
+    get("/health", AdminHandlers.healthCheckHandler(healthCheckRegistry, healthMapper));
+    get("/ping", AdminHandlers.pingHandler());
+    get("/ready", AdminHandlers.readyHandler());
+    get("/restart", AdminHandlers.restartHandler(this));
+    get("/killkillkill", AdminHandlers.killHandler(this));
 
-    routes.get("/gc", AdminHandlers.pingHandler());
+    get("/gc", AdminHandlers.pingHandler());
   }
 
   /**
@@ -195,7 +192,7 @@ public class Server {
    */
   public void listenAndServe() throws IOException {
     // Finalize the routes this serves.
-    contextBuilder.routes(routes.compile(metricRegistry));
+    contextBuilder.routes(routeBuilder.compile(metricRegistry));
 
     XrpcConnectionContext ctx = contextBuilder.build();
 

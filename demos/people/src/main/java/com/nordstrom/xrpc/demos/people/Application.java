@@ -17,7 +17,6 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.nordstrom.xrpc.server.Routes;
 import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -33,13 +32,12 @@ public class Application {
   private final Server server;
 
   public Application(Config config) {
-    // Build your router. This overrides the default configuration with values from
+    // Build your server. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    Routes routes = new Routes();
-    this.server = new Server(config, routes);
+    this.server = new Server(config);
 
     // Add handlers for /people routes
-    new PeopleRoutes(routes);
+    new PeopleRoutes(server);
 
     // Add a service specific health check
     this.server.addHealthCheck(
