@@ -281,12 +281,11 @@ public class AdminHandlers {
     MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
     // TODO(jkinkead): This should optionally use a custom mapper.
     ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
-    server.get(
-        "/metrics", AdminHandlers.getMetricsHandler(server.getMetricRegistry(), metricsMapper));
+    server.get("/metrics", AdminHandlers.getMetricsHandler(server.metricRegistry(), metricsMapper));
     // TODO(jkinkead): This should optionally use a custom mapper.
     server.get(
         "/health",
-        AdminHandlers.getHealthCheckHandler(server.getHealthCheckRegistry(), new ObjectMapper()));
+        AdminHandlers.getHealthCheckHandler(server.healthCheckRegistry(), new ObjectMapper()));
     server.get("/info", AdminHandlers.infoHandler);
     server.get("/ping", AdminHandlers.pingHandler);
     server.get("/ready", AdminHandlers.readyHandler);
