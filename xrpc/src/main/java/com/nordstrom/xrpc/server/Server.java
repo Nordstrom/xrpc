@@ -69,6 +69,7 @@ public class Server implements Routes {
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
+            .exceptionHandler(new DefaultExceptionHandler())
             .mapper(new ObjectMapper());
     addResponseCodeMeters(contextBuilder);
   }
@@ -99,6 +100,14 @@ public class Server implements Routes {
       String meterName = MetricRegistry.name("responseCodes", entry.getValue());
       contextBuilder.meterByStatusCode(entry.getKey(), metricRegistry.meter(meterName));
     }
+  }
+
+  /**
+   * Set the custom exception handler. This handler is called to handle any exceptions thrown from
+   * route handlers. This replaces any other exception handlers previously set.
+   */
+  public void exceptionHandler(ExceptionHandler handler) {
+    contextBuilder.exceptionHandler(handler);
   }
 
   public void addHealthCheck(String name, HealthCheck check) {
