@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -107,12 +108,11 @@ public class XConfig {
     workerThreadCount = config.getInt("worker_thread_count");
     asyncHealthCheckThreadCount = config.getInt("async_health_check_thread_count");
     long maxPayloadBytesLong = config.getBytes("max_payload_bytes");
-    if (maxPayloadBytesLong > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          String.format(
-              "value %d for max_payload_bytes must be less than or equal to %d",
-              maxPayloadBytesLong, Integer.MAX_VALUE));
-    }
+    Preconditions.checkArgument(
+        maxPayloadBytesLong <= Integer.MAX_VALUE,
+        String.format(
+            "value %d for max_payload_bytes must be less than or equal to %d",
+            maxPayloadBytesLong, Integer.MAX_VALUE));
     maxPayloadBytes = (int) maxPayloadBytesLong;
     maxConnections = config.getInt("max_connections");
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
