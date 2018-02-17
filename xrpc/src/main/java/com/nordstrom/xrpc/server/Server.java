@@ -24,6 +24,9 @@ import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.encoding.Encoders;
+import com.nordstrom.xrpc.encoding.JsonEncoder;
+import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -32,6 +35,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -102,7 +106,14 @@ public class Server implements Routes {
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .exceptionHandler(new DefaultExceptionHandler())
-            .mapper(new ObjectMapper());
+            .mapper(new ObjectMapper())
+            .encoders(
+                Encoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .encoder(HttpHeaderValues.APPLICATION_JSON.toString(), new JsonEncoder())
+                    .encoder(HttpHeaderValues.TEXT_PLAIN.toString(), new TextEncoder())
+                    // TODO (AD): Add encoders for binary/proto
+                    .build());
     addResponseCodeMeters(contextBuilder);
   }
 
