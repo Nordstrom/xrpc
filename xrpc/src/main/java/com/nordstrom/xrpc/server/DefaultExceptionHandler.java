@@ -18,7 +18,7 @@ public class DefaultExceptionHandler implements ExceptionHandler {
     try {
       // TODO (AD): Use configured response content/type and response specific exceptions to default
       // to meaningful responses here
-      log.error("Handler Exception: {}", exception.toString());
+      log.error("Handler Exception:", exception);
 
       final CharSequence accept = request.getHeader(HttpHeaderNames.ACCEPT);
       final ContentTypeEncoder contentTypeEncoder =
@@ -35,7 +35,7 @@ public class DefaultExceptionHandler implements ExceptionHandler {
       // TODO (AD): Handle other exceptions that can reasonably be converted to HTTP Responses.
       // For example IllegalArgumentException could become HTTP 400 Bad Request
     } catch (Exception e) {
-      log.error("Error Handling Exception: {}", e.toString());
+      log.error("Error Handling Exception:", e);
     }
     return Recipes.newResponse(
         HttpResponseStatus.INTERNAL_SERVER_ERROR,
