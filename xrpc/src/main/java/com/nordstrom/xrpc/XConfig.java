@@ -52,7 +52,6 @@ public class XConfig {
   private final String workerNameFormat;
   private final int bossThreadCount;
   private final int workerThreadCount;
-  private final int asyncHealthCheckThreadCount;
   private final int maxConnections;
   private final double softReqPerSec;
   private final double hardReqPerSec;
@@ -70,7 +69,6 @@ public class XConfig {
   private final int consoleReporterPollingRate;
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
-  private final boolean runBackgroundHealthChecks;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
       PlatformDependent.newConcurrentHashMap();
@@ -105,14 +103,12 @@ public class XConfig {
     workerNameFormat = config.getString("worker_name_format");
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
-    asyncHealthCheckThreadCount = config.getInt("async_health_check_thread_count");
     maxConnections = config.getInt("max_connections");
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");
     hardReqPerSec = config.getDouble("hard_req_per_sec");
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
-    runBackgroundHealthChecks = config.getBoolean("run_background_health_checks");
 
     // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
     // fall back to cert and key configured in plaintext in xrpc.conf.
