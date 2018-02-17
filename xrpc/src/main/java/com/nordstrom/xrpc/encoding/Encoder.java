@@ -20,6 +20,15 @@ import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
+/** Interface for encoding a response Object into a ByteBuf. */
 public interface Encoder {
+
+  /**
+   * Encode a response object for HttpResponse.
+   *
+   * @param request current http request
+   * @param object response object
+   * @return ByteBuf used as HTTP Response body
+   */
   ByteBuf encode(XrpcRequest request, Object object) throws IOException;
 }

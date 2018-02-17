@@ -3,7 +3,6 @@ package com.nordstrom.xrpc.server;
 import static com.typesafe.config.ConfigValueFactory.fromAnyRef;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.exceptions.BadRequestException;
 import com.nordstrom.xrpc.exceptions.ForbiddenException;
 import com.nordstrom.xrpc.exceptions.NotFoundException;
@@ -175,11 +174,11 @@ class ExceptionTest {
   }
 
   private void init() {
-    server = new Server(new XConfig(config));
+    server = new Server(config, 0);
   }
 
   private void start() throws IOException {
     server.listenAndServe();
-    endpoint = "https://127.0.0.1:" + server.port();
+    endpoint = server.localEndpoint();
   }
 }

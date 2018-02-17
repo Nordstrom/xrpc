@@ -22,7 +22,15 @@ import io.netty.buffer.ByteBufOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/** An Encoder that encodes a response object to JSON format. */
 public class JsonEncoder implements Encoder {
+  /**
+   * Encode a response object to JSON format for the HttpResponse.
+   *
+   * @param request current http request
+   * @param object response object
+   * @return ByteBuf representing JSON formatted String
+   */
   @Override
   public ByteBuf encode(XrpcRequest request, Object object) throws IOException {
     ByteBuf buf = request.getAlloc().directBuffer();

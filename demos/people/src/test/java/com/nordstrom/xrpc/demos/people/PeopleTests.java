@@ -2,9 +2,8 @@ package com.nordstrom.xrpc.demos.people;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.testing.UnsafeHttp;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -16,21 +15,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class PeopleTests {
-  // don't use 8080 here as it may conflict with a running local app server
-  private static final Config config = ConfigFactory.load("test.conf");
-  private String endpoint;
-  private final Application app = new Application(config.getConfig("xrpc"));
+  private Server server;
   private final OkHttpClient client = UnsafeHttp.unsafeClient();
 
   @BeforeEach
   void beforeEach() throws IOException {
-    app.start();
-    endpoint = "https://127.0.0.1:" + app.server().port();
+    server = new Server(0);
+    Application.configure(server);
+    server.listenAndServe();
   }
 
   @AfterEach
   void afterEach() {
-    app.stop();
+    server.shutdown();
   }
 
   @Test
@@ -40,7 +37,7 @@ class PeopleTests {
             .newCall(
                 new Request.Builder()
                     .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
-                    .url(endpoint + "/people")
+                    .url(server.localEndpoint() + "/people")
                     .build())
             .execute();
 
@@ -53,12 +50,14 @@ class PeopleTests {
         .newCall(
             new Request.Builder()
                 .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
-                .url(endpoint + "/people")
+                .url(server.localEndpoint() + "/people")
                 .build())
         .execute();
 
     Response response =
-        client.newCall(new Request.Builder().get().url(endpoint + "/people").build()).execute();
+        client
+            .newCall(new Request.Builder().get().url(server.localEndpoint() + "/people").build())
+            .execute();
 
     assertEquals("[{\"name\":\"bob\"}]", response.body().string());
   }
@@ -69,12 +68,15 @@ class PeopleTests {
         .newCall(
             new Request.Builder()
                 .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
-                .url(endpoint + "/people")
+                .url(server.localEndpoint() + "/people")
                 .build())
         .execute();
 
     Response response =
-        client.newCall(new Request.Builder().get().url(endpoint + "/people/bob").build()).execute();
+        client
+            .newCall(
+                new Request.Builder().get().url(server.localEndpoint() + "/people/bob").build())
+            .execute();
 
     assertEquals("{\"name\":\"bob\"}", response.body().string());
   }
@@ -82,7 +84,10 @@ class PeopleTests {
   @Test
   void testGetPersonNotFound() throws IOException {
     Response response =
-        client.newCall(new Request.Builder().get().url(endpoint + "/people/bob").build()).execute();
+        client
+            .newCall(
+                new Request.Builder().get().url(server.localEndpoint() + "/people/bob").build())
+            .execute();
 
     assertEquals(404, response.code());
   }

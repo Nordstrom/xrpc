@@ -21,7 +21,15 @@ import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
+/** An Encoder that encodes a response object to Text format. */
 public class TextEncoder implements Encoder {
+  /**
+   * Encode a response object to JSON format for the HttpResponse.
+   *
+   * @param request current http request
+   * @param object response object
+   * @return ByteBuf representing JSON formatted String
+   */
   @Override
   public ByteBuf encode(XrpcRequest request, Object object) throws IOException {
     // TODO (AD): Add Content-Type charset recognition

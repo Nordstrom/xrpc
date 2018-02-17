@@ -9,7 +9,6 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCESS_CONTROL_REQUEST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableList;
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
@@ -145,11 +144,11 @@ class CorsTest {
   }
 
   private void init() {
-    server = new Server(new XConfig(config));
+    server = new Server(config);
   }
 
   private void start() throws IOException {
     server.listenAndServe();
-    endpoint = "https://127.0.0.1:" + server.port();
+    endpoint = server.localEndpoint();
   }
 }

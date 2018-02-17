@@ -22,6 +22,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/** Holds a set of Encoder objects each registered to do encoding for a given content type. */
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Encoders {
@@ -29,6 +30,12 @@ public class Encoders {
   private final ContentTypeEncoder defaultEncoder;
   private final ImmutableList<ContentTypeEncoder> encoders;
 
+  /**
+   * Find an Encoder based on an Accept header value.
+   *
+   * @param accept accept header value.
+   * @return best ContentTypeEncoder for the given accept header
+   */
   public ContentTypeEncoder acceptedEncoder(CharSequence accept) {
     if (accept == null) {
       return defaultEncoder;
@@ -46,26 +53,31 @@ public class Encoders {
     return defaultEncoder;
   }
 
+  /** Get Encoders builder. */
   public static Builder builder() {
     return new Builder();
   }
 
+  /** Encoders Builder. */
   public static class Builder {
     private String defaultContentType;
     private final ImmutableList.Builder<ContentTypeEncoder> builder = ImmutableList.builder();
 
     private Builder() {}
 
+    /** Set default_content_type. */
     public Builder defaultContentType(String defaultContentType) {
       this.defaultContentType = defaultContentType;
       return this;
     }
 
+    /** Register an Encoder for a given content type. */
     public Builder encoder(String contentType, Encoder encoder) {
       builder.add(new ContentTypeEncoder(contentType, encoder));
       return this;
     }
 
+    /** Build an Encoders instance. */
     public Encoders build() {
       ImmutableList<ContentTypeEncoder> encoders = builder.build();
       ContentTypeEncoder defaultEncoder =
