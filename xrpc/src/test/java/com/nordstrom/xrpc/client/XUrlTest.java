@@ -29,29 +29,29 @@ class XUrlTest {
 
   @Test
   void getHost() {
-    assertEquals("api.nordstrom.com", XUrl.getHost(url1));
+    assertEquals("api.nordstrom.com", XUrl.host(url1));
   }
 
   @Test
   void getHost_withPort() {
-    assertEquals("api.nordstrom.com", XUrl.getHost(url2));
+    assertEquals("api.nordstrom.com", XUrl.host(url2));
   }
 
   @Test
   void getPort() {
-    assertEquals(443, XUrl.getPort(url1));
-    assertEquals(8080, XUrl.getPort(url2));
-    assertEquals(8080, XUrl.getPort("https://api.nordstrom.com:8080"));
+    assertEquals(443, XUrl.port(url1));
+    assertEquals(8080, XUrl.port(url2));
+    assertEquals(8080, XUrl.port("https://api.nordstrom.com:8080"));
   }
 
   @Test
   void getPath() {
-    assertEquals("/foo/v1", XUrl.getPath(url1));
+    assertEquals("/foo/v1", XUrl.path(url1));
   }
 
   @Test
   void getPath_withUrlEncoding() {
-    String path = XUrl.getPath("https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar");
+    String path = XUrl.path("https://api.nordstrom.com:8080/foo/bar%20baz?foo=bar");
     assertEquals("/foo/bar baz", path);
   }
 
@@ -62,7 +62,7 @@ class XUrlTest {
 
   @Test
   void stripQueryParameters() {
-    assertEquals("?foo=bar", XUrl.getRawQueryParameters(url1));
+    assertEquals("?foo=bar", XUrl.rawQueryParameters(url1));
   }
 
   @Test
@@ -130,21 +130,21 @@ class XUrlTest {
 
   @Test
   void getInetSocket() throws java.net.URISyntaxException {
-    InetSocketAddress result = XUrl.getInetSocket(url2);
+    InetSocketAddress result = XUrl.inetSocket(url2);
     assertEquals("api.nordstrom.com", result.getHostString());
     assertEquals(8080, result.getPort());
   }
 
   @Test
   void getInetSocket_withNoPort() throws java.net.URISyntaxException {
-    InetSocketAddress result = XUrl.getInetSocket(url1);
+    InetSocketAddress result = XUrl.inetSocket(url1);
     assertEquals("api.nordstrom.com", result.getHostString());
     assertEquals(443, result.getPort());
   }
 
   @Test
   void getInetSocket_withNoProtocol() throws java.net.URISyntaxException {
-    InetSocketAddress result = XUrl.getInetSocket("api.nordstrom.com/foo/v1?foo=bar");
+    InetSocketAddress result = XUrl.inetSocket("api.nordstrom.com/foo/v1?foo=bar");
     assertEquals("api.nordstrom.com", result.getHostString());
     assertEquals(80, result.getPort());
   }

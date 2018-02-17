@@ -32,7 +32,12 @@ package com.nordstrom.xrpc.client.retry;
  * limitations under the License.
  */
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 public class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
+  @Getter
+  @Accessors(fluent = true)
   private final int maxSleepTimeMs;
 
   /**
@@ -45,10 +50,6 @@ public class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
   public BoundedExponentialBackoffRetry(int baseSleepTimeMs, int maxSleepTimeMs, int maxRetries) {
     super(baseSleepTimeMs, maxRetries);
     this.maxSleepTimeMs = maxSleepTimeMs;
-  }
-
-  public int getMaxSleepTimeMs() {
-    return maxSleepTimeMs;
   }
 
   @Override

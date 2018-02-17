@@ -65,7 +65,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get().getRequestMeter().mark();
+    ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get().requestMeter().mark();
   }
 
   /** Writes the given HTTP/1 response to the given stream, using the given context. */
@@ -73,7 +73,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
       throws IOException {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     Optional<Meter> statusMeter =
-        Optional.ofNullable(xctx.getMetersByStatusCode().get(h1Resp.status()));
+        Optional.ofNullable(xctx.metersByStatusCode().get(h1Resp.status()));
     statusMeter.ifPresent(Meter::mark);
 
     Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
@@ -96,7 +96,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     ctx.channel()
         .attr(XrpcConstants.CONNECTION_CONTEXT)
         .get()
-        .getMetersByStatusCode()
+        .metersByStatusCode()
         .get(status)
         .mark();
   }
@@ -151,7 +151,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
     XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
     String path = getPathFromHeaders(headers);
     HttpMethod method = HttpMethod.valueOf(headers.method().toString());
-    CompiledRoutes.Match match = xctx.getRoutes().match(path, method);
+    CompiledRoutes.Match match = xctx.routes().match(path, method);
     XrpcRequest request = new XrpcRequest(headers, xctx, match.getGroups(), channel, streamId);
     Optional<CharSequence> contentLength = Optional.ofNullable(headers.get(CONTENT_LENGTH));
     if (!contentLength.isPresent()) {
@@ -188,7 +188,7 @@ public final class Http2Handler extends Http2ConnectionHandler implements Http2F
 
   static String getPathFromHeaders(Http2Headers headers) {
     String uri = headers.path().toString();
-    return XUrl.getPath(uri);
+    return XUrl.path(uri);
   }
 
   @Override

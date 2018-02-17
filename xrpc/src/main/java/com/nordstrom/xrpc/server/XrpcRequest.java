@@ -39,10 +39,12 @@ import java.util.Collections;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Xprc specific Request object. */
 @Slf4j
+@Accessors(fluent = true)
 public class XrpcRequest {
   /** The request to handle. */
   @Getter private final FullHttpRequest h1Request;
@@ -216,9 +218,9 @@ public class XrpcRequest {
   }
 
   private ByteBuf encodeJsonBody(Object body) throws IOException {
-    ByteBuf buf = getAlloc().directBuffer();
+    ByteBuf buf = alloc().directBuffer();
     OutputStream stream = new ByteBufOutputStream(buf);
-    connectionContext.getMapper().writeValue(stream, body);
+    connectionContext.mapper().writeValue(stream, body);
     return buf;
   }
 }

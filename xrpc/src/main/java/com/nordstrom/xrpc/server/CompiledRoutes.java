@@ -75,7 +75,7 @@ public class CompiledRoutes {
               try {
                 return timer.time(() -> userHandler.handle(request));
               } catch (Exception e) {
-                return request.getConnectionContext().getExceptionHandler().handle(request, e);
+                return request.connectionContext().exceptionHandler().handle(request, e);
               }
             };
         handlers.put(method, adaptedHandler);
