@@ -9,7 +9,6 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCESS_CONTROL_REQUEST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableList;
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.http.Recipes;
 import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
@@ -29,6 +28,7 @@ class CorsTest {
   private OkHttpClient client;
   private Config config;
   private Server server;
+  private String endpoint;
 
   @BeforeEach
   void beforeEach() {
@@ -53,7 +53,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .build();
@@ -70,7 +70,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -90,7 +90,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .get()
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -111,7 +111,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -130,7 +130,7 @@ class CorsTest {
 
     Request request =
         new Request.Builder()
-            .url("https://127.0.0.1:8080/people")
+            .url(endpoint + "/people")
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
@@ -144,10 +144,11 @@ class CorsTest {
   }
 
   private void init() {
-    server = new Server(new XConfig(config));
+    server = new Server(config);
   }
 
   private void start() throws IOException {
     server.listenAndServe();
+    endpoint = server.localEndpoint();
   }
 }
