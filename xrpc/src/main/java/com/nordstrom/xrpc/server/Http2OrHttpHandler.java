@@ -50,7 +50,7 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       ChannelPipeline cp = ctx.pipeline();
-      cp.addLast("codec", new Http2HandlerBuilder(xctx).build());
+      cp.addLast("codec", new Http2HandlerBuilder().build());
       return;
     }
 
