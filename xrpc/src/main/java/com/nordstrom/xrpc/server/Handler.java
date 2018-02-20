@@ -21,6 +21,8 @@ import java.io.IOException;
 
 /** A handler for an HTTP route. */
 @FunctionalInterface
-public interface Handler {
-  HttpResponse handle(XrpcRequest xrpcRequest) throws IOException;
+public interface RequestHandler extends Handler {
+  HttpResponse handle(XrpcRequest request) throws IOException;
 }
+
+public interface Handler {}
