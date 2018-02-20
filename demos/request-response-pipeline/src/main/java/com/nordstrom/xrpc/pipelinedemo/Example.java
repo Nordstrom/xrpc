@@ -82,8 +82,7 @@ public class Example {
 
       cp.addLast("firewall", state.firewall());
       cp.addLast(
-          "encryptionHandler",
-          state.tls().getEncryptionHandler(ch.alloc())); // Add Config for Certs
+          "encryptionHandler", state.tls().encryptionHandler(ch.alloc())); // Add Config for Certs
 
       // all of the following functionality replaces this line in ServerChannelInitializer
       // cp.addLast("codec", state.h1h2());

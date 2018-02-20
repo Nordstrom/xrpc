@@ -48,16 +48,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XUrl {
 
-  public static String getHost(String url) {
+  public static String host(String url) {
     try {
-      return getDomainChecked(url);
+      return domainChecked(url);
     } catch (URISyntaxException e) {
       log.info("Malformed url: {}", url);
       return null;
     }
   }
 
-  public static int getPort(String url) {
+  public static int port(String url) {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
     url = addProtocol(url);
@@ -78,13 +78,13 @@ public class XUrl {
     }
   }
 
-  public static String getDomainChecked(String url) throws URISyntaxException {
+  public static String domainChecked(String url) throws URISyntaxException {
     Preconditions.checkNotNull(url);
     url = addProtocol(url);
     return new URI(url).getHost();
   }
 
-  public static String getPath(String url) {
+  public static String path(String url) {
     Preconditions.checkNotNull(url);
     url = addProtocol(url);
     try {
@@ -109,7 +109,7 @@ public class XUrl {
     return stripUrlParameters(url.toString());
   }
 
-  public static String getRawQueryParameters(String url) {
+  public static String rawQueryParameters(String url) {
     Preconditions.checkNotNull(url);
     int paramStartIndex = url.indexOf("?");
     if (paramStartIndex == -1) {
@@ -134,13 +134,13 @@ public class XUrl {
 
   public static Map<String, List<String>> decodeQueryString(String url) {
     Preconditions.checkNotNull(url);
-    QueryStringDecoder decoder = new QueryStringDecoder(getRawQueryParameters(url));
+    QueryStringDecoder decoder = new QueryStringDecoder(rawQueryParameters(url));
     Map<String, List<String>> params = new DefaultValueMap<>(ImmutableList.of());
     params.putAll(decoder.parameters());
     return params;
   }
 
-  public static InetSocketAddress getInetSocket(String url) throws URISyntaxException {
+  public static InetSocketAddress inetSocket(String url) throws URISyntaxException {
     Preconditions.checkNotNull(url);
     Matcher matcher = URL_PROTOCOL_REGEX.matcher(url);
     url = addProtocol(url);
