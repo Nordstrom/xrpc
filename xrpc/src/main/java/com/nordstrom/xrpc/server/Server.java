@@ -95,7 +95,7 @@ public class Server implements Routes {
     this.config = config;
     this.port = port >= 0 ? port : config.port();
     this.tls = new Tls(config.cert(), config.key());
-    this.healthCheckRegistry = new HealthCheckRegistry();
+    this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     this.contextBuilder =
         XrpcConnectionContext.builder()
