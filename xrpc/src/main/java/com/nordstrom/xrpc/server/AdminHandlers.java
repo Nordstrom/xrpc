@@ -179,7 +179,7 @@ public class AdminHandlers {
    * }</pre>
    */
   // CHECKSTYLE:ON
-  private static Handler createMetricsHandler() {
+  public static Handler createMetricsHandler() {
     MetricsModule metrics = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
     // TODO(jkinkead): This should optionally use a custom mapper.
     ObjectMapper mapper = new ObjectMapper().registerModule(metrics);
@@ -197,13 +197,13 @@ public class AdminHandlers {
    *
    * @return xrpcRequest `200 OK` with `PONG`
    */
-  private static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
+  public static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
   /** Unimplemented; see https://github.com/Nordstrom/xrpc/issues/52 . */
-  private static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
+  public static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
 
   /** Requests a garbage collection from the JVM. */
-  private static Handler gcHandler =
+  public static Handler gcHandler =
       xrpcRequest -> {
         Runtime.getRuntime().gc();
         return Recipes.newResponseOk("OK");
@@ -228,7 +228,7 @@ public class AdminHandlers {
    *
    * }</pre>
    */
-  private static Handler createHealthCheckHandler(
+  public static Handler createHealthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
     Preconditions.checkArgument(healthCheckRegistry != null, "healthCheckRegistry may not be null");
     Preconditions.checkArgument(mapper != null, "mapper may not be null");
@@ -249,12 +249,12 @@ public class AdminHandlers {
    *
    * @return xrpcRequest `200 OK` with `OK`
    */
-  private static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
+  public static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
 
   /** Unimplemented. */
-  private static Handler restartHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
+  public static Handler restartHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
 
-  private static Handler createKillHandler(Server server) {
+  public static Handler createKillHandler(Server server) {
     return xrpcRequest -> {
       server.shutdown();
       return Recipes.newResponseOk("OK");
