@@ -16,7 +16,6 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.json.MetricsModule;
@@ -31,8 +30,6 @@ public class AdminHandlers {
   /**
    * Output metrics reporters in JSON format.
    *
-   * @param metrics MetricRegistry
-   * @param mapper ObjectMapper
    * @return xrpcRequest object with metrics in JSON format
    *     <p>Example output:
    *     <pre>{@code
@@ -182,9 +179,10 @@ public class AdminHandlers {
    * }</pre>
    */
   // CHECKSTYLE:ON
-  public static Handler metricsHandler(MetricRegistry metrics, ObjectMapper mapper) {
-    Preconditions.checkArgument(metrics != null, "metrics may not be null");
-    Preconditions.checkArgument(mapper != null, "mapper may not be null");
+  private static Handler createMetricsHandler() {
+    MetricsModule metrics = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
+    // TODO(jkinkead): This should optionally use a custom mapper.
+    ObjectMapper mapper = new ObjectMapper().registerModule(metrics);
     return xrpcRequest ->
         Recipes.newResponseOk(
             xrpcRequest
@@ -197,15 +195,15 @@ public class AdminHandlers {
   /**
    * Simple ping, indicates service is up.
    *
-   * @return xrpcRequest - `200 OK` with `PONG`
+   * @return xrpcRequest `200 OK` with `PONG`
    */
-  public static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
+  private static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
   /** Unimplemented; see https://github.com/Nordstrom/xrpc/issues/52 . */
-  public static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
+  private static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
 
   /** Requests a garbage collection from the JVM. */
-  public static Handler gcHandler =
+  private static Handler gcHandler =
       xrpcRequest -> {
         Runtime.getRuntime().gc();
         return Recipes.newResponseOk("OK");
@@ -230,7 +228,7 @@ public class AdminHandlers {
    *
    * }</pre>
    */
-  public static Handler healthCheckHandler(
+  private static Handler createHealthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
     Preconditions.checkArgument(healthCheckRegistry != null, "healthCheckRegistry may not be null");
     Preconditions.checkArgument(mapper != null, "mapper may not be null");
@@ -251,14 +249,12 @@ public class AdminHandlers {
    *
    * @return xrpcRequest `200 OK` with `OK`
    */
-  public static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
+  private static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
 
   /** Unimplemented. */
-  public static Handler restartHandler(Server server) {
-    return xrpcRequest -> Recipes.newResponseOk("TODO");
-  }
+  private static Handler restartHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
 
-  public static Handler killHandler(Server server) {
+  private static Handler createKillHandler(Server server) {
     return xrpcRequest -> {
       server.shutdown();
       return Recipes.newResponseOk("OK");
@@ -278,17 +274,13 @@ public class AdminHandlers {
    * </ul>
    */
   static void registerInfoAdminRoutes(Server server) {
-    MetricsModule metricsModule = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
-    // TODO(jkinkead): This should optionally use a custom mapper.
-    ObjectMapper metricsMapper = new ObjectMapper().registerModule(metricsModule);
-    server.get("/metrics", AdminHandlers.metricsHandler(server.metricRegistry(), metricsMapper));
+    server.get("/metrics", createMetricsHandler());
     // TODO(jkinkead): This should optionally use a custom mapper.
     server.get(
-        "/health",
-        AdminHandlers.healthCheckHandler(server.healthCheckRegistry(), new ObjectMapper()));
-    server.get("/info", AdminHandlers.infoHandler);
-    server.get("/ping", AdminHandlers.pingHandler);
-    server.get("/ready", AdminHandlers.readyHandler);
+        "/health", createHealthCheckHandler(server.healthCheckRegistry(), new ObjectMapper()));
+    server.get("/info", infoHandler);
+    server.get("/ping", pingHandler);
+    server.get("/ready", readyHandler);
   }
 
   /**
@@ -302,8 +294,8 @@ public class AdminHandlers {
    * </ul>
    */
   static void registerUnsafeAdminRoutes(Server server) {
-    server.get("/restart", AdminHandlers.restartHandler(server));
-    server.get("/killkillkill", AdminHandlers.killHandler(server));
-    server.get("/gc", AdminHandlers.gcHandler);
+    server.get("/restart", restartHandler);
+    server.get("/killkillkill", createKillHandler(server));
+    server.get("/gc", gcHandler);
   }
 }
