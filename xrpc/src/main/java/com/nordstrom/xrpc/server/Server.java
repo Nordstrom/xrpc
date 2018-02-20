@@ -31,7 +31,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -146,17 +145,6 @@ public class Server implements Routes {
     healthCheckRegistry.register(name, check);
   }
 
-  public void scheduleHealthChecks(EventLoopGroup workerGroup) {
-    scheduleHealthChecks(workerGroup, 60, 60, TimeUnit.SECONDS);
-  }
-
-  public void scheduleHealthChecks(
-      EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
-
-    workerGroup.scheduleWithFixedDelay(
-        () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
-  }
-
   /**
    * Builds an initializer that sets up the server pipeline, override this method to customize your
    * pipeline.
@@ -206,10 +194,6 @@ public class Server implements Routes {
             config.bossThreadCount(), config.workerThreadCount(), config.workerNameFormat());
 
     b.childHandler(initializer(state));
-
-    if (config.runBackgroundHealthChecks()) {
-      scheduleHealthChecks(b.config().childGroup());
-    }
 
     InetSocketAddress address = new InetSocketAddress(port);
     ChannelFuture future = b.bind(address);
