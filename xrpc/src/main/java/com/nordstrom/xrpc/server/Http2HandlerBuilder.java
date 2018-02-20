@@ -22,19 +22,19 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2FrameLogger;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.logging.LogLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Http2HandlerBuilder
     extends AbstractHttp2ConnectionHandlerBuilder<Http2Handler, Http2HandlerBuilder> {
 
-  /**
-   * Builds a new builder with the given configuration values.
-   *
-   * @param logHttp2Frames if true, log each HTTP2 frame as it comes in. Should be false for
-   *     production deploys.
-   */
-  public Http2HandlerBuilder(boolean logHttp2Frames) {
-    if (logHttp2Frames) {
-      frameLogger(new Http2FrameLogger(LogLevel.INFO, Http2Handler.class.getName() + ".frames"));
+  private static final String FRAME_LOGGER_NAME = Http2HandlerBuilder.class.getName() + ".frames";
+  /** Logger to query for configuration for HTTP2 frame logging. */
+  private static final Logger FRAME_LOGGER = LoggerFactory.getLogger(FRAME_LOGGER_NAME);
+
+  public Http2HandlerBuilder() {
+    if (FRAME_LOGGER.isDebugEnabled()) {
+      frameLogger(new Http2FrameLogger(LogLevel.DEBUG, FRAME_LOGGER_NAME));
     }
   }
 
