@@ -51,6 +51,7 @@ public class XrpcRequest {
   private final FullHttpRequest h1Request;
 
   /** The HTTP/2 request headers. null if this is an HTTP/1.x request. */
+  @Getter(AccessLevel.PACKAGE)
   private final Http2Headers h2Headers;
 
   @Getter private final EventLoop eventLoop;

@@ -20,86 +20,122 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.codahale.metrics.Meter;
+import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http2.DefaultHttp2DataFrame;
+import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
-import io.netty.handler.codec.http2.Http2DataFrame;
-import io.netty.handler.codec.http2.Http2FrameAdapter;
+import io.netty.handler.codec.http2.Http2EventAdapter;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2Stream;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
 import java.io.IOException;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public final class Http2Handler extends Http2FrameAdapter {
-  private final int maxPayloadBytes;
+public final class Http2Handler extends Http2EventAdapter {
+  /**
+   * Map of stream ID to the request sent on the stream. Entries are created when headers are read
+   * and a handler is matched.
+   */
+  @VisibleForTesting final IntObjectMap<XrpcRequest> requests = new IntObjectHashMap<>();
+  /**
+   * Map of stream ID to the handler for the request. Entries are created when headers are read and
+   * a handler is matched.
+   */
+  @VisibleForTesting final IntObjectMap<Handler> handlers = new IntObjectHashMap<>();
 
-  /** The encoder used to send responses. */
+  /** The encoder to write response data to. */
   private final Http2ConnectionEncoder encoder;
 
+  /** The maximum total data payload to accept. */
+  private final int maxPayloadBytes;
+
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {
+    this.encoder = encoder;
     this.maxPayloadBytes = maxPayloadBytes;
 
-    this.encoder = encoder;
+    encoder.connection().addListener(this);
   }
 
-  /** Writes the given HTTP/1 response to the given stream, using the given context. */
-  private void sendResponse(ChannelHandlerContext ctx, FullHttpResponse h1Resp, int streamId)
-      throws IOException {
+  /** Marks the meter for the given response status in the given connection context. */
+  private void markResponseStatus(ChannelHandlerContext ctx, HttpResponseStatus status) {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
-    Optional<Meter> statusMeter =
-        Optional.ofNullable(xctx.metersByStatusCode().get(h1Resp.status()));
-    statusMeter.ifPresent(Meter::mark);
-
-    Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
-    Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
-    encoder.writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
-    encoder.writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
+    Optional.ofNullable(xctx.metersByStatusCode().get(status)).ifPresent(Meter::mark);
   }
 
+  /**
+   * Writes the given response data to the given stream. Closes the stream after writing the
+   * response.
+   */
   private void writeResponse(
-      ChannelHandlerContext ctx, int streamId, HttpResponseStatus status, ByteBuf buffer) {
-    FullHttpResponse h1Resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buffer);
-    h1Resp.headers().set(CONTENT_TYPE, "text/plain");
-    h1Resp.headers().setInt(CONTENT_LENGTH, buffer.readableBytes());
+      final ChannelHandlerContext ctx,
+      final int streamId,
+      Http2Headers headers,
+      Optional<ByteBuf> bodyOpt) {
 
-    Http2Headers responseHeaders = HttpConversionUtil.toHttp2Headers(h1Resp, true);
-    Http2DataFrame responseDataFrame = new DefaultHttp2DataFrame(h1Resp.content(), true);
-    encoder.writeHeaders(ctx, streamId, responseHeaders, 0, false, ctx.newPromise());
-    encoder.writeData(ctx, streamId, responseDataFrame.content(), 0, true, ctx.newPromise());
+    encoder.writeHeaders(ctx, streamId, headers, 0, !bodyOpt.isPresent(), ctx.newPromise());
+    bodyOpt.ifPresent(body -> encoder.writeData(ctx, streamId, body, 0, true, ctx.newPromise()));
+  }
 
-    ctx.channel()
-        .attr(XrpcConstants.CONNECTION_CONTEXT)
-        .get()
-        .metersByStatusCode()
-        .get(status)
-        .mark();
+  /**
+   * Writes the given HTTP/1 response to the given stream. Marks the response status metric. Closes
+   * the stream after writing the response.
+   */
+  private void writeResponse(ChannelHandlerContext ctx, int streamId, HttpResponse h1Response) {
+    markResponseStatus(ctx, h1Response.status());
+
+    // Convert and validate headers.
+    Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1Response, true);
+
+    Optional<ByteBuf> body;
+    if (h1Response instanceof FullHttpResponse) {
+      ByteBuf content = ((FullHttpResponse) h1Response).content();
+      if (content.readableBytes() > 0) {
+        body = Optional.of(content);
+      } else {
+        body = Optional.empty();
+      }
+    } else {
+      body = Optional.empty();
+    }
+
+    writeResponse(ctx, streamId, headers, body);
+  }
+
+  /**
+   * Writes the given response body as "text/plain" to the given stream. Marks the response status
+   * metric. Closes the stream after writing the response.
+   */
+  private void writeResponse(
+      ChannelHandlerContext ctx, int streamId, HttpResponseStatus status, ByteBuf body) {
+
+    markResponseStatus(ctx, status);
+
+    Http2Headers headers = new DefaultHttp2Headers(true);
+    headers.set(CONTENT_TYPE, "text/plain");
+    headers.setInt(CONTENT_LENGTH, body.readableBytes());
+    headers.status(status.codeAsText());
+
+    writeResponse(ctx, streamId, headers, Optional.of(body));
   }
 
   @Override
   public int onDataRead(
       ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) {
-    // Both request and handler should be set if endOfStream wasn't set earlier. The checks below
-    // shouldn't be triggered without a bad request coming in (end of stream marked twice).
-    // TODO(jkinkead): Check if the codec will even pass through a data frame if END_STREAM was set
-    // previously.
-    XrpcRequest request = ctx.channel().attr(XrpcConstants.XRPC_REQUEST).get();
-    if (request == null) {
-      log.error("Missing request attribute in channel; can't process request");
-      // TODO(jkinkead): Return a 500?
-      return 0;
-    }
+
+    XrpcRequest request = requests.get(streamId);
 
     int totalRead = request.addData(data);
     int processed = data.readableBytes() + padding;
@@ -116,18 +152,10 @@ public final class Http2Handler extends Http2FrameAdapter {
     }
 
     if (endOfStream) {
-      Handler handler = ctx.channel().attr(XrpcConstants.XRPC_HANDLER).get();
-      if (handler == null) {
-        // This is an error in our handler if it happens, since we already verified the request was
-        // set, and they should always BOTH be set.
-        log.error("Missing handler attribute in channel; can't process request");
-        // TODO(jkinkead): Return a 500 here? It seems appropriate.
-        return processed;
-      }
-
+      Handler handler = handlers.get(streamId);
       try {
-        FullHttpResponse response = (FullHttpResponse) handler.handle(request);
-        sendResponse(ctx, response, streamId);
+        HttpResponse response = handler.handle(request);
+        writeResponse(ctx, streamId, response);
         return processed;
       } catch (IOException e) {
         log.error("Error in handling Route", e);
@@ -149,11 +177,18 @@ public final class Http2Handler extends Http2FrameAdapter {
       boolean endOfStream) {
 
     Channel channel = ctx.channel();
+    XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
 
-    // TODO(jkinkead): The below is assuming that all headers indicate a new request; this is
-    // invalid, since we could be seeing a trailing headers frame. Fix.
-    channel.attr(XrpcConstants.CONNECTION_CONTEXT).get().requestMeter().mark();
+    // Check if this is a new stream. This should either be a new stream, or be the set of
+    // trailer-headers for a finished request.
+    XrpcRequest request = requests.get(streamId);
 
+    // Mark the request counter if this is a new stream.
+    if (request == null) {
+      xctx.requestMeter().mark();
+    }
+
+    // Rate limit if requested.
     if (channel.hasAttr(XrpcConstants.XRPC_SOFT_RATE_LIMITED)) {
       writeResponse(
           ctx,
@@ -184,19 +219,28 @@ public final class Http2Handler extends Http2FrameAdapter {
       return;
     }
 
-    // After headers are read, we can determine if we have a route that handles the request. If
-    // there's no data expected, we immediately call the handler. Else, we'll pass the handler and
-    // request through in the context.
-    XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
-    String path = getPathFromHeaders(headers);
-    HttpMethod method = HttpMethod.valueOf(headers.method().toString());
-    CompiledRoutes.Match match = xctx.routes().match(path, method);
-    XrpcRequest request = new XrpcRequest(headers, xctx, match.getGroups(), channel);
+    // Find the request handler. If we found a request for the stream already, the handler will be
+    // in our handler map.
+    Handler handler;
+    if (request == null) {
+      // Determine the handler for the request's path.
+      String path = getPathFromHeaders(headers);
+      HttpMethod method = HttpMethod.valueOf(headers.method().toString());
+      CompiledRoutes.Match match = xctx.routes().match(path, method);
+      request = new XrpcRequest(headers, xctx, match.getGroups(), channel);
+      handler = match.getHandler();
+    } else {
+      // Add the new headers to the request.
+      request.h2Headers().add(headers);
+      handler = handlers.get(streamId);
+    }
+
+    // If there's no data expected, call the handler. Else, pass the handler and request through in
+    // the context.
     if (endOfStream) {
-      // No request body expected; execute handler now with empty body.
       try {
-        FullHttpResponse response = (FullHttpResponse) match.getHandler().handle(request);
-        sendResponse(ctx, response, streamId);
+        HttpResponse response = handler.handle(request);
+        writeResponse(ctx, streamId, response);
       } catch (IOException e) {
         log.error("Error in handling Route", e);
         // Error
@@ -205,9 +249,11 @@ public final class Http2Handler extends Http2FrameAdapter {
         writeResponse(ctx, streamId, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
       }
     } else {
-      // Save request & handler for use when data is received.
-      channel.attr(XrpcConstants.XRPC_REQUEST).set(request);
-      channel.attr(XrpcConstants.XRPC_HANDLER).set(match.getHandler());
+      // Save request & handler to use when the stream is ended.
+      // Note that per the HTTP/2 protocol, endOfStream MUST have been set if this is a
+      // trailer-part.
+      requests.put(streamId, request);
+      handlers.put(streamId, handler);
     }
   }
 
@@ -228,5 +274,13 @@ public final class Http2Handler extends Http2FrameAdapter {
   static String getPathFromHeaders(Http2Headers headers) {
     String uri = headers.path().toString();
     return XUrl.path(uri);
+  }
+
+  /** Removes all requests and handlers for a given stream. */
+  @Override
+  public void onStreamRemoved(Http2Stream stream) {
+    int id = stream.id();
+    requests.remove(id);
+    handlers.remove(id);
   }
 }

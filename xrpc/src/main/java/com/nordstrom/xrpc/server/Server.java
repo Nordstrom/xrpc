@@ -23,6 +23,7 @@ import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -102,7 +103,7 @@ public class Server implements Routes {
             .requestMeter(metricRegistry.meter("requests"))
             .exceptionHandler(new DefaultExceptionHandler())
             .mapper(new ObjectMapper());
-    addResponseCodeMeters(contextBuilder);
+    addResponseCodeMeters(contextBuilder, metricRegistry);
   }
 
   @Override
@@ -113,7 +114,9 @@ public class Server implements Routes {
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
-  private void addResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
+  @VisibleForTesting
+  static void addResponseCodeMeters(
+      XrpcConnectionContext.Builder contextBuilder, MetricRegistry metricRegistry) {
     Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
     namesByCode.put(HttpResponseStatus.OK, "ok");
     namesByCode.put(HttpResponseStatus.CREATED, "created");
@@ -123,6 +126,8 @@ public class Server implements Routes {
     namesByCode.put(HttpResponseStatus.UNAUTHORIZED, "unauthorized");
     namesByCode.put(HttpResponseStatus.FORBIDDEN, "forbidden");
     namesByCode.put(HttpResponseStatus.NOT_FOUND, "notFound");
+    // Note that the HTTP RFC name is "Payload Too Large"; REQUEST_ENTITY_TOO_LARGE is an old name.
+    namesByCode.put(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, "payloadTooLarge");
     namesByCode.put(HttpResponseStatus.TOO_MANY_REQUESTS, "tooManyRequests");
     namesByCode.put(HttpResponseStatus.INTERNAL_SERVER_ERROR, "serverError");
 
