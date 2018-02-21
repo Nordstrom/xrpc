@@ -27,8 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Http2HandlerBuilder
-    extends AbstractHttp2ConnectionHandlerBuilder<
-        Http2HandlerBuilder.ConnectionHandler, Http2HandlerBuilder> {
+    extends AbstractHttp2ConnectionHandlerBuilder<Http2ConnectionHandler, Http2HandlerBuilder> {
 
   private static final String FRAME_LOGGER_NAME = Http2HandlerBuilder.class.getName() + ".frames";
   /** Logger to query for configuration for HTTP2 frame logging. */
@@ -41,12 +40,12 @@ public final class Http2HandlerBuilder
   }
 
   @Override
-  public ConnectionHandler build() {
+  public Http2ConnectionHandler build() {
     return super.build();
   }
 
   @Override
-  protected ConnectionHandler build(
+  protected Http2ConnectionHandler build(
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
@@ -58,7 +57,7 @@ public final class Http2HandlerBuilder
   }
 
   /** Trivial extension of Http2ConnectionHandler to expose a public constructor. */
-  public static class ConnectionHandler extends Http2ConnectionHandler {
+  private static class ConnectionHandler extends Http2ConnectionHandler {
     ConnectionHandler(
         Http2ConnectionDecoder decoder,
         Http2ConnectionEncoder encoder,
