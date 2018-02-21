@@ -12,6 +12,7 @@ plugins {
   id 'com.github.sherter.google-java-format' version '0.6'
   id 'net.researchgate.release' version '2.4.0'
   id 'com.github.spotbugs' version '1.6.0'
+  id 'me.champeau.gradle.jmh' version '0.4.4'
 }
 
 release {
@@ -82,6 +83,8 @@ dependencies {
   runtimeOnly 'ch.qos.logback:logback-classic:1.1.7'
   runtimeOnly 'ch.qos.logback:logback-core:1.1.7'
   runtimeOnly 'org.codehaus.groovy:groovy-all:2.4.1'
+  jmh 'ch.qos.logback:logback-core:1.1.7'
+  jmh 'ch.qos.logback:logback-classic:1.1.7'
 }
 
 // Run with the latest checkstyle version. Required for our checkstyle.xml.
