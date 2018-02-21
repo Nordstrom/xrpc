@@ -77,7 +77,7 @@ public class Tls {
     return null;
   }
 
-  public ChannelHandler getEncryptionHandler(ByteBufAllocator alloc) {
+  public ChannelHandler encryptionHandler(ByteBufAllocator alloc) {
 
     ChannelHandler handler = sslCtx.newHandler(alloc);
 
@@ -105,7 +105,7 @@ public class Tls {
         // TODO(JR): Leave code in, we should really validate the signature with the public key
       } else {
         selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
-        privateKey = selfSignedCert.getKey();
+        privateKey = selfSignedCert.key();
       }
 
       java.security.cert.X509Certificate[] chain;
@@ -135,7 +135,7 @@ public class Tls {
           selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
         }
         chain = new java.security.cert.X509Certificate[1];
-        chain[0] = selfSignedCert.getCert();
+        chain[0] = selfSignedCert.cert();
       }
 
       SslContext sslCtx = null;

@@ -49,7 +49,7 @@ public class HttpResponseHandler extends SimpleChannelInboundHandler<FullHttpRes
     responseFuture.set(msg);
   }
 
-  public ListenableFuture<FullHttpResponse> getResponse() {
+  public ListenableFuture<FullHttpResponse> response() {
     return responseFuture;
   }
 }

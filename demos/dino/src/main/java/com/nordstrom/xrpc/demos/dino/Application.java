@@ -25,7 +25,6 @@ import com.nordstrom.xrpc.demos.dino.proto.DinoGetRequest;
 import com.nordstrom.xrpc.demos.dino.proto.DinoSetReply;
 import com.nordstrom.xrpc.demos.dino.proto.DinoSetRequest;
 import com.nordstrom.xrpc.server.Handler;
-import com.nordstrom.xrpc.server.Routes;
 import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.server.XrpcRequest;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -51,12 +50,9 @@ public class Application {
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
 
-    // Create your route builder. You use this to register request handlers.
-    Routes routes = new Routes();
-
     // Build your server. This overrides the default configuration with values from
     // src/main/resources/demo.conf.
-    Server server = new Server(config, routes);
+    Server server = new Server(config);
 
     // RPC style endpoint.
     Handler dinoHandler =
@@ -73,7 +69,7 @@ public class Application {
         };
 
     // Add predefined handler for HTTP GET:/DinoService/{method}
-    routes.get("/DinoService/{method}", dinoHandler);
+    server.get("/DinoService/{method}", dinoHandler);
 
     // Add a service specific health check.
     server.addHealthCheck("simple", new SimpleHealthCheck());

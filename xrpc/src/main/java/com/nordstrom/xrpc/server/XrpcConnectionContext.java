@@ -23,10 +23,12 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Builder(builderClassName = "Builder")
+@Accessors(fluent = true)
 // TODO: (AD) Merge with State
 public class XrpcConnectionContext {
   @Getter private final Meter requestMeter;
@@ -38,4 +40,6 @@ public class XrpcConnectionContext {
   @Getter private final ObjectMapper mapper;
 
   @Getter private final CompiledRoutes routes;
+
+  @Getter private final ExceptionHandler exceptionHandler;
 }

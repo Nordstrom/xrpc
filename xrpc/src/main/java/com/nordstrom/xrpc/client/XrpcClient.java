@@ -60,7 +60,9 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.util.concurrent.ThreadFactory;
 import javax.net.ssl.SSLException;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 
+@Accessors(fluent = true)
 public class XrpcClient {
   private static final int MAX_PAYLOAD_SIZE = 1 * 1024 * 1024;
 

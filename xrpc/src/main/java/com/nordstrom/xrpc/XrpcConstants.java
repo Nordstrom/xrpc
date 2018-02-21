@@ -45,8 +45,10 @@ public class XrpcConstants {
   public static final byte[] PAYLOAD_EXCEEDED_RESPONSE =
       "Request payload too large".getBytes(DEFAULT_CHARSET);
   public static final byte[] RATE_LIMIT_RESPONSE =
-      "This response is being send due to too many requests being sent to the server"
-          .getBytes(DEFAULT_CHARSET);
+      "Too many requests being sent to the server".getBytes(DEFAULT_CHARSET);
+
+  public static final byte[] INTERNAL_SERVER_ERROR_RESPONSE =
+      "Internal Server Error".getBytes(DEFAULT_CHARSET);
   public static final AttributeKey<Boolean> IP_WHITE_LIST = AttributeKey.valueOf("IpWhiteList");
   public static final AttributeKey<Boolean> IP_BLACK_LIST = AttributeKey.valueOf("IpBlackList");
 }

@@ -19,35 +19,54 @@ package com.nordstrom.xrpc.server;
 import io.netty.handler.codec.http2.AbstractHttp2ConnectionHandlerBuilder;
 import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
+import io.netty.handler.codec.http2.Http2ConnectionHandler;
 import io.netty.handler.codec.http2.Http2FrameLogger;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.logging.LogLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Http2HandlerBuilder
-    extends AbstractHttp2ConnectionHandlerBuilder<Http2Handler, Http2HandlerBuilder> {
+    extends AbstractHttp2ConnectionHandlerBuilder<Http2ConnectionHandler, Http2HandlerBuilder> {
 
-  private final Http2FrameLogger logger = new Http2FrameLogger(LogLevel.INFO, Http2Handler.class);
+  private static final String FRAME_LOGGER_NAME = Http2HandlerBuilder.class.getName() + ".frames";
+  /** Logger to query for configuration for HTTP2 frame logging. */
+  private static final Logger FRAME_LOGGER = LoggerFactory.getLogger(FRAME_LOGGER_NAME);
 
   private final int maxPayloadBytes;
 
   public Http2HandlerBuilder(int maxPayloadBytes) {
     this.maxPayloadBytes = maxPayloadBytes;
 
-    frameLogger(logger);
+    if (FRAME_LOGGER.isDebugEnabled()) {
+      frameLogger(new Http2FrameLogger(LogLevel.DEBUG, FRAME_LOGGER_NAME));
+    }
   }
 
   @Override
-  public Http2Handler build() {
+  public Http2ConnectionHandler build() {
     return super.build();
   }
 
   @Override
-  protected Http2Handler build(
+  protected Http2ConnectionHandler build(
       Http2ConnectionDecoder decoder,
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
-    Http2Handler handler = new Http2Handler(decoder, encoder, initialSettings, maxPayloadBytes);
-    frameListener(handler);
+
+    decoder.frameListener(new Http2Handler(encoder, maxPayloadBytes));
+
+    ConnectionHandler handler = new ConnectionHandler(decoder, encoder, initialSettings);
     return handler;
+  }
+
+  /** Trivial extension of Http2ConnectionHandler to expose a public constructor. */
+  private static class ConnectionHandler extends Http2ConnectionHandler {
+    ConnectionHandler(
+        Http2ConnectionDecoder decoder,
+        Http2ConnectionEncoder encoder,
+        Http2Settings initialSettings) {
+      super(decoder, encoder, initialSettings);
+    }
   }
 }

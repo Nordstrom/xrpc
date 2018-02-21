@@ -37,7 +37,7 @@ public class UrlRouter extends ChannelDuplexHandler {
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
-    xctx.getRequestMeter().mark();
+    xctx.requestMeter().mark();
 
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_SOFT_RATE_LIMITED)) {
       ctx.writeAndFlush(
@@ -46,22 +46,21 @@ public class UrlRouter extends ChannelDuplexHandler {
                   Unpooled.wrappedBuffer(XrpcConstants.RATE_LIMIT_RESPONSE),
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
-      xctx.getMetersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();
+      xctx.metersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();
       return;
     }
 
     if (msg instanceof FullHttpRequest) {
       FullHttpRequest request = (FullHttpRequest) msg;
-      String path = XUrl.getPath(request.uri());
-      CompiledRoutes.Match match = xctx.getRoutes().match(path, request.method());
+      String path = XUrl.path(request.uri());
+      CompiledRoutes.Match match = xctx.routes().match(path, request.method());
 
-      ObjectMapper mapper = xctx.getMapper();
-      XrpcRequest xrpcRequest =
-          new XrpcRequest(request, xctx.getMapper(), match.getGroups(), ctx.channel());
+      ObjectMapper mapper = xctx.mapper();
+      XrpcRequest xrpcRequest = new XrpcRequest(request, xctx, match.getGroups(), ctx.channel());
 
       HttpResponse resp = match.getHandler().handle(xrpcRequest);
 
-      xctx.getMetersByStatusCode().get(resp.status()).mark();
+      xctx.metersByStatusCode().get(resp.status()).mark();
 
       ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
     }
