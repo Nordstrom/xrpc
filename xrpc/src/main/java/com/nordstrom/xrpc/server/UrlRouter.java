@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server;
 
+import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
@@ -60,7 +61,11 @@ public class UrlRouter extends ChannelDuplexHandler {
 
       HttpResponse resp = match.getHandler().handle(xrpcRequest);
 
-      xctx.metersByStatusCode().get(resp.status()).mark();
+      // TODO(jkinkead): Per issue #152, this should track ALL response codes.
+      Meter meter = xctx.metersByStatusCode().get(resp.status());
+      if (meter != null) {
+        meter.mark();
+      }
 
       ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
     }

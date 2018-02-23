@@ -21,6 +21,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import io.netty.buffer.ByteBuf;
@@ -28,7 +29,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
@@ -72,7 +72,11 @@ public final class Http2Handler extends Http2EventAdapter {
   /** Marks the meter for the given response status in the given connection context. */
   private void markResponseStatus(ChannelHandlerContext ctx, HttpResponseStatus status) {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
-    Optional.ofNullable(xctx.metersByStatusCode().get(status)).ifPresent(Meter::mark);
+    // TODO(jkinkead): Per issue #152, this should track ALL response codes.
+    Meter meter = xctx.metersByStatusCode().get(status);
+    if (meter != null) {
+      meter.mark();
+    }
   }
 
   /**
@@ -99,16 +103,12 @@ public final class Http2Handler extends Http2EventAdapter {
     // Convert and validate headers.
     Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1Response, true);
 
-    Optional<ByteBuf> body;
+    Optional<ByteBuf> body = Optional.empty();
     if (h1Response instanceof FullHttpResponse) {
       ByteBuf content = ((FullHttpResponse) h1Response).content();
       if (content.readableBytes() > 0) {
         body = Optional.of(content);
-      } else {
-        body = Optional.empty();
       }
-    } else {
-      body = Optional.empty();
     }
 
     writeResponse(ctx, streamId, headers, body);
@@ -121,9 +121,13 @@ public final class Http2Handler extends Http2EventAdapter {
   private void writeResponse(
       ChannelHandlerContext ctx, int streamId, HttpResponseStatus status, ByteBuf body) {
 
+    Preconditions.checkArgument(body != null, "body must not be null");
+
     markResponseStatus(ctx, status);
 
     Http2Headers headers = new DefaultHttp2Headers(true);
+    // TODO(jkinkead): This should honor accept headers; we shouldn't send text/plain if the client
+    // doesn't want it.
     headers.set(CONTENT_TYPE, "text/plain");
     headers.setInt(CONTENT_LENGTH, body.readableBytes());
     headers.status(status.codeAsText());
@@ -225,8 +229,7 @@ public final class Http2Handler extends Http2EventAdapter {
     if (request == null) {
       // Determine the handler for the request's path.
       String path = getPathFromHeaders(headers);
-      HttpMethod method = HttpMethod.valueOf(headers.method().toString());
-      CompiledRoutes.Match match = xctx.routes().match(path, method);
+      CompiledRoutes.Match match = xctx.routes().match(path, headers.method().toString());
       request = new XrpcRequest(headers, xctx, match.getGroups(), channel);
       handler = match.getHandler();
     } else {

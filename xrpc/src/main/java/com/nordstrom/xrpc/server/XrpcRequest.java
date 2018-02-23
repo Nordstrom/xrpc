@@ -68,7 +68,7 @@ public class XrpcRequest {
   private HttpQuery query;
 
   /** HTTP/2 request data. Null for HTTP/1.x requests. */
-  private final CompositeByteBuf data;
+  private final CompositeByteBuf h2Data;
 
   /**
    * The fake HTTP/1.x request generated from HTTP/2 data. Instantiated in the first call to
@@ -88,7 +88,7 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.data = null;
+    this.h2Data = null;
   }
 
   public XrpcRequest(
@@ -103,7 +103,7 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.data = alloc.compositeBuffer();
+    this.h2Data = alloc.compositeBuffer();
   }
 
   public HttpQuery query() {
@@ -137,8 +137,8 @@ public class XrpcRequest {
    */
   int addData(ByteBuf dataFrame) {
     // CompositeByteBuf will take ownership of releasing the byte buf, per docs.
-    data.addComponent(true, dataFrame.retain());
-    return data.readableBytes();
+    h2Data.addComponent(true, dataFrame.retain());
+    return h2Data.readableBytes();
   }
 
   /**
@@ -152,7 +152,7 @@ public class XrpcRequest {
     }
 
     // HTTP/2 request; return composite of data frames.
-    return data;
+    return h2Data;
   }
 
   /**
@@ -199,8 +199,8 @@ public class XrpcRequest {
       try {
         // Fake out a full HTTP request.
         this.synthesizedRequest = HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
-        if (data != null) {
-          synthesizedRequest.replace(data);
+        if (h2Data != null) {
+          synthesizedRequest.replace(h2Data);
         }
 
         return synthesizedRequest;

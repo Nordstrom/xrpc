@@ -94,6 +94,17 @@ public class CompiledRoutes {
    *     handler returning 405 (method not allowed) will be returned. If no path matched, a handler
    *     returning 404 (not found) will be returned.
    */
+  public Match match(String path, String methodName) {
+    return match(path, HttpMethod.valueOf(methodName));
+  }
+
+  /**
+   * Gets the handler and matched groups for the given path and method.
+   *
+   * @return the handler for the given path and method. If a path matched, but no method matched, a
+   *     handler returning 405 (method not allowed) will be returned. If no path matched, a handler
+   *     returning 404 (not found) will be returned.
+   */
   public Match match(String path, HttpMethod method) {
     boolean pathMatched = false;
     for (Map.Entry<Route, ImmutableMap<HttpMethod, Handler>> routeToHandlers : routes.entrySet()) {
