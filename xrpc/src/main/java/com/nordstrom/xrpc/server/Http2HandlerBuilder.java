@@ -33,12 +33,20 @@ public final class Http2HandlerBuilder
   /** Logger to query for configuration for HTTP2 frame logging. */
   private static final Logger FRAME_LOGGER = LoggerFactory.getLogger(FRAME_LOGGER_NAME);
 
+  private int maxPayloadBytes;
+
   public Http2HandlerBuilder() {
     if (FRAME_LOGGER.isDebugEnabled()) {
       frameLogger(new Http2FrameLogger(LogLevel.DEBUG, FRAME_LOGGER_NAME));
     }
   }
 
+  public Http2HandlerBuilder maxPayloadBytes(int maxPayloadBytes) {
+    this.maxPayloadBytes = maxPayloadBytes;
+    return this;
+  }
+
+  // Override build() to make public.
   @Override
   public Http2ConnectionHandler build() {
     return super.build();
@@ -50,7 +58,8 @@ public final class Http2HandlerBuilder
       Http2ConnectionEncoder encoder,
       Http2Settings initialSettings) {
 
-    decoder.frameListener(new Http2Handler(encoder));
+    // TODO(jkinkead): Set MAX_CONCURRENT_STREAMS value to something from config.
+    decoder.frameListener(new Http2Handler(encoder, maxPayloadBytes));
 
     ConnectionHandler handler = new ConnectionHandler(decoder, encoder, initialSettings);
     return handler;

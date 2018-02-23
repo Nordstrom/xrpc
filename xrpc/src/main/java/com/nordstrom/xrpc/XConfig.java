@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -53,6 +54,7 @@ public class XConfig {
   private final int bossThreadCount;
   private final int workerThreadCount;
   private final int asyncHealthCheckThreadCount;
+  private final int maxPayloadBytes;
   private final int maxConnections;
   private final double softReqPerSec;
   private final double hardReqPerSec;
@@ -105,6 +107,13 @@ public class XConfig {
     bossThreadCount = config.getInt("boss_thread_count");
     workerThreadCount = config.getInt("worker_thread_count");
     asyncHealthCheckThreadCount = config.getInt("async_health_check_thread_count");
+    long maxPayloadBytesLong = config.getBytes("max_payload_bytes");
+    Preconditions.checkArgument(
+        maxPayloadBytesLong <= Integer.MAX_VALUE,
+        String.format(
+            "value %d for max_payload_bytes must be less than or equal to %d",
+            maxPayloadBytesLong, Integer.MAX_VALUE));
+    maxPayloadBytes = (int) maxPayloadBytesLong;
     maxConnections = config.getInt("max_connections");
     rateLimiterPoolSize = config.getInt("rate_limiter_pool_size");
     softReqPerSec = config.getDouble("soft_req_per_sec");

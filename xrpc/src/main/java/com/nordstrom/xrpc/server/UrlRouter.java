@@ -16,10 +16,12 @@
 
 package com.nordstrom.xrpc.server;
 
+import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -42,7 +44,7 @@ public class UrlRouter extends ChannelDuplexHandler {
       ctx.writeAndFlush(
               Recipes.newResponse(
                   HttpResponseStatus.TOO_MANY_REQUESTS,
-                  XrpcConstants.RATE_LIMIT_RESPONSE.retain(),
+                  Unpooled.wrappedBuffer(XrpcConstants.RATE_LIMIT_RESPONSE),
                   Recipes.ContentType.Text_Plain))
           .addListener(ChannelFutureListener.CLOSE);
       xctx.metersByStatusCode().get(HttpResponseStatus.TOO_MANY_REQUESTS).mark();
@@ -56,11 +58,14 @@ public class UrlRouter extends ChannelDuplexHandler {
 
       ObjectMapper mapper = xctx.mapper();
       XrpcRequest xrpcRequest = new XrpcRequest(request, xctx, match.getGroups(), ctx.channel());
-      xrpcRequest.setData(request.content());
 
       HttpResponse resp = match.getHandler().handle(xrpcRequest);
 
-      xctx.metersByStatusCode().get(resp.status()).mark();
+      // TODO(jkinkead): Per issue #152, this should track ALL response codes.
+      Meter meter = xctx.metersByStatusCode().get(resp.status());
+      if (meter != null) {
+        meter.mark();
+      }
 
       ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
     }

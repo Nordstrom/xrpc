@@ -22,6 +22,7 @@ import com.nordstrom.xrpc.server.http.Recipes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -46,24 +47,34 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Accessors(fluent = true)
 public class XrpcRequest {
-  /** The request to handle. */
-  @Getter private final FullHttpRequest h1Request;
+  /** The HTTP/1.x request to handle. null if this is an HTTP/2 request. */
+  private final FullHttpRequest h1Request;
 
-  @Getter private final Http2Headers h2Headers;
+  /** The HTTP/2 request headers. null if this is an HTTP/1.x request. */
+  @Getter(AccessLevel.PACKAGE)
+  private final Http2Headers h2Headers;
+
   @Getter private final EventLoop eventLoop;
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
 
   @Getter(AccessLevel.PACKAGE)
   private final XrpcConnectionContext connectionContext;
+
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
 
-  /** The parsed query string. */
+  /** The parsed query string. Lazily initialized in query(). */
   private HttpQuery query;
 
-  private final int streamId;
-  private ByteBuf data;
+  /** HTTP/2 request data. Null for HTTP/1.x requests. */
+  private final CompositeByteBuf h2Data;
+
+  /**
+   * The fake HTTP/1.x request generated from HTTP/2 data. Instantiated in the first call to
+   * getHttpRequest, if this is an HTTP/2 request.
+   */
+  private FullHttpRequest synthesizedRequest;
 
   public XrpcRequest(
       FullHttpRequest request,
@@ -77,15 +88,14 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.streamId = -1;
+    this.h2Data = null;
   }
 
   public XrpcRequest(
       Http2Headers headers,
       XrpcConnectionContext connectionContext,
       Map<String, String> groups,
-      Channel channel,
-      int streamId) {
+      Channel channel) {
     this.h1Request = null;
     this.h2Headers = headers;
     this.connectionContext = connectionContext;
@@ -93,7 +103,7 @@ public class XrpcRequest {
     this.upstreamChannel = channel;
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
-    this.streamId = streamId;
+    this.h2Data = alloc.compositeBuffer();
   }
 
   public HttpQuery query() {
@@ -119,31 +129,36 @@ public class XrpcRequest {
     return alloc.compositeDirectBuffer();
   }
 
-  public void setData(byte[] bytes) {
-    if (data == null) {
-      data = getByteBuf();
-    }
-
-    data.writeBytes(bytes);
+  /**
+   * Adds data to an HTTP/2 request. Normally called with each data frame read by the HTTP/2 codec.
+   *
+   * @return the total data size available to read after adding the provided buffer. This is the
+   *     total size of the data buffer, assuming no reads have been performed.
+   */
+  int addData(ByteBuf dataFrame) {
+    // CompositeByteBuf will take ownership of releasing the byte buf, per docs.
+    h2Data.addComponent(true, dataFrame.retain());
+    return h2Data.readableBytes();
   }
 
-  public void setData(ByteBuf buff) {
-    if (data == null) {
-      data = getByteBuf();
-    }
-
-    data.writeBytes(buff);
-  }
-
+  /**
+   * Returns the raw request buffer. Note that any reads will consume the buffer, so the caller is
+   * responsible for copying or resetting the buffer as needed.
+   */
   public ByteBuf getData() {
-    if (data == null) {
-      return getByteBuf();
+    if (h1Request != null) {
+      // HTTP/1.x request; return content directly.
+      return h1Request.content();
     }
 
-    return data;
+    // HTTP/2 request; return composite of data frames.
+    return h2Data;
   }
 
-  /** Returns a new string representing the request data, decoded using the appropriate charset. */
+  /**
+   * Returns a new string representing the request data, decoded using the appropriate charset. This
+   * does NOT consume or mutate the underlying data buffer.
+   */
   public String getDataAsString() {
     // Note that this defaults to iso-8859-1 per
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7.1.
@@ -176,19 +191,22 @@ public class XrpcRequest {
       return h1Request;
     }
 
+    if (synthesizedRequest != null) {
+      return synthesizedRequest;
+    }
+
     if (h2Headers != null) {
       try {
         // Fake out a full HTTP request.
-        FullHttpRequest synthesizedRequest =
-            HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
-        if (data != null) {
-          synthesizedRequest.replace(data);
+        this.synthesizedRequest = HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
+        if (h2Data != null) {
+          synthesizedRequest.replace(h2Data);
         }
 
         return synthesizedRequest;
       } catch (Http2Exception e) {
         // TODO(JR): Do something more meaningful with this exception
-        e.printStackTrace();
+        throw new RuntimeException("Http2Exception synthesizing request", e);
       }
     }
 

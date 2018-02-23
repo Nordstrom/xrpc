@@ -16,27 +16,12 @@
 
 package com.nordstrom.xrpc;
 
-import com.nordstrom.xrpc.server.Handler;
 import com.nordstrom.xrpc.server.XrpcConnectionContext;
-import com.nordstrom.xrpc.server.XrpcRequest;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.util.AttributeKey;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class XrpcConstants {
-  /**
-   * Stores the request object for HTTP/2 requests. The request is created when headers are read,
-   * and will be stored in the context if there is a request body coming in a later data frame.
-   */
-  public static final AttributeKey<XrpcRequest> XRPC_REQUEST = AttributeKey.valueOf("XrpcRequest");
-  /**
-   * Stores the handler for HTTP/2 requests. The handler is matched when headers are read, and will
-   * be stored in the context if there is a request body coming in a later data frame.
-   */
-  public static final AttributeKey<Handler> XRPC_HANDLER = AttributeKey.valueOf("XrpcHandler");
-
   public static final AttributeKey<Boolean> XRPC_SOFT_RATE_LIMITED =
       AttributeKey.valueOf("XrpcSoftRateLimited");
   public static final AttributeKey<Boolean> XRPC_HARD_RATE_LIMITED =
@@ -44,9 +29,10 @@ public class XrpcConstants {
   public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
       AttributeKey.valueOf("XrpcConnectionContext");
   public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
-  public static final ByteBuf RATE_LIMIT_RESPONSE =
-      Unpooled.directBuffer()
-          .writeBytes("Too many requests being sent to the server".getBytes(DEFAULT_CHARSET));
+  public static final byte[] PAYLOAD_EXCEEDED_RESPONSE =
+      "Request payload too large".getBytes(DEFAULT_CHARSET);
+  public static final byte[] RATE_LIMIT_RESPONSE =
+      "Too many requests being sent to the server".getBytes(DEFAULT_CHARSET);
 
   public static final byte[] INTERNAL_SERVER_ERROR_RESPONSE =
       "Internal Server Error".getBytes(DEFAULT_CHARSET);
