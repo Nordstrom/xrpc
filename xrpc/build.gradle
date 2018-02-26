@@ -155,14 +155,14 @@ publishing {
   publications {
     xrpcMaven(MavenPublication) {
       from components.java
-      groupId rootProject.group
-      artifactId rootProject.archivesBaseName
-      version rootProject.version
+      groupId group
+      artifactId archivesBaseName
+      version version
       artifact sourcesJar
       artifact javadocJar
 
       pom.withXml {
-        asNode().appendNode('description', rootProject.description)
+        asNode().appendNode('description', description)
         asNode().appendNode('name', 'xrpc library')
         asNode().appendNode('url', 'https://github.com/Nordstrom/xrpc')
         asNode().children().last() + pomExtra
