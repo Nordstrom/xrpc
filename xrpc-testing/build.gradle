@@ -19,7 +19,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'checkstyle'
 
 group = 'com.nordstrom.xrpc'
-archivesBaseName = 'xrpc'
+archivesBaseName = 'xrpc-testing'
 
 description = """Testing Utilities for simple, production ready Java API server built on top of functional composition."""
 
@@ -27,15 +27,6 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
-  // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
-  // the compiler so that the definition works).
-  options.compilerArgs += [
-    '-XDignore.symbol.file',
-    '-Xlint:auxiliaryclass,cast,classfile,deprecation,dep-ann,divzero,empty,fallthrough,' +
-      'finally,options,overloads,overrides,path,rawtypes,static,try,unchecked,varargs',
-    '-Werror']
-  options.fork = true
-  options.forkOptions.executable = 'javac'
 }
 
 repositories {
@@ -64,68 +55,5 @@ tasks.withType(com.github.spotbugs.SpotBugsTask) {
   reports {
     xml.enabled = false
     html.enabled = true
-  }
-}
-
-// Add Javadoc + sources jars to artifacts list.
-task javadocJar(type: Jar) {
-  classifier = 'javadoc'
-  from javadoc
-}
-task sourcesJar(type: Jar) {
-  classifier = 'sources'
-  from sourceSets.main.allSource
-}
-
-def pomExtra = {
-  scm {
-    connection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-    developerConnection 'scm:git:git@github.com:Nordstrom/xrpc.git'
-    url 'https://github.com/Nordstrom/xrpc'
-  }
-
-  licenses {
-    license {
-      name 'The Apache License, Version 2.0'
-      url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-    }
-  }
-
-  developers {
-    developer {
-      id 'jkinkead'
-      name 'Jesse Kinkead'
-      email 'jesse.kinkead@nordstrom.com'
-    }
-    developer {
-      id 'xjdr'
-      name 'Jeff Rose'
-      email 'jeff.rose@nordstrom.com'
-    }
-    developer {
-      id 'andyday'
-      name 'Andy Day'
-      email 'andy.day@nordstrom.com'
-    }
-  }
-}
-
-publishing {
-  publications {
-    xrpcMaven(MavenPublication) {
-      from components.java
-      groupId rootProject.group
-      artifactId rootProject.archivesBaseName
-      version rootProject.version
-      artifact sourcesJar
-      artifact javadocJar
-
-      pom.withXml {
-        asNode().appendNode('description', rootProject.description)
-        asNode().appendNode('name', 'xrpc testing library')
-        asNode().appendNode('url', 'https://github.com/Nordstrom/xrpc')
-        asNode().children().last() + pomExtra
-      }
-    }
   }
 }
