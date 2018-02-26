@@ -19,8 +19,8 @@
 
   "files":
   [
-    {"includePattern": "build/libs/(.*\.jar)", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/$1"},
-    {"includePattern": "build/publications/xrpcMaven/pom-default.xml", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/xrpc-VERSION_NUMBER.pom"}
+    {"includePattern": "xrpc/build/libs/(.*\.jar)", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/$1"},
+    {"includePattern": "xrpc/build/publications/xrpcMaven/pom-default.xml", "uploadPattern": "com/nordstrom/xrpc/xrpc/VERSION_NUMBER/xrpc-VERSION_NUMBER.pom"}
   ],
   "publish": true
 }
