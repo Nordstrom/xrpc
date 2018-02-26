@@ -67,7 +67,7 @@ public class Server implements Routes {
   }
 
   /**
-   * Construct a server with configured port. If the port is < 0, the port will be taken from
+   * Construct a server with configured port. If the port is &lt; 0, the port will be taken from
    * configuration. If it is 0, the system will pick up an ephemeral port.
    */
   public Server(int port) {
@@ -80,8 +80,8 @@ public class Server implements Routes {
   }
 
   /**
-   * Construct a server with the given configuration and port. If the port is < 0, the port will be
-   * taken from configuration. If it is 0, the system will pick up an ephemeral port.
+   * Construct a server with the given configuration and port. If the port is &lt; 0, the port will
+   * be taken from configuration. If it is 0, the system will pick up an ephemeral port.
    */
   public Server(Config config, int port) {
     this(new XConfig(config), port);

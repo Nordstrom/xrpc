@@ -7,6 +7,10 @@ allprojects {
   apply plugin: 'java'
   apply plugin: 'checkstyle'
 
+  tasks.withType(Javadoc) {
+    // Don't print missing javadoc warnings; checkstyle covers these.
+    options.addBooleanOption('Xdoclint:-missing', true)
+  }
 
   checkstyle {
     toolVersion '8.3'

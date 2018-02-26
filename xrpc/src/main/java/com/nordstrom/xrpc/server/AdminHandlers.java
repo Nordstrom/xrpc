@@ -193,9 +193,8 @@ public class AdminHandlers {
   }
 
   /**
-   * Simple ping, indicates service is up.
-   *
-   * @return xrpcRequest `200 OK` with `PONG`
+   * Simple ping handler, indicating that the service is up. This returns a a returns a `200 OK`
+   * with `PONG` body.
    */
   public static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
 
@@ -210,23 +209,23 @@ public class AdminHandlers {
       };
 
   /**
-   * Run registered health checks.
+   * Returns a handler which runs all health checks in the given registry.
    *
-   * @param healthCheckRegistry Health Check Registry
-   * @param mapper ObjectMapper
-   * @return xrpcRequest with `200 OK` and status of registered health checks
-   *     <pre>{@code
-   * {
-   *   "simple": {
-   *     "healthy": true,
-   *     "message": null,
-   *     "error": null,
-   *     "details": null,
-   *     "timestamp": "2018-02-01T12:12:22.033-0800"
+   * <p>The response looks like:
+   *
+   * <pre>{
+   *   {
+   *     "simple": {
+   *       "healthy": true,
+   *       "message": null,
+   *       "error": null,
+   *       "details": null,
+   *       "timestamp": "2018-02-01T12:12:22.033-0800"
+   *     }
    *   }
-   * }
-   *
    * }</pre>
+   *
+   * @param mapper the mapper to use when serializing the response JSON
    */
   public static Handler createHealthCheckHandler(
       HealthCheckRegistry healthCheckRegistry, ObjectMapper mapper) {
@@ -245,9 +244,8 @@ public class AdminHandlers {
   }
 
   /**
-   * Readiness handler, for use with kubernetes or ELB healthchecks.
-   *
-   * @return xrpcRequest `200 OK` with `OK`
+   * Readiness handler, for use with kubernetes or ELB healthchecks. This returns a `200 OK` with
+   * `OK` with `OK` as the body.
    */
   public static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
 
