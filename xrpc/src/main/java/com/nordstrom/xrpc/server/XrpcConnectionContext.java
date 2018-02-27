@@ -17,7 +17,6 @@
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
@@ -38,8 +37,6 @@ public class XrpcConnectionContext {
   @Singular("meterByStatusCode")
   @Getter
   private final ImmutableMap<HttpResponseStatus, Meter> metersByStatusCode;
-
-  @Getter private final ObjectMapper mapper;
 
   @Getter private final CompiledRoutes routes;
 

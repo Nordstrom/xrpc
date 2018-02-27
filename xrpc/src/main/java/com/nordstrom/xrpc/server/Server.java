@@ -25,6 +25,7 @@ import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
@@ -58,6 +59,8 @@ import org.slf4j.LoggerFactory;
 public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
+
+  /* Context builder. */
   private final XrpcConnectionContext.Builder contextBuilder;
 
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
@@ -75,7 +78,7 @@ public class Server implements Routes {
   }
 
   /**
-   * Construct a server with configured port. If the port is < 0, the port will be taken from
+   * Construct a server with configured port. If the port is &lt; 0, the port will be taken from
    * configuration. If it is 0, the system will pick up an ephemeral port.
    */
   public Server(int port) {
@@ -88,8 +91,8 @@ public class Server implements Routes {
   }
 
   /**
-   * Construct a server with the given configuration and port. If the port is < 0, the port will be
-   * taken from configuration. If it is 0, the system will pick up an ephemeral port.
+   * Construct a server with the given configuration and port. If the port is &lt; 0, the port will
+   * be taken from configuration. If it is 0, the system will pick up an ephemeral port.
    */
   public Server(Config config, int port) {
     this(new XConfig(config), port);
@@ -113,7 +116,6 @@ public class Server implements Routes {
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .exceptionHandler(ExceptionHandler.DEFAULT)
-            .mapper(new ObjectMapper())
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
@@ -126,8 +128,10 @@ public class Server implements Routes {
                     .defaultContentType(config.defaultContentType())
                     .decoder(new JsonDecoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
                     .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
-                    .build());
-    addResponseCodeMeters(contextBuilder);
+                    .build())
+            .exceptionHandler(ExceptionHandler.DEFAULT);
+
+    addResponseCodeMeters(contextBuilder, metricRegistry);
   }
 
   @Override
@@ -138,7 +142,9 @@ public class Server implements Routes {
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
-  private void addResponseCodeMeters(XrpcConnectionContext.Builder contextBuilder) {
+  @VisibleForTesting
+  static void addResponseCodeMeters(
+      XrpcConnectionContext.Builder contextBuilder, MetricRegistry metricRegistry) {
     Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
     namesByCode.put(HttpResponseStatus.OK, "ok");
     namesByCode.put(HttpResponseStatus.CREATED, "created");
@@ -148,6 +154,8 @@ public class Server implements Routes {
     namesByCode.put(HttpResponseStatus.UNAUTHORIZED, "unauthorized");
     namesByCode.put(HttpResponseStatus.FORBIDDEN, "forbidden");
     namesByCode.put(HttpResponseStatus.NOT_FOUND, "notFound");
+    // Note that the HTTP RFC name is "Payload Too Large"; REQUEST_ENTITY_TOO_LARGE is an old name.
+    namesByCode.put(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, "payloadTooLarge");
     namesByCode.put(HttpResponseStatus.TOO_MANY_REQUESTS, "tooManyRequests");
     namesByCode.put(HttpResponseStatus.INTERNAL_SERVER_ERROR, "serverError");
 
@@ -211,7 +219,9 @@ public class Server implements Routes {
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
             .tls(tls)
-            .h1h2(new Http2OrHttpHandler(new UrlRouter(), ctx, config.corsConfig()))
+            .h1h2(
+                new Http2OrHttpHandler(
+                    new UrlRouter(), ctx, config.corsConfig(), config.maxPayloadBytes()))
             .build();
 
     ServerBootstrap b =
