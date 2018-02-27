@@ -17,8 +17,9 @@
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.nordstrom.xrpc.encoding.Decoders;
+import com.nordstrom.xrpc.encoding.Encoders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,9 +38,11 @@ public class XrpcConnectionContext {
   @Getter
   private final ImmutableMap<HttpResponseStatus, Meter> metersByStatusCode;
 
-  @Getter private final ObjectMapper mapper;
-
   @Getter private final CompiledRoutes routes;
 
   @Getter private final ExceptionHandler exceptionHandler;
+
+  @Getter private final Encoders encoders;
+
+  @Getter private final Decoders decoders;
 }

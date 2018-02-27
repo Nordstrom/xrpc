@@ -17,7 +17,6 @@
 package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.client.XUrl;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -34,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ChannelHandler.Sharable
 public class UrlRouter extends ChannelDuplexHandler {
-
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
@@ -56,7 +54,6 @@ public class UrlRouter extends ChannelDuplexHandler {
       String path = XUrl.path(request.uri());
       CompiledRoutes.Match match = xctx.routes().match(path, request.method());
 
-      ObjectMapper mapper = xctx.mapper();
       XrpcRequest xrpcRequest = new XrpcRequest(request, xctx, match.getGroups(), ctx.channel());
 
       HttpResponse resp = match.getHandler().handle(xrpcRequest);

@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package com.nordstrom.xrpc.server;
+package com.nordstrom.xrpc.encoding;
 
-import io.netty.handler.codec.http.HttpResponse;
+import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
-/** A handler for an HTTP route. */
-@FunctionalInterface
-public interface Handler {
-  HttpResponse handle(XrpcRequest request) throws IOException;
+/** Interface for encoding a response Object into a ByteBuf. */
+public interface Encoder {
+  String contentType();
+
+  /**
+   * Encode an object to ByteBuf.
+   *
+   * @param buf target byte buffer for encoding
+   * @param object object to encode
+   * @return ByteBuf representing encoded object
+   */
+  ByteBuf encode(ByteBuf buf, Object object) throws IOException;
 }

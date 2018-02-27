@@ -22,9 +22,17 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.encoding.Decoders;
+import com.nordstrom.xrpc.encoding.Encoders;
+import com.nordstrom.xrpc.encoding.JsonDecoder;
+import com.nordstrom.xrpc.encoding.JsonEncoder;
+import com.nordstrom.xrpc.encoding.TextDecoder;
+import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -32,6 +40,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -50,6 +59,8 @@ import org.slf4j.LoggerFactory;
 public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
+
+  /* Context builder. */
   private final XrpcConnectionContext.Builder contextBuilder;
 
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
@@ -98,11 +109,28 @@ public class Server implements Routes {
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
+    ObjectMapper mapper =
+        new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
+
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .exceptionHandler(new DefaultExceptionHandler())
-            .mapper(new ObjectMapper());
+            .exceptionHandler(ExceptionHandler.DEFAULT)
+            .encoders(
+                Encoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .encoder(new JsonEncoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
+                    .encoder(new TextEncoder(HttpHeaderValues.TEXT_PLAIN.toString()))
+                    // TODO (AD): Add encoders for binary/proto
+                    .build())
+            .decoders(
+                Decoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .decoder(new JsonDecoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
+                    .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
+                    .build())
+            .exceptionHandler(ExceptionHandler.DEFAULT);
+
     addResponseCodeMeters(contextBuilder, metricRegistry);
   }
 
