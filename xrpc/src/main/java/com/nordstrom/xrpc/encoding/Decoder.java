@@ -24,9 +24,9 @@ public interface Decoder {
   String contentType();
 
   /**
-   * Decode a request writeBody from JSON format to an object of designated Class type.
+   * Decode a request body from JSON format to an object of designated Class type.
    *
-   * @param body current http request
+   * @param body current http request body
    * @param contentType content type header
    * @param clazz target class for decoding
    * @return object of type clazz

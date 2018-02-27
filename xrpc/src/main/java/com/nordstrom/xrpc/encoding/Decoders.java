@@ -66,13 +66,13 @@ public class Decoders {
       return this;
     }
 
-    /** Register an Decoder. */
+    /** Register a Decoder. */
     public Builder decoder(Decoder decoder) {
       builder.put(decoder.contentType(), decoder);
       return this;
     }
 
-    /** Build an Decoders instance. */
+    /** Build a Decoders instance. */
     public Decoders build() {
       ImmutableMap<String, Decoder> decoders = builder.build();
       Decoder defaultDecoder = decoders.get(defaultContentType);

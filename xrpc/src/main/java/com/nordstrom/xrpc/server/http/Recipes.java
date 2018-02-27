@@ -105,19 +105,6 @@ public final class Recipes {
     return newResponse(status, payload, contentType, Collections.emptyMap());
   }
 
-  public static FullHttpResponse newResponse(
-      HttpResponseStatus status, ByteBuf payload, CharSequence contentType) {
-    return newResponse(status, payload, contentType, Collections.emptyMap());
-  }
-
-  public static FullHttpResponse newResponse(
-      HttpResponseStatus status,
-      ByteBuf payload,
-      ContentType contentType,
-      Map<String, String> customHeader) {
-    return newResponse(status, payload, contentType.value, customHeader);
-  }
-
   /**
    * Returns a full HTTP response with the specified status, content type, and custom headers.
    *
@@ -128,12 +115,10 @@ public final class Recipes {
    * Instead, content type will be as specified by the parameter contentType and content length will
    * be the length of the parameter contentLength.
    */
-  // TODO (AD): these recipes have become a hodge podge.
-  // Need to rethink and refactor at some point.
   public static FullHttpResponse newResponse(
       HttpResponseStatus status,
       ByteBuf payload,
-      CharSequence contentType,
+      ContentType contentType,
       Map<String, String> customHeaders) {
     FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, payload);
 
@@ -143,7 +128,7 @@ public final class Recipes {
       }
     }
 
-    response.headers().set(CONTENT_TYPE, contentType);
+    response.headers().set(CONTENT_TYPE, contentType.value);
     response.headers().setInt(CONTENT_LENGTH, payload.readableBytes());
 
     return response;

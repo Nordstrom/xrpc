@@ -64,7 +64,7 @@ public final class X509CertificateGenerator {
 
   public static DerKeySpec parseDerKeySpec(String rawKeyString) {
     try {
-      // Base64 decode the writeBody
+      // Base64 decode the data
       Base64.Decoder b64decoder = Base64.getDecoder();
       byte[] encoded =
           b64decoder.decode(
