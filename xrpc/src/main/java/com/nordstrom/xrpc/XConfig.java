@@ -70,7 +70,6 @@ public class XConfig {
   private final int consoleReporterPollingRate;
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
-  private final boolean runBackgroundHealthChecks;
   private final String defaultContentType;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
@@ -113,7 +112,6 @@ public class XConfig {
     hardReqPerSec = config.getDouble("hard_req_per_sec");
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
-    runBackgroundHealthChecks = config.getBoolean("run_background_health_checks");
     defaultContentType = config.getString("default_content_type");
 
     // Check to see if path_to_cert and path_to_key are configured. If they are not configured,

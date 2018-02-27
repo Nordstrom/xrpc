@@ -16,17 +16,20 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.nordstrom.xrpc.server.XrpcRequest;
+import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 /** Interface for decoding a request ByteBuf into Object. */
 public interface Decoder {
+  String contentType();
 
   /**
-   * Encode a response object for HttpResponse.
+   * Decode a request writeBody from JSON format to an object of designated Class type.
    *
-   * @param request current http request
-   * @return T object
+   * @param body current http request
+   * @param contentType content type header
+   * @param clazz target class for decoding
+   * @return object of type clazz
    */
-  <T> T decode(XrpcRequest request, Class<T> clazz) throws IOException;
+  <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException;
 }

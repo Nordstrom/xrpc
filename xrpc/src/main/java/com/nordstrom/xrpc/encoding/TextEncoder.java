@@ -17,26 +17,30 @@
 package com.nordstrom.xrpc.encoding;
 
 import com.nordstrom.xrpc.XrpcConstants;
-import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** An Encoder that encodes a response object to Text format. */
+@AllArgsConstructor
+@Accessors(fluent = true)
 public class TextEncoder implements Encoder {
+  @Getter private String contentType;
+
   /**
    * Encode a response object to JSON format for the HttpResponse.
    *
-   * @param request current http request
-   * @param object response object
+   * @param buf target byte buffer for encoding
+   * @param object object to encode
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(XrpcRequest request, Object object) throws IOException {
-    // TODO (AD): Add Content-Type charset recognition
+  public ByteBuf encode(ByteBuf buf, Object object) throws IOException {
     String text =
         (object instanceof TextEncodable) ? ((TextEncodable) object).encode() : object.toString();
     byte[] bytes = text.getBytes(XrpcConstants.DEFAULT_CHARSET);
-    ByteBuf buf = request.getAlloc().directBuffer(bytes.length);
     buf.writeBytes(bytes);
     return buf;
   }

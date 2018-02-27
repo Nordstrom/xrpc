@@ -16,19 +16,19 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.nordstrom.xrpc.server.XrpcRequest;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 /** Interface for encoding a response Object into a ByteBuf. */
 public interface Encoder {
+  String contentType();
 
   /**
-   * Encode a response object for HttpResponse.
+   * Encode an object to ByteBuf.
    *
-   * @param request current http request
-   * @param object response object
-   * @return ByteBuf used as HTTP Response body
+   * @param buf target byte buffer for encoding
+   * @param object object to encode
+   * @return ByteBuf representing encoded object
    */
-  ByteBuf encode(XrpcRequest request, Object object) throws IOException;
+  ByteBuf encode(ByteBuf buf, Object object) throws IOException;
 }

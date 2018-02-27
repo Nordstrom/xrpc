@@ -34,15 +34,15 @@ public final class X509Certificate {
     this.cert = cert;
   }
 
-  public String getFqdn() {
+  public String fqdn() {
     return fqdn;
   }
 
-  public PrivateKey getKey() {
+  public PrivateKey key() {
     return key;
   }
 
-  public X509CertImpl getCert() {
+  public X509CertImpl cert() {
     return cert;
   }
 }

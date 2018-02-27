@@ -25,6 +25,15 @@ public class NotFoundException extends HttpResponseException {
    * Construct NotFoundException with default error code.
    *
    * @param message Error message
+   */
+  public NotFoundException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message, message);
+  }
+
+  /**
+   * Construct NotFoundException with default error code.
+   *
+   * @param message Error message
    * @param detailedMessage A more detailed error message that can be used for logging.
    */
   public NotFoundException(String message, String detailedMessage) {

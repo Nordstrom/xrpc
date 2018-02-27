@@ -43,7 +43,7 @@ public class CompiledRoutes {
    * Map of routes to their handlers-by-method maps. Routes are sorted alphabetically by path for
    * consistent application.
    */
-  private final ImmutableSortedMap<Route, ImmutableMap<HttpMethod, Handler>> routes;
+  private final ImmutableSortedMap<Route, ImmutableMap<HttpMethod, HandlerAdapter>> routes;
 
   /**
    * Returns compiled routes built from the given route map.
@@ -53,10 +53,10 @@ public class CompiledRoutes {
   public CompiledRoutes(
       Map<Route, Map<HttpMethod, Handler>> rawRoutes, MetricRegistry metricRegistry) {
     // Build a sorted map of the routes.
-    ImmutableSortedMap.Builder<Route, ImmutableMap<HttpMethod, Handler>> routesBuilder =
+    ImmutableSortedMap.Builder<Route, ImmutableMap<HttpMethod, HandlerAdapter>> routesBuilder =
         ImmutableSortedMap.naturalOrder();
     for (Map.Entry<Route, Map<HttpMethod, Handler>> routeEntry : rawRoutes.entrySet()) {
-      ImmutableMap.Builder<HttpMethod, Handler> handlers = new ImmutableMap.Builder<>();
+      ImmutableMap.Builder<HttpMethod, HandlerAdapter> handlers = new ImmutableMap.Builder<>();
       Route route = routeEntry.getKey();
       for (Map.Entry<HttpMethod, Handler> methodHandlerEntry : routeEntry.getValue().entrySet()) {
         HttpMethod method = methodHandlerEntry.getKey();
@@ -69,16 +69,17 @@ public class CompiledRoutes {
         final Timer timer = metricRegistry.timer(timerName);
 
         // TODO (AD): Pull this out into an adapted handler in a separate class.
-        Handler adaptedHandler =
-            request -> {
-              meter.mark();
-              try {
-                return timer.time(() -> userHandler.handle(request));
-              } catch (Exception e) {
-                return request.getConnectionContext().getExceptionHandler().handle(request, e);
-              }
-            };
-        handlers.put(method, adaptedHandler);
+        HandlerAdapter adapter = new HandlerAdapter(userHandler, meter, timer);
+        //            request -> {
+        //              meter.mark();
+        //              try {
+        //                return timer.time(() -> userHandler.handle(request));
+        //              } catch (Exception e) {
+        //                return request.connectionContext().exceptionHandler().handle(request, e);
+        //              }
+        //            };
+        //     handlers.put(method, adaptedHandler);
+        handlers.put(method, adapter);
       }
 
       routesBuilder.put(route, handlers.build());
@@ -96,11 +97,12 @@ public class CompiledRoutes {
    */
   public Match match(String path, HttpMethod method) {
     boolean pathMatched = false;
-    for (Map.Entry<Route, ImmutableMap<HttpMethod, Handler>> routeToHandlers : routes.entrySet()) {
+    for (Map.Entry<Route, ImmutableMap<HttpMethod, HandlerAdapter>> routeToHandlers :
+        routes.entrySet()) {
       Map<String, String> groups = routeToHandlers.getKey().groups(path);
       if (groups != null) {
         pathMatched = true;
-        Handler handler = routeToHandlers.getValue().get(method);
+        HandlerAdapter handler = routeToHandlers.getValue().get(method);
         if (handler != null) {
           return new Match(handler, groups);
         }
@@ -118,7 +120,7 @@ public class CompiledRoutes {
   @Value
   static class Match {
     /** The handler that matched the request path. */
-    Handler handler;
+    HandlerAdapter handler;
 
     /** Groups which were pulled out of the request path. */
     Map<String, String> groups;
@@ -133,21 +135,29 @@ public class CompiledRoutes {
       byte[] notFound = "Not found".getBytes(XrpcConstants.DEFAULT_CHARSET);
       NOT_FOUND =
           new Match(
-              request -> {
-                ByteBuf data = Unpooled.wrappedBuffer(notFound);
-                return Recipes.newResponse(
-                    HttpResponseStatus.NOT_FOUND, data, Recipes.ContentType.Text_Plain);
-              },
+              new HandlerAdapter(
+                  request -> {
+                    ByteBuf data = Unpooled.wrappedBuffer(notFound);
+                    return Recipes.newResponse(
+                        HttpResponseStatus.NOT_FOUND, data, Recipes.ContentType.Text_Plain);
+                  },
+                  null,
+                  null),
               ImmutableMap.of());
 
       byte[] methodNotAllowed = "Method not allowed".getBytes(XrpcConstants.DEFAULT_CHARSET);
       METHOD_NOT_ALLOWED =
           new Match(
-              request -> {
-                ByteBuf data = Unpooled.wrappedBuffer(methodNotAllowed);
-                return Recipes.newResponse(
-                    HttpResponseStatus.METHOD_NOT_ALLOWED, data, Recipes.ContentType.Text_Plain);
-              },
+              new HandlerAdapter(
+                  request -> {
+                    ByteBuf data = Unpooled.wrappedBuffer(methodNotAllowed);
+                    return Recipes.newResponse(
+                        HttpResponseStatus.METHOD_NOT_ALLOWED,
+                        data,
+                        Recipes.ContentType.Text_Plain);
+                  },
+                  null,
+                  null),
               ImmutableMap.of());
     }
   }

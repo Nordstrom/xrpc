@@ -22,10 +22,15 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
+import com.nordstrom.xrpc.encoding.JsonDecoder;
 import com.nordstrom.xrpc.encoding.JsonEncoder;
+import com.nordstrom.xrpc.encoding.TextDecoder;
 import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -34,7 +39,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -102,17 +106,26 @@ public class Server implements Routes {
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
+    ObjectMapper mapper =
+        new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
+
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .exceptionHandler(new DefaultExceptionHandler())
+            .exceptionHandler(ExceptionHandler.DEFAULT)
             .mapper(new ObjectMapper())
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .encoder(HttpHeaderValues.APPLICATION_JSON.toString(), new JsonEncoder())
-                    .encoder(HttpHeaderValues.TEXT_PLAIN.toString(), new TextEncoder())
+                    .encoder(new JsonEncoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
+                    .encoder(new TextEncoder(HttpHeaderValues.TEXT_PLAIN.toString()))
                     // TODO (AD): Add encoders for binary/proto
+                    .build())
+            .decoders(
+                Decoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .decoder(new JsonDecoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
+                    .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
                     .build());
     addResponseCodeMeters(contextBuilder);
   }
@@ -155,17 +168,6 @@ public class Server implements Routes {
 
   public void addHealthCheck(String name, HealthCheck check) {
     healthCheckRegistry.register(name, check);
-  }
-
-  public void scheduleHealthChecks(EventLoopGroup workerGroup) {
-    scheduleHealthChecks(workerGroup, 60, 60, TimeUnit.SECONDS);
-  }
-
-  public void scheduleHealthChecks(
-      EventLoopGroup workerGroup, int initialDelay, int delay, TimeUnit timeUnit) {
-
-    workerGroup.scheduleWithFixedDelay(
-        () -> healthCheckRegistry.runHealthChecks(workerGroup), initialDelay, delay, timeUnit);
   }
 
   /**
@@ -217,10 +219,6 @@ public class Server implements Routes {
             config.bossThreadCount(), config.workerThreadCount(), config.workerNameFormat());
 
     b.childHandler(initializer(state));
-
-    if (config.runBackgroundHealthChecks()) {
-      scheduleHealthChecks(b.config().childGroup());
-    }
 
     InetSocketAddress address = new InetSocketAddress(port);
     ChannelFuture future = b.bind(address);

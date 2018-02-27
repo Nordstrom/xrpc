@@ -19,15 +19,18 @@ package com.nordstrom.xrpc.server;
 import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Builder(builderClassName = "Builder")
+@Accessors(fluent = true)
 // TODO: (AD) Merge with State
 public class XrpcConnectionContext {
   @Getter private final Meter requestMeter;
@@ -43,4 +46,6 @@ public class XrpcConnectionContext {
   @Getter private final ExceptionHandler exceptionHandler;
 
   @Getter private final Encoders encoders;
+
+  @Getter private final Decoders decoders;
 }

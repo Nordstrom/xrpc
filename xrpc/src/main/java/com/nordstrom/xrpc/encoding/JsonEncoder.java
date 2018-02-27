@@ -16,26 +16,33 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.nordstrom.xrpc.server.XrpcRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
-/** An Encoder that encodes a response object to JSON format. */
+/** An Encoder that encodes an object to ByteBuf in JSON format. */
+@AllArgsConstructor
+@Accessors(fluent = true)
 public class JsonEncoder implements Encoder {
+  @Getter private final String contentType;
+  private final ObjectMapper mapper;
+
   /**
    * Encode a response object to JSON format for the HttpResponse.
    *
-   * @param request current http request
-   * @param object response object
+   * @param buf target byte buffer for encoding
+   * @param object object to encode
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(XrpcRequest request, Object object) throws IOException {
-    ByteBuf buf = request.getAlloc().directBuffer();
+  public ByteBuf encode(ByteBuf buf, Object object) throws IOException {
     OutputStream stream = new ByteBufOutputStream(buf);
-    request.getConnectionContext().getMapper().writeValue(stream, object);
+    mapper.writeValue(stream, object);
     return buf;
   }
 }

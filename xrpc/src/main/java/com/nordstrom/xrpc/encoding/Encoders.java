@@ -16,7 +16,8 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -27,16 +28,16 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Encoders {
   private static final Pattern ACCEPT_SPLIT_PATTERN = Pattern.compile(",[ ]*");
-  private final ContentTypeEncoder defaultEncoder;
-  private final ImmutableList<ContentTypeEncoder> encoders;
+  private final Encoder defaultEncoder;
+  private final ImmutableMap<String, Encoder> encoders;
 
   /**
    * Find an Encoder based on an Accept header value.
    *
    * @param accept accept header value.
-   * @return best ContentTypeEncoder for the given accept header
+   * @return best encoder for the given accept header
    */
-  public ContentTypeEncoder acceptedEncoder(CharSequence accept) {
+  public Encoder acceptedEncoder(CharSequence accept) {
     if (accept == null) {
       return defaultEncoder;
     }
@@ -44,10 +45,9 @@ public class Encoders {
     for (String contentType : contentTypes) {
       // TODO (AD): Handle q-factor weighting see:
       // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
-      for (ContentTypeEncoder encoder : encoders) {
-        if (encoder.contentType().equals(contentType)) {
-          return encoder;
-        }
+      Encoder encoder = encoders.get(contentType);
+      if (encoder != null) {
+        return encoder;
       }
     }
     return defaultEncoder;
@@ -61,7 +61,8 @@ public class Encoders {
   /** Encoders Builder. */
   public static class Builder {
     private String defaultContentType;
-    private final ImmutableList.Builder<ContentTypeEncoder> builder = ImmutableList.builder();
+    private final ImmutableSortedMap.Builder<String, Encoder> builder =
+        ImmutableSortedMap.naturalOrder();
 
     private Builder() {}
 
@@ -71,26 +72,21 @@ public class Encoders {
       return this;
     }
 
-    /** Register an Encoder for a given content type. */
-    public Builder encoder(String contentType, Encoder encoder) {
-      builder.add(new ContentTypeEncoder(contentType, encoder));
+    /** Register an Encoder. */
+    public Builder encoder(Encoder encoder) {
+      builder.put(encoder.contentType(), encoder);
       return this;
     }
 
     /** Build an Encoders instance. */
     public Encoders build() {
-      ImmutableList<ContentTypeEncoder> encoders = builder.build();
-      ContentTypeEncoder defaultEncoder =
-          encoders
-              .stream()
-              .filter(e -> e.contentType().equals(defaultContentType))
-              .findFirst()
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException(
-                          String.format(
-                              "default_content_type %s has no registered Encoder",
-                              defaultContentType)));
+      ImmutableMap<String, Encoder> encoders = builder.build();
+      Encoder defaultEncoder = encoders.get(defaultContentType);
+
+      if (defaultEncoder == null) {
+        throw new IllegalArgumentException(
+            String.format("default_content_type %s has no registered Encoder", defaultContentType));
+      }
 
       return new Encoders(defaultEncoder, encoders);
     }

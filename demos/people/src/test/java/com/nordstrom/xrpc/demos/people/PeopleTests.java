@@ -36,7 +36,9 @@ class PeopleTests {
         client
             .newCall(
                 new Request.Builder()
-                    .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
+                    .post(
+                        RequestBody.create(
+                            MediaType.parse("application/json"), "{\"name\":\"bob\"}"))
                     .url(server.localEndpoint() + "/people")
                     .build())
             .execute();
@@ -49,14 +51,19 @@ class PeopleTests {
     client
         .newCall(
             new Request.Builder()
-                .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
+                .post(RequestBody.create(MediaType.parse("application/json"), "{\"name\":\"bob\"}"))
                 .url(server.localEndpoint() + "/people")
                 .build())
         .execute();
 
     Response response =
         client
-            .newCall(new Request.Builder().get().url(server.localEndpoint() + "/people").build())
+            .newCall(
+                new Request.Builder()
+                    .get()
+                    .url(server.localEndpoint() + "/people")
+                    .header("Accept", "application/json")
+                    .build())
             .execute();
 
     assertEquals("[{\"name\":\"bob\"}]", response.body().string());
@@ -67,7 +74,7 @@ class PeopleTests {
     client
         .newCall(
             new Request.Builder()
-                .post(RequestBody.create(MediaType.parse("application/json"), "bob"))
+                .post(RequestBody.create(MediaType.parse("application/json"), "{\"name\":\"bob\"}"))
                 .url(server.localEndpoint() + "/people")
                 .build())
         .execute();

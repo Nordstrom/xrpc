@@ -13,4 +13,4 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
-root(INFO, ["CONSOLE"])
+root(OFF, ["CONSOLE"])

@@ -16,24 +16,33 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.nordstrom.xrpc.server.XrpcRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpUtil;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
-/** An Encoder that encodes a response object to JSON format. */
+/** An Decoder that decodes a JSON ByteBuf to an object. */
+@AllArgsConstructor
+@Accessors(fluent = true)
 public class JsonDecoder implements Decoder {
+  @Getter private final String contentType;
+  private final ObjectMapper mapper;
+
   /**
-   * Encode a response object to JSON format for the HttpResponse.
+   * Decode a ByteBuf body from JSON format to an object of designated Class type.
    *
-   * @param request current http request
-   * @return ByteBuf representing JSON formatted String
+   * @param body current http request
+   * @param clazz target class for decoding
+   * @return object of type clazz
    */
   @Override
-  public <T> T decode(XrpcRequest request, Class<T> clazz) throws IOException {
-    Charset charset = HttpUtil.getCharset(request.getHeader(HttpHeaderNames.CONTENT_TYPE));
-    String json = request.getData().toString(charset);
-    return request.getConnectionContext().getMapper().readValue(json, clazz);
+  public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException {
+    Charset charset = HttpUtil.getCharset(contentType);
+    String json = body.toString(charset);
+    return mapper.readValue(json, clazz);
   }
 }

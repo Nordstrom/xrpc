@@ -83,7 +83,7 @@ public class Call {
     final SettableFuture<FullHttpResponse> error = SettableFuture.create();
     final SettableFuture<FullHttpResponse> response = SettableFuture.create();
     final ListenableFuture<ChannelFuture> connectFuture =
-        connect(XUrl.getInetSocket(uri), client.getBootstrap(), buildRetryLoop());
+        connect(XUrl.inetSocket(uri), client.bootstrap(), buildRetryLoop());
 
     Futures.addCallback(
         connectFuture,
@@ -96,7 +96,7 @@ public class Call {
 
               HttpResponseHandler responseHandler =
                   (HttpResponseHandler) channel.pipeline().get("responseHandler");
-              response.setFuture(responseHandler.getResponse());
+              response.setFuture(responseHandler.response());
             } catch (InterruptedException e) {
               response.cancel(true);
               error.setException(e);
