@@ -45,4 +45,8 @@ public class XrpcConnectionContext {
   @Getter private final Encoders encoders;
 
   @Getter private final Decoders decoders;
+
+  // This can be generated automatically by lombok, but we declare it here to fix a javadoc warning.
+  // TODO(jkinkead): Remove once we have delombok integrated (issue #160).
+  public static class Builder {}
 }
