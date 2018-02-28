@@ -1,0 +1,45 @@
+buildscript {
+  ext.kotlin_version = '1.2.10'
+
+  repositories {
+    mavenCentral()
+    jcenter()
+  }
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  }
+}
+
+version '0.1.1-SNAPSHOT'
+
+apply plugin: 'kotlin'
+
+repositories {
+  mavenCentral()
+  jcenter()
+}
+
+dependencies {
+  compile project(':xrpc')
+  compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+  compile 'com.squareup.moshi:moshi-kotlin:1.5.0'
+
+  testCompile project(':xrpc-testing')
+  testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
+  testCompile 'org.apiguardian:apiguardian-api:1.0.0'
+  testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.0.1'
+}
+
+compileKotlin {
+  kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+}
+compileTestKotlin {
+  kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+}
+
+jar {
+  manifest {
+    attributes 'Main-Class': 'com.nordstrom.xrpc.demo.app.ApplicationKt'
+  }
+  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
