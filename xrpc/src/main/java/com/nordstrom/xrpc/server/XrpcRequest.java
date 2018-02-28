@@ -16,30 +16,21 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.nordstrom.xrpc.server.http.Recipes;
+import com.nordstrom.xrpc.encoding.Decoder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
-import io.netty.handler.codec.http2.HttpConversionUtil;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,8 +49,7 @@ public class XrpcRequest {
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
 
-  @Getter(AccessLevel.PACKAGE)
-  private final XrpcConnectionContext connectionContext;
+  @Getter private final XrpcConnectionContext connectionContext;
 
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
@@ -67,14 +57,10 @@ public class XrpcRequest {
   /** The parsed query string. Lazily initialized in query(). */
   private HttpQuery query;
 
+  private ResponseFactory responseFactory;
+
   /** HTTP/2 request data. Null for HTTP/1.x requests. */
   private final CompositeByteBuf h2Data;
-
-  /**
-   * The fake HTTP/1.x request generated from HTTP/2 data. Instantiated in the first call to
-   * getHttpRequest, if this is an HTTP/2 request.
-   */
-  private FullHttpRequest synthesizedRequest;
 
   public XrpcRequest(
       FullHttpRequest request,
@@ -119,13 +105,20 @@ public class XrpcRequest {
     return query;
   }
 
+  public ResponseFactory response() {
+    if (responseFactory == null) {
+      responseFactory = new ResponseFactory(this);
+    }
+    return responseFactory;
+  }
+
   /** Returns the variable with the given name, or null if that variable doesn't exist. */
   public String variable(String name) {
     return groups.get(name);
   }
 
   /** Create a convenience function to prevent direct access to the Allocator. */
-  public ByteBuf getByteBuf() {
+  public ByteBuf byteBuf() {
     return alloc.compositeDirectBuffer();
   }
 
@@ -141,29 +134,34 @@ public class XrpcRequest {
     return h2Data.readableBytes();
   }
 
+  @SneakyThrows
+  public <T> T body(Class<T> clazz) {
+    Decoder decoder = connectionContext.decoders().decoder(contentType());
+    return decoder.decode(body(), contentType(), clazz);
+  }
+
   /**
-   * Returns the raw request buffer. Note that any reads will consume the buffer, so the caller is
+   * Returns the raw request body. Note that any reads will consume the buffer, so the caller is
    * responsible for copying or resetting the buffer as needed.
    */
-  public ByteBuf getData() {
+  public ByteBuf body() {
     if (h1Request != null) {
       // HTTP/1.x request; return content directly.
       return h1Request.content();
     }
-
     // HTTP/2 request; return composite of data frames.
     return h2Data;
   }
 
   /**
-   * Returns a new string representing the request data, decoded using the appropriate charset. This
+   * Returns a new string representing the request body, decoded using the appropriate charset. This
    * does NOT consume or mutate the underlying data buffer.
    */
-  public String getDataAsString() {
+  public String bodyText() {
     // Note that this defaults to iso-8859-1 per
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7.1.
-    Charset charset = HttpUtil.getCharset(getHeader(HttpHeaderNames.CONTENT_TYPE));
-    return getData().toString(charset);
+    Charset charset = HttpUtil.getCharset(contentType());
+    return body().toString(charset);
   }
 
   /**
@@ -171,7 +169,7 @@ public class XrpcRequest {
    *
    * @param name the header name, lower-cased
    */
-  public CharSequence getHeader(CharSequence name) {
+  public CharSequence header(CharSequence name) {
     if (h1Request != null) {
       return h1Request.headers().get(name);
     } else if (h2Headers != null) {
@@ -181,64 +179,11 @@ public class XrpcRequest {
     }
   }
 
-  public ListeningExecutorService getExecutor() {
-    // For more info see https://github.com/google/guava/wiki/ListenableFutureExplained
-    return MoreExecutors.listeningDecorator(eventLoop);
+  public CharSequence acceptHeader() {
+    return header(HttpHeaderNames.ACCEPT);
   }
 
-  public FullHttpRequest getHttpRequest() {
-    if (h1Request != null) {
-      return h1Request;
-    }
-
-    if (synthesizedRequest != null) {
-      return synthesizedRequest;
-    }
-
-    if (h2Headers != null) {
-      try {
-        // Fake out a full HTTP request.
-        this.synthesizedRequest = HttpConversionUtil.toFullHttpRequest(0, h2Headers, alloc, true);
-        if (h2Data != null) {
-          synthesizedRequest.replace(h2Data);
-        }
-
-        return synthesizedRequest;
-      } catch (Http2Exception e) {
-        // TODO(JR): Do something more meaningful with this exception
-        throw new RuntimeException("Http2Exception synthesizing request", e);
-      }
-    }
-
-    throw new IllegalStateException("Cannot get the http request for an empty XrpcRequest");
-  }
-
-  public FullHttpResponse jsonResponse(HttpResponseStatus status, Object body) throws IOException {
-    return Recipes.newResponse(
-        status, encodeJsonBody(body), Recipes.ContentType.Application_Json, Collections.emptyMap());
-  }
-
-  public FullHttpResponse okResponse() {
-    return Recipes.newResponseOk();
-  }
-
-  public FullHttpResponse okJsonResponse(Object body) throws IOException {
-
-    return jsonResponse(HttpResponseStatus.OK, body);
-  }
-
-  public FullHttpResponse notFoundJsonResponse(Object body) throws IOException {
-    return jsonResponse(HttpResponseStatus.NOT_FOUND, body);
-  }
-
-  public FullHttpResponse badRequestJsonResponse(Object body) throws IOException {
-    return jsonResponse(HttpResponseStatus.BAD_REQUEST, body);
-  }
-
-  private ByteBuf encodeJsonBody(Object body) throws IOException {
-    ByteBuf buf = alloc().directBuffer();
-    OutputStream stream = new ByteBufOutputStream(buf);
-    connectionContext.mapper().writeValue(stream, body);
-    return buf;
+  public CharSequence contentType() {
+    return header(HttpHeaderNames.CONTENT_TYPE);
   }
 }
