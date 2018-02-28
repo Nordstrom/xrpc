@@ -23,7 +23,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-/** An Encoder that encodes a response object to Text format. */
+/**
+ * An Encoder that encodes a response object to Text format. If the Object being encoded implements
+ * TextEncodable, it will be encoded using this interface; otherwise, it will use the Object's
+ * toString method.
+ */
 @AllArgsConstructor
 @Accessors(fluent = true)
 public class TextEncoder implements Encoder {

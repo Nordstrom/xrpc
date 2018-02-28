@@ -21,6 +21,7 @@ import java.io.IOException;
 
 /** Interface for encoding a response Object into a ByteBuf. */
 public interface Encoder {
+  /** Content type this encoder supports. */
   String contentType();
 
   /**

@@ -16,8 +16,8 @@
 
 package com.nordstrom.xrpc.encoding;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -27,9 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Encoders {
-  private static final Pattern ACCEPT_SPLIT_PATTERN = Pattern.compile(",[ ]*");
+  private static final Pattern ACCEPT_SPLIT_PATTERN = Pattern.compile(", *");
   private final Encoder defaultEncoder;
-  private final ImmutableMap<String, Encoder> encoders;
+  private final ImmutableMap<CharSequence, Encoder> encoders;
 
   /**
    * Find an Encoder based on an Accept header value.
@@ -41,6 +41,8 @@ public class Encoders {
     if (accept == null) {
       return defaultEncoder;
     }
+
+    // TODO (AD): Consider LRU cache of accepts to encoders.
     String[] contentTypes = ACCEPT_SPLIT_PATTERN.split(accept);
     for (String contentType : contentTypes) {
       // TODO (AD): Handle q-factor weighting see:
@@ -60,9 +62,8 @@ public class Encoders {
 
   /** Encoders Builder. */
   public static class Builder {
-    private String defaultContentType;
-    private final ImmutableSortedMap.Builder<String, Encoder> builder =
-        ImmutableSortedMap.naturalOrder();
+    private CharSequence defaultContentType;
+    private final ImmutableMap.Builder<CharSequence, Encoder> builder = ImmutableMap.builder();
 
     private Builder() {}
 
@@ -80,13 +81,12 @@ public class Encoders {
 
     /** Build an Encoders instance. */
     public Encoders build() {
-      ImmutableMap<String, Encoder> encoders = builder.build();
+      ImmutableMap<CharSequence, Encoder> encoders = builder.build();
       Encoder defaultEncoder = encoders.get(defaultContentType);
 
-      if (defaultEncoder == null) {
-        throw new IllegalArgumentException(
-            String.format("default_content_type %s has no registered Encoder", defaultContentType));
-      }
+      Preconditions.checkNotNull(
+          defaultEncoder,
+          String.format("default_content_type %s has no registered Encoder", defaultContentType));
 
       return new Encoders(defaultEncoder, encoders);
     }

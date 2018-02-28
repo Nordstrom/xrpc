@@ -31,7 +31,6 @@ import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import com.nordstrom.xrpc.encoding.JsonDecoder;
 import com.nordstrom.xrpc.encoding.JsonEncoder;
-import com.nordstrom.xrpc.encoding.TextDecoder;
 import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -126,7 +125,7 @@ public class Server implements Routes {
                 Decoders.builder()
                     .defaultContentType(config.defaultContentType())
                     .decoder(new JsonDecoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
-                    .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
+                    // .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
                     .build())
             .exceptionHandler(new DefaultExceptionHandler());
 

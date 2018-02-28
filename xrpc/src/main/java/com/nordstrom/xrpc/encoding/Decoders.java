@@ -16,8 +16,8 @@
 
 package com.nordstrom.xrpc.encoding;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,12 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Decoders {
   private final Decoder defaultDecoder;
-  private final ImmutableMap<String, Decoder> decoders;
+  private final ImmutableMap<CharSequence, Decoder> decoders;
 
   /**
    * Find a Decoder based on an Content-Type header value.
    *
-   * @param contentType content type header value.
+   * @param contentType content type header value. If null or not registered the default decoder
+   *     will be returned
    * @return best Decoder for the given content type header
    */
   public Decoder decoder(CharSequence contentType) {
@@ -55,13 +56,13 @@ public class Decoders {
 
   /** Decoders Builder. */
   public static class Builder {
-    private String defaultContentType;
-    private final ImmutableMap.Builder<String, Decoder> builder = ImmutableSortedMap.naturalOrder();
+    private CharSequence defaultContentType;
+    private final ImmutableMap.Builder<CharSequence, Decoder> builder = ImmutableMap.builder();
 
     private Builder() {}
 
     /** Set default_content_type. */
-    public Builder defaultContentType(String defaultContentType) {
+    public Builder defaultContentType(CharSequence defaultContentType) {
       this.defaultContentType = defaultContentType;
       return this;
     }
@@ -74,12 +75,11 @@ public class Decoders {
 
     /** Build a Decoders instance. */
     public Decoders build() {
-      ImmutableMap<String, Decoder> decoders = builder.build();
+      ImmutableMap<CharSequence, Decoder> decoders = builder.build();
       Decoder defaultDecoder = decoders.get(defaultContentType);
-      if (defaultDecoder == null) {
-        throw new IllegalArgumentException(
-            String.format("default_content_type %s has no registered Decoder", defaultContentType));
-      }
+      Preconditions.checkNotNull(
+          defaultDecoder,
+          String.format("default_content_type %s has no registered Decoder", defaultContentType));
 
       return new Decoders(defaultDecoder, decoders);
     }

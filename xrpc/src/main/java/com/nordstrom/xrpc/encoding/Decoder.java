@@ -21,6 +21,7 @@ import java.io.IOException;
 
 /** Interface for decoding a request ByteBuf into Object. */
 public interface Decoder {
+  /** Content type this decoder supports. */
   String contentType();
 
   /**
