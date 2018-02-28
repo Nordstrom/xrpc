@@ -42,4 +42,8 @@ public class XrpcConnectionContext {
   @Getter private final CompiledRoutes routes;
 
   @Getter private final ExceptionHandler exceptionHandler;
+
+  // This can be generated automatically by lombok, but we declare it here to fix a javadoc warning.
+  // TODO(jkinkead): Remove once we have delombok integrated (issue #160).
+  public static class Builder {}
 }
