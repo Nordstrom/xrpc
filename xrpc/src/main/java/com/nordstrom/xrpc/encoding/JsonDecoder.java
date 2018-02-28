@@ -19,18 +19,20 @@ package com.nordstrom.xrpc.encoding;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpUtil;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.experimental.Accessors;
 
 /** An Decoder that decodes a JSON ByteBuf to an object. */
 @AllArgsConstructor
-@Accessors(fluent = true)
 public class JsonDecoder implements Decoder {
   /** Content type this decoder supports. */
-  @Getter private final String contentType;
+  public CharSequence mediaType() {
+    return HttpHeaderValues.APPLICATION_JSON;
+  }
 
   private final ObjectMapper mapper;
 
@@ -43,9 +45,11 @@ public class JsonDecoder implements Decoder {
    */
   @Override
   public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException {
-    // TODO (AD): Does this handle encoding properly?
-    // TODO (AD): Close stream?  It does not release bytebuf so no?
-    InputStream input = new ByteBufInputStream(body);
-    return mapper.readValue(input, clazz);
+    try (InputStreamReader reader =
+        new InputStreamReader(
+            new ByteBufInputStream(body),
+            HttpUtil.getCharset(contentType, Charset.forName("UTF-8")))) {
+      return mapper.readValue(reader, clazz);
+    }
   }
 }

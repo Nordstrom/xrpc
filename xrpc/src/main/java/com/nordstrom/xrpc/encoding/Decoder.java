@@ -20,12 +20,9 @@ import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 /** Interface for decoding a request ByteBuf into Object. */
-public interface Decoder {
-  /** Content type this decoder supports. */
-  String contentType();
-
+public interface Decoder extends MediaTypeable {
   /**
-   * Decode a request body from JSON format to an object of designated Class type.
+   * Decode a request body to an object of designated Class type.
    *
    * @param body current http request body
    * @param contentType content type header

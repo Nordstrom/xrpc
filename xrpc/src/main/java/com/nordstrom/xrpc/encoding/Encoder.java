@@ -20,10 +20,7 @@ import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 /** Interface for encoding a response Object into a ByteBuf. */
-public interface Encoder {
-  /** Content type this encoder supports. */
-  String contentType();
-
+public interface Encoder extends MediaTypeable {
   /**
    * Encode an object to ByteBuf.
    *
@@ -31,5 +28,6 @@ public interface Encoder {
    * @param object object to encode
    * @return ByteBuf representing encoded object
    */
+  // TODO (AD): Add Accept-Charset to encoding.
   ByteBuf encode(ByteBuf buf, Object object) throws IOException;
 }

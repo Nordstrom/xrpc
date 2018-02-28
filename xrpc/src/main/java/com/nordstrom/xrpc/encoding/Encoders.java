@@ -16,20 +16,22 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import java.util.regex.Pattern;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 
 /** Holds a set of Encoder objects each registered to do encoding for a given content type. */
 @Slf4j
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Encoders {
-  private static final Pattern ACCEPT_SPLIT_PATTERN = Pattern.compile(", *");
-  private final Encoder defaultEncoder;
-  private final ImmutableMap<CharSequence, Encoder> encoders;
+public class Encoders extends MediaTypeableCollection<Encoder> {
+  private static final Pattern CONTENT_TYPE_DELIMITER = Pattern.compile(", *");
+  private static final Pattern PARAM_DELIMITER = Pattern.compile(" *; *");
+
+  @Builder
+  private Encoders(CharSequence defaultContentType, @Singular ImmutableList<Encoder> encoders) {
+    super(defaultContentType, encoders);
+  }
 
   /**
    * Find an Encoder based on an Accept header value.
@@ -39,56 +41,18 @@ public class Encoders {
    */
   public Encoder acceptedEncoder(CharSequence accept) {
     if (accept == null) {
-      return defaultEncoder;
+      return defaultValue();
     }
 
     // TODO (AD): Consider LRU cache of accepts to encoders.
-    String[] contentTypes = ACCEPT_SPLIT_PATTERN.split(accept);
+    String[] contentTypes = CONTENT_TYPE_DELIMITER.split(accept);
     for (String contentType : contentTypes) {
-      // TODO (AD): Handle q-factor weighting see:
-      // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
-      Encoder encoder = encoders.get(contentType);
+      String[] parts = PARAM_DELIMITER.split(contentType);
+      Encoder encoder = get(parts[0]);
       if (encoder != null) {
         return encoder;
       }
     }
-    return defaultEncoder;
-  }
-
-  /** Get Encoders builder. */
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  /** Encoders Builder. */
-  public static class Builder {
-    private CharSequence defaultContentType;
-    private final ImmutableMap.Builder<CharSequence, Encoder> builder = ImmutableMap.builder();
-
-    private Builder() {}
-
-    /** Set default_content_type. */
-    public Builder defaultContentType(String defaultContentType) {
-      this.defaultContentType = defaultContentType;
-      return this;
-    }
-
-    /** Register an Encoder. */
-    public Builder encoder(Encoder encoder) {
-      builder.put(encoder.contentType(), encoder);
-      return this;
-    }
-
-    /** Build an Encoders instance. */
-    public Encoders build() {
-      ImmutableMap<CharSequence, Encoder> encoders = builder.build();
-      Encoder defaultEncoder = encoders.get(defaultContentType);
-
-      Preconditions.checkNotNull(
-          defaultEncoder,
-          String.format("default_content_type %s has no registered Encoder", defaultContentType));
-
-      return new Encoders(defaultEncoder, encoders);
-    }
+    return defaultValue();
   }
 }

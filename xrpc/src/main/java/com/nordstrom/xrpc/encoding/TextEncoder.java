@@ -18,9 +18,10 @@ package com.nordstrom.xrpc.encoding;
 
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import java.io.IOException;
+import java.util.Formattable;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.experimental.Accessors;
 
 /**
@@ -31,7 +32,10 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Accessors(fluent = true)
 public class TextEncoder implements Encoder {
-  @Getter private String contentType;
+  @Override
+  public CharSequence mediaType() {
+    return HttpHeaderValues.TEXT_PLAIN;
+  }
 
   /**
    * Encode a response object to JSON format for the HttpResponse.
@@ -43,7 +47,7 @@ public class TextEncoder implements Encoder {
   @Override
   public ByteBuf encode(ByteBuf buf, Object object) throws IOException {
     String text =
-        (object instanceof TextEncodable) ? ((TextEncodable) object).encode() : object.toString();
+        (object instanceof Formattable) ? ((TextEncodable) object).encode() : object.toString();
     byte[] bytes = text.getBytes(XrpcConstants.DEFAULT_CHARSET);
     buf.writeBytes(bytes);
     return buf;

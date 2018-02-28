@@ -39,7 +39,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
@@ -117,15 +116,15 @@ public class Server implements Routes {
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .encoder(new JsonEncoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
-                    .encoder(new TextEncoder(HttpHeaderValues.TEXT_PLAIN.toString()))
+                    .encoder(new JsonEncoder(mapper))
+                    .encoder(new TextEncoder())
                     // TODO (AD): Add encoders for binary/proto
                     .build())
             .decoders(
                 Decoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .decoder(new JsonDecoder(HttpHeaderValues.APPLICATION_JSON.toString(), mapper))
-                    // .decoder(new TextDecoder(HttpHeaderValues.TEXT_PLAIN.toString()))
+                    .decoder(new JsonDecoder(mapper))
+                    .decoder(new TextDecoder())
                     .build())
             .exceptionHandler(new DefaultExceptionHandler());
 

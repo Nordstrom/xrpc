@@ -23,7 +23,7 @@ public class ResponseFactory {
   private final XrpcRequest request;
 
   public HttpResponse ok() {
-    return create(HttpResponseStatus.OK, Unpooled.buffer(0), HttpHeaderValues.TEXT_PLAIN);
+    return create(HttpResponseStatus.OK, Unpooled.EMPTY_BUFFER, HttpHeaderValues.TEXT_PLAIN);
   }
 
   public <T> HttpResponse ok(T body) throws IOException {
@@ -54,7 +54,7 @@ public class ResponseFactory {
     final Encoder encoder =
         request.connectionContext().encoders().acceptedEncoder(request.acceptHeader());
     ByteBuf buf = request.byteBuf();
-    return create(status, encoder.encode(buf, body), encoder.contentType());
+    return create(status, encoder.encode(buf, body), encoder.mediaType());
   }
 
   public HttpResponse create(HttpResponseStatus status, ByteBuf body, CharSequence contentType) {
