@@ -22,11 +22,14 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
 
 /** An Encoder that encodes an object to ByteBuf in JSON format. */
 @AllArgsConstructor
 public class JsonEncoder implements Encoder {
+  private static final String[] ALLOWED_CHARSETS = {"UTF-8", "UTF-16", "UTF-32"};
+
   private final ObjectMapper mapper;
 
   public CharSequence mediaType() {
@@ -37,15 +40,32 @@ public class JsonEncoder implements Encoder {
    * Encode a response object to JSON format for the HttpResponse.
    *
    * @param buf target byte buffer for encoding
+   * @param acceptCharset Accept-Charset header
    * @param object object to encode
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(ByteBuf buf, CharSequence charset, Object object) throws IOException {
+  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     try (OutputStreamWriter writer =
-        new OutputStreamWriter(new ByteBufOutputStream(buf), charset.toString())) {
+        new OutputStreamWriter(new ByteBufOutputStream(buf), charset(acceptCharset))) {
       mapper.writeValue(writer, object);
       return buf;
     }
+  }
+
+  private Charset charset(CharSequence acceptCharset) {
+    if (acceptCharset == null) {
+      return DEFAULT_CHARSET;
+    }
+    String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
+    for (String charset : charsets) {
+      String charsetUpper = charset.toUpperCase();
+      for (String allowed : ALLOWED_CHARSETS) {
+        if (charsetUpper.equals(allowed)) {
+          return Charset.forName(charsetUpper);
+        }
+      }
+    }
+    return DEFAULT_CHARSET;
   }
 }

@@ -16,10 +16,10 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Formattable;
 import lombok.AllArgsConstructor;
 import lombok.experimental.Accessors;
@@ -41,15 +41,26 @@ public class TextEncoder implements Encoder {
    * Encode a response object to JSON format for the HttpResponse.
    *
    * @param buf target byte buffer for encoding
+   * @param acceptCharset Accept-Charset header
    * @param object object to encode
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(ByteBuf buf, Object object) throws IOException {
+  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     String text =
         (object instanceof Formattable) ? ((TextEncodable) object).encode() : object.toString();
-    byte[] bytes = text.getBytes(XrpcConstants.DEFAULT_CHARSET);
+    byte[] bytes = text.getBytes(charset(acceptCharset));
     buf.writeBytes(bytes);
     return buf;
+  }
+
+  private Charset charset(CharSequence acceptCharset) {
+    String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
+    for (String charset : charsets) {
+      if (Charset.isSupported(charset)) {
+        return Charset.forName(charset);
+      }
+    }
+    return DEFAULT_CHARSET;
   }
 }

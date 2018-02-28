@@ -18,7 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class EncodingTest {
+class EncodingFunctionalTest {
   static class Person {
     @Getter private String name;
 
@@ -64,7 +64,7 @@ class EncodingTest {
                     .post(
                         RequestBody.create(
                             MediaType.parse("application/json"), "{\"name\":\"bob\"}"))
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", "application/json; charset=utf-8")
                     .build())
             .execute();
 
@@ -87,5 +87,23 @@ class EncodingTest {
 
     assertEquals(200, response.code());
     assertEquals("{\"name\":\"bob\"}", response.body().string());
+  }
+
+  @Test
+  void testJsonDecodingUtf16() throws IOException {
+    person = new Person("bob");
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .url(endpoint + "/person")
+                    .get()
+                    .header("Accept", "application/json;q=1; text/plain")
+                    .header("Accept-Charset", "utf-16")
+                    .build())
+            .execute();
+
+    assertEquals(200, response.code());
+    assertEquals(30, response.body().bytes().length); // double wide for utf 16
   }
 }

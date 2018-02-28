@@ -136,8 +136,8 @@ public class XrpcRequest {
 
   @SneakyThrows
   public <T> T body(Class<T> clazz) {
-    Decoder decoder = connectionContext.decoders().decoder(contentType());
-    return decoder.decode(body(), contentType(), clazz);
+    Decoder decoder = connectionContext.decoders().decoder(contentTypeHeader());
+    return decoder.decode(body(), contentTypeHeader(), clazz);
   }
 
   /**
@@ -160,7 +160,7 @@ public class XrpcRequest {
   public String bodyText() {
     // Note that this defaults to iso-8859-1 per
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7.1.
-    Charset charset = HttpUtil.getCharset(contentType());
+    Charset charset = HttpUtil.getCharset(contentTypeHeader());
     return body().toString(charset);
   }
 
@@ -183,7 +183,11 @@ public class XrpcRequest {
     return header(HttpHeaderNames.ACCEPT);
   }
 
-  public CharSequence contentType() {
+  public CharSequence contentTypeHeader() {
     return header(HttpHeaderNames.CONTENT_TYPE);
+  }
+
+  public CharSequence acceptCharsetHeader() {
+    return header(HttpHeaderNames.ACCEPT_CHARSET);
   }
 }

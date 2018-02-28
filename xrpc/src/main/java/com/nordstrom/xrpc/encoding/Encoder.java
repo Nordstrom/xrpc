@@ -18,16 +18,22 @@ package com.nordstrom.xrpc.encoding;
 
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.regex.Pattern;
 
 /** Interface for encoding a response Object into a ByteBuf. */
 public interface Encoder extends MediaTypeable {
+  Pattern CHARSET_DELIMITER = Pattern.compile(" *, *");
+  Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+
   /**
    * Encode an object to ByteBuf.
    *
    * @param buf target byte buffer for encoding
+   * @param acceptCharset Accept-Charset header
    * @param object object to encode
    * @return ByteBuf representing encoded object
    */
   // TODO (AD): Add Accept-Charset to encoding.
-  ByteBuf encode(ByteBuf buf, Object object) throws IOException;
+  ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException;
 }

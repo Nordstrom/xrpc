@@ -54,7 +54,8 @@ public class ResponseFactory {
     final Encoder encoder =
         request.connectionContext().encoders().acceptedEncoder(request.acceptHeader());
     ByteBuf buf = request.byteBuf();
-    return create(status, encoder.encode(buf, body), encoder.mediaType());
+    return create(
+        status, encoder.encode(buf, request.acceptCharsetHeader(), body), encoder.mediaType());
   }
 
   public HttpResponse create(HttpResponseStatus status, ByteBuf body, CharSequence contentType) {

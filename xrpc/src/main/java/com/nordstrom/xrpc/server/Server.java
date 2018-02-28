@@ -124,7 +124,6 @@ public class Server implements Routes {
                 Decoders.builder()
                     .defaultContentType(config.defaultContentType())
                     .decoder(new JsonDecoder(mapper))
-                    .decoder(new TextDecoder())
                     .build())
             .exceptionHandler(new DefaultExceptionHandler());
 
