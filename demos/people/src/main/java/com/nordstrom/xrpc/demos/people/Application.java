@@ -45,7 +45,7 @@ public class Application {
     // Load application config from jar resources. The 'load' method below also allows supports
     // overrides from environment variables.
     Config config = ConfigFactory.load("demo.conf");
-    Server server = new Server(config);
+    Server server = new Server(config.getConfig("xrpc"));
     Application.configure(server);
 
     try {
