@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.io.IOException
 
-@DisplayName("test kotlin-people demo")
+@DisplayName("people-kotlin demo test")
 internal class PeopleTests {
     private lateinit var server: Server
     private val client = UnsafeHttp.unsafeClient()

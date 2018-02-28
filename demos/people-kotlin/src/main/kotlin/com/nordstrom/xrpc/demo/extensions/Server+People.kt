@@ -1,9 +1,17 @@
 package com.nordstrom.xrpc.demo.extensions
 
-import com.nordstrom.xrpc.demo.protocol.Routable
 import com.nordstrom.xrpc.server.Routes
+import com.nordstrom.xrpc.server.XrpcRequest
 import io.netty.handler.codec.http.HttpMethod
+import io.netty.handler.codec.http.HttpResponse
 
+data class RouteSpec(val method: HttpMethod,
+                     val path: String,
+                     val func: (XrpcRequest) -> HttpResponse)
+
+interface Routable {
+  val routes: Iterable<RouteSpec>
+}
 
 fun Routes.addRoutable(routable: Routable) {
   apply {
