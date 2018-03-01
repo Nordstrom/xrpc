@@ -26,18 +26,18 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http2.Http2Headers;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Xprc specific Request object. */
 @Slf4j
 @Accessors(fluent = true)
-public class XrpcRequest {
+public class XrpcRequest implements ResponseFactory {
   /** The HTTP/1.x request to handle. null if this is an HTTP/2 request. */
   private final FullHttpRequest h1Request;
 
@@ -105,9 +105,14 @@ public class XrpcRequest {
     return query;
   }
 
+  @Override
+  public XrpcRequest request() {
+    return this;
+  }
+
   public ResponseFactory response() {
     if (responseFactory == null) {
-      responseFactory = new ResponseFactory(this);
+      responseFactory = () -> XrpcRequest.this;
     }
     return responseFactory;
   }
@@ -134,8 +139,7 @@ public class XrpcRequest {
     return h2Data.readableBytes();
   }
 
-  @SneakyThrows
-  public <T> T body(Class<T> clazz) {
+  public <T> T body(Class<T> clazz) throws IOException {
     Decoder decoder = connectionContext.decoders().decoder(contentTypeHeader());
     return decoder.decode(body(), contentTypeHeader(), clazz);
   }

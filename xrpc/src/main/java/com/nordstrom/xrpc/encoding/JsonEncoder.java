@@ -17,6 +17,7 @@
 package com.nordstrom.xrpc.encoding;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -25,10 +26,17 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
 
-/** An Encoder that encodes an object to ByteBuf in JSON format. */
+/**
+ * An Encoder that encodes an object to ByteBuf in JSON format.
+ *
+ * <p>Currently this encoder uses Jackson ObjectMapper to encode, but eventually will use
+ * configurable JSON encode provider.
+ */
 @AllArgsConstructor
 public class JsonEncoder implements Encoder {
-  private static final String[] ALLOWED_CHARSETS = {"UTF-8", "UTF-16", "UTF-32"};
+  public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+  private static final ImmutableSet<String> ALLOWED_CHARSETS =
+      ImmutableSet.copyOf(new String[] {"UTF-8", "UTF-16", "UTF-32"});
 
   private final ObjectMapper mapper;
 
@@ -53,19 +61,18 @@ public class JsonEncoder implements Encoder {
     }
   }
 
-  private Charset charset(CharSequence acceptCharset) {
+  @Override
+  public Charset charset(CharSequence acceptCharset) {
     if (acceptCharset == null) {
-      return DEFAULT_CHARSET;
+      return TextEncoder.DEFAULT_CHARSET;
     }
     String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
     for (String charset : charsets) {
       String charsetUpper = charset.toUpperCase();
-      for (String allowed : ALLOWED_CHARSETS) {
-        if (charsetUpper.equals(allowed)) {
-          return Charset.forName(charsetUpper);
-        }
+      if (ALLOWED_CHARSETS.contains(charsetUpper)) {
+        return Charset.forName(charsetUpper);
       }
     }
-    return DEFAULT_CHARSET;
+    return TextEncoder.DEFAULT_CHARSET;
   }
 }

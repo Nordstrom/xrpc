@@ -29,15 +29,13 @@ class EncodingUnitTest {
     }
   }
 
-  private Person person;
   private JsonEncoder jsonEncoder = new JsonEncoder(new ObjectMapper());
   private TextEncoder textEncoder = new TextEncoder();
   private JsonDecoder jsonDecoder = new JsonDecoder(new ObjectMapper());
   private Decoder fooBarDecoder =
       new Decoder() {
         @Override
-        public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz)
-            throws IOException {
+        public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) {
           return null;
         }
 

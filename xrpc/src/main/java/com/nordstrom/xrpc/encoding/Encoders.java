@@ -37,7 +37,7 @@ public class Encoders extends MediaTypeableCollection<Encoder> {
    * Find an Encoder based on an Accept header value.
    *
    * @param accept accept header value.
-   * @return best encoder for the given accept header
+   * @return best encoder for the given accept header. If null, returns defaultValue().
    */
   public Encoder acceptedEncoder(CharSequence accept) {
     if (accept == null) {

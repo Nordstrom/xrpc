@@ -13,13 +13,13 @@ public class PeopleRoutes {
   private final List<Person> people = new CopyOnWriteArrayList<>();
 
   public PeopleRoutes(Routes routes) {
-    Handler getPeople = request -> request.response().ok(people);
+    Handler getPeople = request -> request.ok(people);
 
     Handler postPerson =
         request -> {
           Person p = request.body(Person.class);
           people.add(p);
-          return request.response().ok();
+          return request.ok();
         };
 
     Handler getPerson =
@@ -29,10 +29,10 @@ public class PeopleRoutes {
               people.stream().filter(p -> Objects.equals(p.name, name)).findFirst();
 
           if (person.isPresent()) {
-            return request.response().ok(person.get());
+            return request.ok(person.get());
           }
 
-          return request.response().notFound("Person Not Found");
+          return request.notFound("Person Not Found");
         };
 
     routes.get("/people", getPeople);
@@ -44,6 +44,8 @@ public class PeopleRoutes {
   public static class Person {
     @Getter private String name;
 
+    // This should not be required, but is used by Jackson to properly bind this object
+    // during decode.
     @ConstructorProperties("name")
     public Person(String name) {
       this.name = name;

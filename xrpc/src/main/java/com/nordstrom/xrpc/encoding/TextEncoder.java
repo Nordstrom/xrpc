@@ -19,7 +19,6 @@ package com.nordstrom.xrpc.encoding;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Formattable;
 import lombok.AllArgsConstructor;
 import lombok.experimental.Accessors;
@@ -52,15 +51,5 @@ public class TextEncoder implements Encoder {
     byte[] bytes = text.getBytes(charset(acceptCharset));
     buf.writeBytes(bytes);
     return buf;
-  }
-
-  private Charset charset(CharSequence acceptCharset) {
-    String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
-    for (String charset : charsets) {
-      if (Charset.isSupported(charset)) {
-        return Charset.forName(charset);
-      }
-    }
-    return DEFAULT_CHARSET;
   }
 }

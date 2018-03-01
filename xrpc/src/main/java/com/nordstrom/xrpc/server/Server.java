@@ -107,6 +107,8 @@ public class Server implements Routes {
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
+    // This adds support for normal constructor binding.
+    // See: https://github.com/FasterXML/jackson-modules-java8/tree/master/parameter-names
     ObjectMapper mapper =
         new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
 

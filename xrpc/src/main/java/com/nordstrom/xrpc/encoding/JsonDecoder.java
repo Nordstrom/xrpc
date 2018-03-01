@@ -26,7 +26,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
 
-/** An Decoder that decodes a JSON ByteBuf to an object. */
+/**
+ * An Decoder that decodes a JSON ByteBuf to an object.
+ *
+ * <p>Currently this decoder uses Jackson ObjectMapper to decode, but eventually will use
+ * configurable JSON decode provider.
+ */
 @AllArgsConstructor
 public class JsonDecoder implements Decoder {
   /** Content type this decoder supports. */

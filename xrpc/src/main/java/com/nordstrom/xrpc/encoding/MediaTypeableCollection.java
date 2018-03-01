@@ -6,6 +6,14 @@ import io.netty.util.AsciiString;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+/**
+ * Base collection of MediaTypable objects. Consolidates the logic of lookup up an item based on
+ * CharSequence mediaType. It also provides a defaultValue and appropriate getOrDefault.
+ *
+ * <p>Intended for a small set of objects as lookup is O(N).
+ *
+ * @param <T> MediaTypeable item type
+ */
 @Accessors(fluent = true)
 class MediaTypeableCollection<T extends MediaTypeable> {
   @Getter private final T defaultValue;

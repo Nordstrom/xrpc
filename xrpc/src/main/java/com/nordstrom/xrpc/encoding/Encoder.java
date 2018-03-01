@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
 
 /** Interface for encoding a response Object into a ByteBuf. */
 public interface Encoder extends MediaTypeable {
+  Charset DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
   Pattern CHARSET_DELIMITER = Pattern.compile(" *, *");
-  Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
   /**
    * Encode an object to ByteBuf.
@@ -34,6 +34,15 @@ public interface Encoder extends MediaTypeable {
    * @param object object to encode
    * @return ByteBuf representing encoded object
    */
-  // TODO (AD): Add Accept-Charset to encoding.
   ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException;
+
+  default Charset charset(CharSequence acceptCharset) {
+    String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
+    for (String charset : charsets) {
+      if (Charset.isSupported(charset)) {
+        return Charset.forName(charset);
+      }
+    }
+    return DEFAULT_CHARSET;
+  }
 }
