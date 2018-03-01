@@ -152,7 +152,7 @@ public interface Routes extends Iterable<Route> {
    * Adds a collection of routes from another Routes provider.
    *
    * @param routes routes provider.
-   * @return this Routes
+   * @return this builder
    */
   default Routes addRoutes(Routes routes) {
     for (Route route : routes) {

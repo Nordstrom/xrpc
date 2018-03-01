@@ -24,7 +24,6 @@ import io.netty.handler.codec.http.HttpMethod;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Class to build routes for a server to handle. */
@@ -56,7 +55,7 @@ public class RouteBuilder implements Routes {
     return new CompiledRoutes(this.routes, metricRegistry);
   }
 
-  /** Returns iterator or routes. */
+  /** Returns iterator of routes. */
   @Override
   public Iterator<Route> iterator() {
     return routes
@@ -68,7 +67,6 @@ public class RouteBuilder implements Routes {
                     .entrySet()
                     .stream()
                     .map(m -> new Route(m.getKey(), r.getKey(), m.getValue())))
-        .collect(Collectors.toList())
         .iterator();
   }
 }
