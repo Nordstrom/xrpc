@@ -24,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class RouteTest {
+public class RoutePathTest {
   @Test
   public void testMatches_noVariables() {
-    Route route = Route.build("/api/people");
+    RoutePath route = RoutePath.build("/api/people");
 
     assertTrue(route.matches("/api/people"), "exact path match failed");
     assertTrue(route.matches("/api/people/"), "trailing slash should be allowed");
@@ -37,7 +37,7 @@ public class RouteTest {
 
   @Test
   public void testMatches_singleSimpleVariable() {
-    Route route = Route.build("/api/people/{person}");
+    RoutePath route = RoutePath.build("/api/people/{person}");
 
     assertTrue(route.matches("/api/people/jeff"), "path match failed with variable set");
     assertTrue(route.matches("/api/people/jeff/"), "trailing slash should be allowed");
@@ -47,7 +47,7 @@ public class RouteTest {
 
   @Test
   public void testMatches_multipleVariables() {
-    Route route = Route.build("/api/location/{country}/{city}");
+    RoutePath route = RoutePath.build("/api/location/{country}/{city}");
     String path = "/api/location/usa/seattle";
     assertTrue(route.matches(path), "failed to match path " + path);
     assertFalse(route.matches("/api/location//seattle"), "matched empty path segment");
@@ -55,7 +55,7 @@ public class RouteTest {
 
   @Test
   public void testMatches_customPattern() {
-    Route route = Route.build("/api/person/{age:\\d+}/all");
+    RoutePath route = RoutePath.build("/api/person/{age:\\d+}/all");
     String path = "/api/person/45/all";
     assertTrue(route.matches(path), "failed to match path " + path);
     assertFalse(route.matches("/api/person/abc/all"), "matched non-numeric path segment");
@@ -63,14 +63,14 @@ public class RouteTest {
 
   @Test
   public void testMatches_patternEscaped() {
-    Route route = Route.build("/api/.*");
+    RoutePath route = RoutePath.build("/api/.*");
     assertTrue(route.matches("/api/.*"), "failed to match exact path");
     assertFalse(route.matches("/api/person"), "matched patterned path");
   }
 
   @Test
   public void testGroups_singleVariable() {
-    Route route = Route.build("/api/people/{person}");
+    RoutePath route = RoutePath.build("/api/people/{person}");
     Map<String, String> groups = route.groups("/api/people/jeff");
     assertNotNull(groups, "null groups from route.groups");
     assertEquals(1, groups.size(), "should have exactly one group");
@@ -79,7 +79,7 @@ public class RouteTest {
 
   @Test
   public void testGroups_multipleVariables() {
-    Route route = Route.build("/api/location/{country}/{city}");
+    RoutePath route = RoutePath.build("/api/location/{country}/{city}");
     String path = "/api/location/usa/seattle";
     Map<String, String> groups = route.groups("/api/location/usa/seattle");
     assertNotNull(groups, "null groups from route.groups");

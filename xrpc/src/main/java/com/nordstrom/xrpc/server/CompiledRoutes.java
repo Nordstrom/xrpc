@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.server.http.Recipes;
-import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.RoutePath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
@@ -43,7 +43,7 @@ public class CompiledRoutes {
    * Map of routes to their handlers-by-method maps. Routes are sorted alphabetically by path for
    * consistent application.
    */
-  private final ImmutableSortedMap<Route, ImmutableMap<HttpMethod, Handler>> routes;
+  private final ImmutableSortedMap<RoutePath, ImmutableMap<HttpMethod, Handler>> routes;
 
   /**
    * Returns compiled routes built from the given route map.
@@ -51,13 +51,13 @@ public class CompiledRoutes {
    * @param metricRegistry the registry to generate per-(route,method) rate statistics in
    */
   public CompiledRoutes(
-      Map<Route, Map<HttpMethod, Handler>> rawRoutes, MetricRegistry metricRegistry) {
+      Map<RoutePath, Map<HttpMethod, Handler>> rawRoutes, MetricRegistry metricRegistry) {
     // Build a sorted map of the routes.
-    ImmutableSortedMap.Builder<Route, ImmutableMap<HttpMethod, Handler>> routesBuilder =
+    ImmutableSortedMap.Builder<RoutePath, ImmutableMap<HttpMethod, Handler>> routesBuilder =
         ImmutableSortedMap.naturalOrder();
-    for (Map.Entry<Route, Map<HttpMethod, Handler>> routeEntry : rawRoutes.entrySet()) {
+    for (Map.Entry<RoutePath, Map<HttpMethod, Handler>> routeEntry : rawRoutes.entrySet()) {
       ImmutableMap.Builder<HttpMethod, Handler> handlers = new ImmutableMap.Builder<>();
-      Route route = routeEntry.getKey();
+      RoutePath route = routeEntry.getKey();
       for (Map.Entry<HttpMethod, Handler> methodHandlerEntry : routeEntry.getValue().entrySet()) {
         HttpMethod method = methodHandlerEntry.getKey();
 
@@ -107,7 +107,8 @@ public class CompiledRoutes {
    */
   public Match match(String path, HttpMethod method) {
     boolean pathMatched = false;
-    for (Map.Entry<Route, ImmutableMap<HttpMethod, Handler>> routeToHandlers : routes.entrySet()) {
+    for (Map.Entry<RoutePath, ImmutableMap<HttpMethod, Handler>> routeToHandlers :
+        routes.entrySet()) {
       Map<String, String> groups = routeToHandlers.getKey().groups(path);
       if (groups != null) {
         pathMatched = true;

@@ -19,38 +19,30 @@ package com.nordstrom.xrpc.server;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.RoutePath;
 import io.netty.handler.codec.http.HttpMethod;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /** Class to build routes for a server to handle. */
 @Slf4j
 public class RouteBuilder implements Routes {
-  private final Map<Route, Map<HttpMethod, Handler>> routes = new HashMap<>();
+  private final Map<RoutePath, Map<HttpMethod, Handler>> routes = new HashMap<>();
 
   @Override
-  public Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
-    Preconditions.checkArgument(routePattern != null, "routePattern must not be null");
-    Preconditions.checkArgument(!routePattern.isEmpty(), "routePattern must not be empty");
-    Preconditions.checkArgument(handler != null, "handler must not be null");
-    Preconditions.checkArgument(method != null, "method must not be null");
-
-    Route route = Route.build(routePattern);
-
-    Map<HttpMethod, Handler> methods = routes.get(route);
-    if (methods == null) {
-      methods = new HashMap<>();
-      routes.put(route, methods);
-    }
+  public Routes addRoute(Route route) {
+    Map<HttpMethod, Handler> methods = routes.computeIfAbsent(route.path(), k -> new HashMap<>());
 
     // Verify that this method doesn't already exist.
     Preconditions.checkArgument(
-        !methods.containsKey(method),
+        !methods.containsKey(route.method()),
         String.format(
-            "route %s already has a handler defined for method %s", route, method.toString()));
+            "route %s already has a handler defined for method %s",
+            route, route.method().toString()));
 
-    methods.put(method, handler);
+    methods.put(route.method(), route.handler());
 
     return this;
   }
@@ -61,5 +53,20 @@ public class RouteBuilder implements Routes {
    */
   public CompiledRoutes compile(MetricRegistry metricRegistry) {
     return new CompiledRoutes(this.routes, metricRegistry);
+  }
+
+  /** Returns iterator of routes. */
+  @Override
+  public Iterator<Route> iterator() {
+    return routes
+        .entrySet()
+        .stream()
+        .flatMap(
+            r ->
+                r.getValue()
+                    .entrySet()
+                    .stream()
+                    .map(m -> new Route(m.getKey(), r.getKey(), m.getValue())))
+        .iterator();
   }
 }
