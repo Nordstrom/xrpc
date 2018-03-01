@@ -162,7 +162,7 @@ public final class Http2Handler extends Http2EventAdapter {
         writeResponse(ctx, streamId, response);
         return processed;
       } catch (IOException e) {
-        log.error("Error in handling Route", e);
+        log.error("Error in handling RoutePath", e);
         // Error
         ByteBuf buf = ctx.channel().alloc().directBuffer();
         buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));
@@ -245,7 +245,7 @@ public final class Http2Handler extends Http2EventAdapter {
         HttpResponse response = handler.handle(request);
         writeResponse(ctx, streamId, response);
       } catch (IOException e) {
-        log.error("Error in handling Route", e);
+        log.error("Error in handling RoutePath", e);
         // Error
         ByteBuf buf = channel.alloc().directBuffer();
         buf.writeBytes("Error executing endpoint".getBytes(XrpcConstants.DEFAULT_CHARSET));

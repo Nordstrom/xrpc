@@ -16,10 +16,13 @@
 
 package com.nordstrom.xrpc.server;
 
+import com.google.common.base.Preconditions;
+import com.nordstrom.xrpc.server.http.Route;
+import com.nordstrom.xrpc.server.http.RoutePath;
 import io.netty.handler.codec.http.HttpMethod;
 
 /** Interface for constructing routes. */
-public interface Routes {
+public interface Routes extends Iterable<Route> {
   /**
    * Binds a handler for GET requests to the given route.
    *
@@ -126,5 +129,35 @@ public interface Routes {
    * @throws IllegalArgumentException if either the route or handler is null; if the route is empty;
    *     or if there is already a handler for the given method + route pair.
    */
-  Routes addRoute(String routePattern, Handler handler, HttpMethod method);
+  default Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
+    Preconditions.checkArgument(routePattern != null, "routePattern must not be null");
+    Preconditions.checkArgument(!routePattern.isEmpty(), "routePattern must not be empty");
+    Preconditions.checkArgument(handler != null, "handler must not be null");
+    Preconditions.checkArgument(method != null, "method must not be null");
+
+    RoutePath routePath = RoutePath.build(routePattern);
+
+    addRoute(new Route(method, routePath, handler));
+    return this;
+  }
+
+  /**
+   * Adds given route to this route collection.
+   *
+   * @return this builder
+   */
+  Routes addRoute(Route route);
+
+  /**
+   * Adds a collection of routes from another Routes provider.
+   *
+   * @param routes routes provider.
+   * @return this Routes
+   */
+  default Routes addRoutes(Routes routes) {
+    for (Route route : routes) {
+      addRoute(route);
+    }
+    return this;
+  }
 }

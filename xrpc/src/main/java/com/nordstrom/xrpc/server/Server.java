@@ -25,6 +25,7 @@ import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -32,11 +33,11 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
@@ -107,10 +108,15 @@ public class Server implements Routes {
   }
 
   @Override
-  public Routes addRoute(String routePattern, Handler handler, HttpMethod method) {
-    routeBuilder.addRoute(routePattern, handler, method);
+  public Routes addRoute(Route route) {
+    routeBuilder.addRoute(route);
     // Return a this-reference to adhere to contract.
     return this;
+  }
+
+  @Override
+  public Iterator<Route> iterator() {
+    return routeBuilder.iterator();
   }
 
   /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
