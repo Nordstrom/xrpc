@@ -126,7 +126,7 @@ public class CompiledRoutes {
     }
   }
 
-  /** Container for a matched RoutePath. */
+  /** Container for a matched Route. */
   @Value
   static class Match {
     /** The handler that matched the request path. */

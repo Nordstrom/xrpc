@@ -6,8 +6,8 @@ import io.netty.handler.codec.http.HttpResponse;
 @FunctionalInterface
 public interface ExceptionHandler {
   /**
-   * Handle exception. This is used to handle an exception thrown by the registered RoutePath
-   * Handler. It converts the Exception to an appropriate HttpResponse.
+   * Handle exception. This is used to handle an exception thrown by the registered Route Handler.
+   * It converts the Exception to an appropriate HttpResponse.
    *
    * @param request request for which this Exception was generated
    * @param exception thrown exception
