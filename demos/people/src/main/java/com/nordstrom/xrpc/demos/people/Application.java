@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 public class Application {
   public static void configure(Server server) {
     // Add handlers for /people routes
-    new PeopleRoutes(server);
+    server.addRoutes(new PeopleRoutes());
 
     // Add a service specific health check
     server.addHealthCheck(

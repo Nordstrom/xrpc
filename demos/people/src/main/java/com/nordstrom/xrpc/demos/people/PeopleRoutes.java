@@ -1,7 +1,7 @@
 package com.nordstrom.xrpc.demos.people;
 
 import com.nordstrom.xrpc.server.Handler;
-import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.RouteBuilder;
 import java.beans.ConstructorProperties;
 import java.util.List;
 import java.util.Objects;
@@ -9,10 +9,10 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Getter;
 
-public class PeopleRoutes {
+public class PeopleRoutes extends RouteBuilder {
   private final List<Person> people = new CopyOnWriteArrayList<>();
 
-  public PeopleRoutes(Routes routes) {
+  public PeopleRoutes() {
     Handler getPeople = request -> request.ok(people);
 
     Handler postPerson =
@@ -35,9 +35,9 @@ public class PeopleRoutes {
           return request.notFound("Person Not Found");
         };
 
-    routes.get("/people", getPeople);
-    routes.post("/people", postPerson);
-    routes.get("/people/{person}", getPerson);
+    get("/people", getPeople);
+    post("/people", postPerson);
+    get("/people/{person}", getPerson);
   }
 
   // Application POJO for use in request / response.
