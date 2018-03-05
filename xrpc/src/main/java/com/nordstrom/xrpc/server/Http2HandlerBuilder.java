@@ -35,6 +35,8 @@ public final class Http2HandlerBuilder
 
   private int maxPayloadBytes;
 
+  private Http2CorsHandler corsHandler;
+
   public Http2HandlerBuilder() {
     if (FRAME_LOGGER.isDebugEnabled()) {
       frameLogger(new Http2FrameLogger(LogLevel.DEBUG, FRAME_LOGGER_NAME));
@@ -43,6 +45,11 @@ public final class Http2HandlerBuilder
 
   public Http2HandlerBuilder maxPayloadBytes(int maxPayloadBytes) {
     this.maxPayloadBytes = maxPayloadBytes;
+    return this;
+  }
+
+  public Http2HandlerBuilder corsHandler(Http2CorsHandler corsHandler) {
+    this.corsHandler = corsHandler;
     return this;
   }
 
@@ -59,7 +66,7 @@ public final class Http2HandlerBuilder
       Http2Settings initialSettings) {
 
     // TODO(jkinkead): Set MAX_CONCURRENT_STREAMS value to something from config.
-    decoder.frameListener(new Http2Handler(encoder, maxPayloadBytes));
+    decoder.frameListener(new Http2Handler(encoder, maxPayloadBytes, corsHandler));
 
     ConnectionHandler handler = new ConnectionHandler(decoder, encoder, initialSettings);
     return handler;
