@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /** Holds a set of Decoders each registered to do decoding for a given content type. */
 @Slf4j
-public class Decoders extends MediaTypeableCollection<Decoder> {
+public class Decoders extends MediaTypeCodecs<Decoder> {
   private static final Pattern PARAM_DELIMITER = Pattern.compile(" *; *");
 
   @Builder

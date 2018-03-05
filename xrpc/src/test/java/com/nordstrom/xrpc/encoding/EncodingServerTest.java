@@ -1,4 +1,4 @@
-package com.nordstrom.xrpc;
+package com.nordstrom.xrpc.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class EncodingFunctionalTest {
+class EncodingServerTest {
   static class Person {
     @Getter private String name;
 
@@ -81,7 +81,7 @@ class EncodingFunctionalTest {
                 new Request.Builder()
                     .url(endpoint + "/person")
                     .get()
-                    .header("Accept", "application/json; text/plain")
+                    .header("Accept", "application/json, text/plain")
                     .build())
             .execute();
 
@@ -98,7 +98,7 @@ class EncodingFunctionalTest {
                 new Request.Builder()
                     .url(endpoint + "/person")
                     .get()
-                    .header("Accept", "application/json;q=1; text/plain")
+                    .header("Accept", "application/json;q=1, text/plain")
                     .header("Accept-Charset", "utf-16")
                     .build())
             .execute();

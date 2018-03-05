@@ -22,7 +22,7 @@ import java.nio.charset.Charset;
 import java.util.regex.Pattern;
 
 /** Interface for encoding a response Object into a ByteBuf. */
-public interface Encoder extends MediaTypeable {
+public interface Encoder extends MediaTypeCodec {
   Charset DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
   Pattern CHARSET_DELIMITER = Pattern.compile(" *, *");
 

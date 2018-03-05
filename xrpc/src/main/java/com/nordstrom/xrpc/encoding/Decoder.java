@@ -20,7 +20,7 @@ import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 
 /** Interface for decoding a request ByteBuf into Object. */
-public interface Decoder extends MediaTypeable {
+public interface Decoder extends MediaTypeCodec {
   /**
    * Decode a request body to an object of designated Class type.
    *

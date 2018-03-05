@@ -24,8 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /** Holds a set of Encoder objects each registered to do encoding for a given content type. */
 @Slf4j
-public class Encoders extends MediaTypeableCollection<Encoder> {
-  private static final Pattern CONTENT_TYPE_DELIMITER = Pattern.compile(", *");
+public class Encoders extends MediaTypeCodecs<Encoder> {
+  private static final Pattern CONTENT_TYPE_DELIMITER = Pattern.compile(" *, *");
   private static final Pattern PARAM_DELIMITER = Pattern.compile(" *; *");
 
   @Builder

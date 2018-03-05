@@ -12,14 +12,14 @@ import lombok.experimental.Accessors;
  *
  * <p>Intended for a small set of objects as lookup is O(N).
  *
- * @param <T> MediaTypeable item type
+ * @param <T> MediaTypeCodec item type
  */
 @Accessors(fluent = true)
-class MediaTypeableCollection<T extends MediaTypeable> {
+class MediaTypeCodecs<T extends MediaTypeCodec> {
   @Getter private final T defaultValue;
   private final ImmutableList<T> collection;
 
-  MediaTypeableCollection(CharSequence defaultContentType, ImmutableList<T> collection) {
+  MediaTypeCodecs(CharSequence defaultContentType, ImmutableList<T> collection) {
     this.collection = collection;
     this.defaultValue = get(defaultContentType);
 

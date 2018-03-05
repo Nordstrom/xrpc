@@ -139,6 +139,11 @@ public class XrpcRequest implements ResponseFactory {
     return h2Data.readableBytes();
   }
 
+  /**
+   * Returns the request body decoding it into an Object of the designated Class. Note that any
+   * reads will consume the buffer, so the caller is responsible for copying or resetting the buffer
+   * as needed.
+   */
   public <T> T body(Class<T> clazz) throws IOException {
     Decoder decoder = connectionContext.decoders().decoder(contentTypeHeader());
     return decoder.decode(body(), contentTypeHeader(), clazz);

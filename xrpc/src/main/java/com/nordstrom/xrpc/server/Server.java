@@ -31,7 +31,6 @@ import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import com.nordstrom.xrpc.encoding.JsonDecoder;
 import com.nordstrom.xrpc.encoding.JsonEncoder;
-import com.nordstrom.xrpc.encoding.TextEncoder;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -120,7 +119,9 @@ public class Server implements Routes {
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
                     .encoder(new JsonEncoder(mapper))
-                    .encoder(new TextEncoder())
+                    // TODO (AD): For now we won't support text/plain encoding.
+                    // Leaving this here as a placeholder.
+                    // .encoder(new TextEncoder())
                     // TODO (AD): Add encoders for binary/proto
                     .build())
             .decoders(
