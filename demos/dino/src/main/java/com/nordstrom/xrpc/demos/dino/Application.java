@@ -85,19 +85,19 @@ public class Application {
   private static FullHttpResponse getDino(XrpcRequest request, List<Dino> dinos) {
     try {
       DinoGetRequest getRequest =
-          DinoGetRequest.parseFrom(CodedInputStream.newInstance(request.getData().nioBuffer()));
+          DinoGetRequest.parseFrom(CodedInputStream.newInstance(request.body().nioBuffer()));
       Optional<Dino> dinoOptional =
           dinos.stream().filter(xs -> xs.getName().equals(getRequest.getName())).findFirst();
 
       if (dinoOptional.isPresent()) {
         DinoGetReply getReply = DinoGetReply.newBuilder().setDino(dinoOptional.get()).build();
-        ByteBuf resp = request.getByteBuf();
+        ByteBuf resp = request.byteBuf();
         resp.ensureWritable(CodedOutputStream.computeMessageSizeNoTag(getReply), true);
         getReply.writeTo(new ByteBufOutputStream(resp));
 
         return Recipes.newResponse(
             HttpResponseStatus.OK,
-            request.getByteBuf().writeBytes(resp),
+            request.byteBuf().writeBytes(resp),
             Recipes.ContentType.Application_Octet_Stream);
       }
 
@@ -113,14 +113,13 @@ public class Application {
 
       Optional<DinoSetRequest> setRequest =
           Optional.of(
-              DinoSetRequest.parseFrom(
-                  CodedInputStream.newInstance(request.getData().nioBuffer())));
+              DinoSetRequest.parseFrom(CodedInputStream.newInstance(request.body().nioBuffer())));
       setRequest.ifPresent(req -> dinos.add(req.getDino()));
 
       return Recipes.newResponse(
           HttpResponseStatus.OK,
           request
-              .getByteBuf()
+              .byteBuf()
               .writeBytes(DinoSetReply.newBuilder().setResponseCode("OK").build().toByteArray()),
           Recipes.ContentType.Application_Octet_Stream);
     } catch (IOException e) {

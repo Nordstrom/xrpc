@@ -22,9 +22,15 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.nordstrom.xrpc.XConfig;
+import com.nordstrom.xrpc.encoding.Decoders;
+import com.nordstrom.xrpc.encoding.Encoders;
+import com.nordstrom.xrpc.encoding.JsonDecoder;
+import com.nordstrom.xrpc.encoding.JsonEncoder;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -51,6 +57,8 @@ import org.slf4j.LoggerFactory;
 public class Server implements Routes {
   private final XConfig config;
   private final Tls tls;
+
+  /* Context builder. */
   private final XrpcConnectionContext.Builder contextBuilder;
 
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
@@ -99,11 +107,30 @@ public class Server implements Routes {
     this.tls = new Tls(config.cert(), config.key());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
+    // This adds support for normal constructor binding.
+    // See: https://github.com/FasterXML/jackson-modules-java8/tree/master/parameter-names
+    ObjectMapper mapper =
+        new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
+
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
-            .exceptionHandler(new DefaultExceptionHandler())
-            .mapper(new ObjectMapper());
+            .encoders(
+                Encoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .encoder(new JsonEncoder(mapper))
+                    // TODO (AD): For now we won't support text/plain encoding.
+                    // Leaving this here as a placeholder.
+                    // .encoder(new TextEncoder())
+                    // TODO (AD): Add encoders for binary/proto
+                    .build())
+            .decoders(
+                Decoders.builder()
+                    .defaultContentType(config.defaultContentType())
+                    .decoder(new JsonDecoder(mapper))
+                    .build())
+            .exceptionHandler(new DefaultExceptionHandler());
+
     addResponseCodeMeters(contextBuilder, metricRegistry);
   }
 

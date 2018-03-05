@@ -56,7 +56,7 @@ public class Http2HandlerTest {
   /** Handler for OK_PATH and /bar/{param}. Echoes any request body back. */
   private static final Handler OK_HANDLER =
       request -> {
-        ByteBuf data = request.getData();
+        ByteBuf data = request.body();
         if (data.readableBytes() > 0) {
           return Recipes.newResponse(
               HttpResponseStatus.OK, data, Recipes.ContentType.Application_Octet_Stream);
@@ -307,7 +307,7 @@ public class Http2HandlerTest {
         mockContext, STREAM_ID, Unpooled.wrappedBuffer(new byte[] {3}), 0, false);
 
     // Assert that the request has all the data needed.
-    assertEquals(Unpooled.wrappedBuffer(new byte[] {1, 2, 3}), fakeRequest.getData());
+    assertEquals(Unpooled.wrappedBuffer(new byte[] {1, 2, 3}), fakeRequest.body());
   }
 
   /** Test that end-of-stream data frames execute a handler. */

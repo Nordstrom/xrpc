@@ -72,6 +72,7 @@ public class XConfig {
   private final int consoleReporterPollingRate;
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
+  private final String defaultContentType;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
       PlatformDependent.newConcurrentHashMap();
@@ -120,6 +121,7 @@ public class XConfig {
     hardReqPerSec = config.getDouble("hard_req_per_sec");
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
+    defaultContentType = config.getString("default_content_type");
 
     // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
     // fall back to cert and key configured in plaintext in xrpc.conf.
