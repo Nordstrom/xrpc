@@ -6,6 +6,7 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Headers;
 import lombok.Setter;
@@ -25,6 +26,12 @@ public class Http2CorsHandler {
   private final CorsConfig config;
 
   @Setter private String origin;
+
+  /** Creates a new instance with the specified {@link CorsConfig}. */
+  public Http2CorsHandler() {
+    CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
+    this.config = config;
+  }
 
   /** Creates a new instance with the specified {@link CorsConfig}. */
   public Http2CorsHandler(CorsConfig config) {

@@ -65,6 +65,15 @@ public final class Http2Handler extends Http2EventAdapter {
   /** Helper for Cors requests */
   private final Http2CorsHandler corsHandler;
 
+  Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {
+    this.encoder = encoder;
+    this.maxPayloadBytes = maxPayloadBytes;
+
+    this.corsHandler = new Http2CorsHandler();
+
+    encoder.connection().addListener(this);
+  }
+
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes, Http2CorsHandler corsHandler) {
     this.encoder = encoder;
     this.maxPayloadBytes = maxPayloadBytes;
