@@ -265,7 +265,7 @@ public final class Http2Handler extends Http2EventAdapter {
       return;
     }
 
-    // CORS STUFF
+    // Handle CORS.
     if (corsHandler.isCorsSupportEnabled()) {
       corsHandler.setOrigin(headers);
       Http2Headers preflightHeaders = corsHandler.preflightHeaders();
