@@ -3,14 +3,12 @@ package com.nordstrom.xrpc.testing;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
 
 /** DO NOT USE OUTSIDE OF TESTING. This class is used to help test HTTP. */
 public class UnsafeHttp {
@@ -21,24 +19,6 @@ public class UnsafeHttp {
 
       OkHttpClient okHttpClient =
           new OkHttpClient.Builder()
-              .sslSocketFactory(sslSocketFactory, trustManager)
-              .hostnameVerifier((hostname, session) -> true)
-              .build();
-
-      return okHttpClient;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static OkHttpClient unsafeClientH2() {
-    try {
-      X509TrustManager trustManager = unsafeTrustManager();
-      final SSLSocketFactory sslSocketFactory = unsafeSslSocketFactory(null, trustManager);
-
-      OkHttpClient okHttpClient =
-          new OkHttpClient.Builder()
-              .protocols(Arrays.asList(Protocol.HTTP_1_1, Protocol.HTTP_2))
               .sslSocketFactory(sslSocketFactory, trustManager)
               .hostnameVerifier((hostname, session) -> true)
               .build();
