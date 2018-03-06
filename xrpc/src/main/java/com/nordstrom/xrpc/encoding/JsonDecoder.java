@@ -17,6 +17,9 @@
 package com.nordstrom.xrpc.encoding;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Message;
+import com.google.protobuf.MessageOrBuilder;
+import com.google.protobuf.util.JsonFormat;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -27,14 +30,14 @@ import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
 
 /**
- * An Decoder that decodes a JSON ByteBuf to an object.
+ * Decoder that decodes a JSON ByteBuf to an object.
  *
  * <p>Currently this decoder uses Jackson ObjectMapper to decode, but eventually will use
  * configurable JSON decode provider.
  */
 @AllArgsConstructor
 public class JsonDecoder implements Decoder {
-  /** Content type this decoder supports. */
+  /** Media type this decoder supports. */
   public CharSequence mediaType() {
     return HttpHeaderValues.APPLICATION_JSON;
   }
@@ -48,12 +51,19 @@ public class JsonDecoder implements Decoder {
    * @param clazz target class for decoding
    * @return object of type clazz
    */
+  @SuppressWarnings("unchecked")
   @Override
   public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException {
     try (InputStreamReader reader =
         new InputStreamReader(
             new ByteBufInputStream(body),
             HttpUtil.getCharset(contentType, Charset.forName("UTF-8")))) {
+      if (MessageOrBuilder.class.isAssignableFrom(clazz)) {
+        // Use proto classes to decode
+        Message.Builder builder = invoke(clazz, "newBuilder", new Class<?>[] {}, new Object[] {});
+        JsonFormat.parser().merge(reader, builder);
+        return (T) builder.build();
+      }
       return mapper.readValue(reader, clazz);
     }
   }

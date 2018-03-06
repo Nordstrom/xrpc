@@ -2,6 +2,7 @@ package com.nordstrom.xrpc.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.nordstrom.xrpc.encoding.dino.proto.Dino;
 import com.nordstrom.xrpc.server.Server;
 import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
@@ -33,6 +34,7 @@ class EncodingServerTest {
   private Server server;
   private String endpoint;
   private Person person;
+  private Dino dino;
 
   @BeforeEach
   void beforeEach() throws IOException {
@@ -43,7 +45,16 @@ class EncodingServerTest {
           person = r.body(Person.class);
           return r.response().ok();
         });
-    server.get("/person", r -> r.response().ok(person));
+    server.get("/person", r -> r.ok(person));
+
+    server.post(
+        "/dino",
+        r -> {
+          dino = r.body(Dino.class);
+          return r.response().ok();
+        });
+
+    server.get("/dino", r -> r.ok(dino));
     server.listenAndServe();
     endpoint = server.localEndpoint();
     client = UnsafeHttp.unsafeClient();
@@ -55,7 +66,7 @@ class EncodingServerTest {
   }
 
   @Test
-  void testJsonEncoding() throws IOException {
+  void testJsonDecoding() throws IOException {
     Response response =
         client
             .newCall(
@@ -73,7 +84,44 @@ class EncodingServerTest {
   }
 
   @Test
-  void testJsonDecoding() throws IOException {
+  void testJsonProtoDecoding() throws IOException {
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .url(endpoint + "/dino")
+                    .post(
+                        RequestBody.create(
+                            MediaType.parse("application/json"), "{\"name\":\"bob\"}"))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .build())
+            .execute();
+
+    assertEquals(200, response.code());
+    assertEquals("bob", dino.getName());
+  }
+
+  @Test
+  void testProtoDecoding() throws IOException {
+    Dino data = Dino.newBuilder().setName("bob").build();
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .url(endpoint + "/dino")
+                    .post(
+                        RequestBody.create(
+                            MediaType.parse("application/protobuf"), data.toByteArray()))
+                    .header("Content-Type", "application/protobuf; proto=nordstrom.dino.Dino")
+                    .build())
+            .execute();
+
+    assertEquals(200, response.code());
+    assertEquals("bob", dino.getName());
+  }
+
+  @Test
+  void testJsonEncoding() throws IOException {
     person = new Person("bob");
     Response response =
         client
@@ -90,7 +138,7 @@ class EncodingServerTest {
   }
 
   @Test
-  void testJsonDecodingUtf16() throws IOException {
+  void testJsonEncodingUtf16() throws IOException {
     person = new Person("bob");
     Response response =
         client
@@ -105,5 +153,39 @@ class EncodingServerTest {
 
     assertEquals(200, response.code());
     assertEquals(30, response.body().bytes().length); // double wide for utf 16
+  }
+
+  @Test
+  void testJsonProtoEncoding() throws IOException {
+    dino = Dino.newBuilder().setName("bob").build();
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .url(endpoint + "/dino")
+                    .get()
+                    .header("Accept", "application/json, text/plain")
+                    .build())
+            .execute();
+
+    assertEquals(200, response.code());
+    assertEquals("{\"name\":\"bob\"}", response.body().string());
+  }
+
+  @Test
+  void testProtoEncoding() throws IOException {
+    dino = Dino.newBuilder().setName("bob").build();
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .url(endpoint + "/dino")
+                    .get()
+                    .header("Accept", "application/protobuf, text/plain")
+                    .build())
+            .execute();
+
+    assertEquals(200, response.code());
+    assertEquals("bob", Dino.parseFrom(response.body().bytes()).getName());
   }
 }

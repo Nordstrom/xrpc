@@ -26,11 +26,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.util.JsonFormat;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import com.nordstrom.xrpc.encoding.JsonDecoder;
 import com.nordstrom.xrpc.encoding.JsonEncoder;
+import com.nordstrom.xrpc.encoding.ProtoDecoder;
+import com.nordstrom.xrpc.encoding.ProtoEncoder;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
@@ -112,22 +115,26 @@ public class Server implements Routes {
     ObjectMapper mapper =
         new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
 
+    // Json encoder for Proto
+    JsonFormat.Printer printer = JsonFormat.printer().omittingInsignificantWhitespace();
+
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .encoder(new JsonEncoder(mapper))
+                    .encoder(new JsonEncoder(mapper, printer))
                     // TODO (AD): For now we won't support text/plain encoding.
                     // Leaving this here as a placeholder.
                     // .encoder(new TextEncoder())
-                    // TODO (AD): Add encoders for binary/proto
+                    .encoder(new ProtoEncoder())
                     .build())
             .decoders(
                 Decoders.builder()
                     .defaultContentType(config.defaultContentType())
                     .decoder(new JsonDecoder(mapper))
+                    .decoder(new ProtoDecoder())
                     .build())
             .exceptionHandler(new DefaultExceptionHandler());
 
