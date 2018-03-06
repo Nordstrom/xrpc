@@ -51,15 +51,12 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       ChannelPipeline cp = ctx.pipeline();
-      cp.addLast("cors", new CorsHandler(corsConfig));
       cp.addLast(
           "codec",
           new Http2HandlerBuilder()
               .maxPayloadBytes(maxPayloadBytes)
               .corsHandler(new Http2CorsHandler(corsConfig))
               .build());
-
-      // TODO: need to add corshandler to this pipeline as well.
       return;
     }
 

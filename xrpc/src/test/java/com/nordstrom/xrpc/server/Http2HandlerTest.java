@@ -30,19 +30,23 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.server.http.Recipes;
+import com.typesafe.config.ConfigFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Headers;
 import java.util.Optional;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
@@ -153,6 +157,67 @@ public class Http2HandlerTest {
         1L,
         xrpcContext.metersByStatusCode().get(status).getCount(),
         "meter " + status.codeAsText() + " should have been marked");
+  }
+
+  /** Helper for testing CORS requests */
+  public CorsConfig corsConfig() {
+    val config = ConfigFactory.load("test.conf").getConfig("xrpc");
+    XConfig xConfig = new XConfig(config);
+    return xConfig.corsConfig();
+  }
+  /** Matcher for preflight headers */
+  ArgumentMatcher<Http2Headers> matchesPreflightHeaders(CorsConfig corsConfig) {
+    return new ArgumentMatcher<Http2Headers>() {
+      @Override
+      public boolean matches(Http2Headers headers) {
+        return HttpResponseStatus.OK.codeAsText().equals(headers.status())
+            && corsConfig
+                .allowedRequestMethods()
+                .toString()
+                .equals(headers.get("access-control-allow-methods"));
+      }
+
+      @Override
+      public String toString() {
+        return String.format(
+            "Http2Headers[:access-control-allow-methods: %s, :status: %s]",
+            corsConfig.allowedRequestMethods().toString(), HttpResponseStatus.OK.codeAsText());
+      }
+    };
+  }
+
+  /** Matcher for access control headers */
+  ArgumentMatcher<Http2Headers> matchesAllowOriginsHeaders(CorsConfig corsConfig) {
+    return new ArgumentMatcher<Http2Headers>() {
+      @Override
+      public boolean matches(Http2Headers headers) {
+        return HttpResponseStatus.OK.codeAsText().equals(headers.status())
+            && corsConfig.origin().equals(headers.get("access-control-allow-origin"));
+      }
+
+      @Override
+      public String toString() {
+        return String.format(
+            "Http2Headers[:access-control-allow-origin: %s, :status: %s]",
+            "test.domain", HttpResponseStatus.OK.codeAsText());
+      }
+    };
+  }
+
+  /** Matcher for forbidden */
+  ArgumentMatcher<Http2Headers> matchesForbiddenHeaders() {
+    return new ArgumentMatcher<Http2Headers>() {
+      @Override
+      public boolean matches(Http2Headers headers) {
+        return HttpResponseStatus.FORBIDDEN.codeAsText().equals(headers.status());
+      }
+
+      @Override
+      public String toString() {
+        return String.format(
+            "Http2Headers[:status: %s]", HttpResponseStatus.FORBIDDEN.codeAsText());
+      }
+    };
   }
 
   @Test
@@ -351,5 +416,63 @@ public class Http2HandlerTest {
         HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
         Optional.of(Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE)),
         STREAM_ID);
+  }
+
+  /** Test that OPTIONS request short circuit to preflight response. */
+  @Test
+  public void testOnHeadersRead_preflightOptionsRequest() {
+    CorsConfig corsConfig = corsConfig();
+    Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
+
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, corsHandler);
+
+    headers
+        .method("OPTIONS")
+        .add("origin", "test.domain")
+        .add("access-control-request-method", "GET")
+        .path(OK_PATH);
+
+    testHandler.onHeadersRead(mockContext, STREAM_ID, headers, 1, false);
+    assertEquals(1L, requestMeter.getCount());
+    verify(mockEncoder, times(1))
+        .writeHeaders(
+            eq(mockContext),
+            eq(STREAM_ID),
+            argThat(matchesAllowOriginsHeaders(corsConfig)),
+            anyInt(),
+            eq(true),
+            any());
+    verify(mockEncoder, times(1))
+        .writeHeaders(
+            eq(mockContext),
+            eq(STREAM_ID),
+            argThat(matchesPreflightHeaders(corsConfig)),
+            anyInt(),
+            eq(true),
+            any());
+    verify(mockEncoder, never()).writeData(any(), anyInt(), any(), anyInt(), anyBoolean(), any());
+  }
+
+  /** Test that OPTIONS request short circuit to preflight response. */
+  @Test
+  public void testOnHeadersRead_corsShortCircuit() {
+    CorsConfig corsConfig = corsConfig();
+    Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
+
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, corsHandler);
+
+    headers.method("GET").add("origin", "illegal.domain").path(OK_PATH);
+
+    testHandler.onHeadersRead(mockContext, STREAM_ID, headers, 1, false);
+    assertEquals(1L, requestMeter.getCount());
+    verify(mockEncoder, times(1))
+        .writeHeaders(
+            eq(mockContext),
+            eq(STREAM_ID),
+            argThat(matchesForbiddenHeaders()),
+            anyInt(),
+            eq(true),
+            any());
+    verify(mockEncoder, never()).writeData(any(), anyInt(), any(), anyInt(), anyBoolean(), any());
   }
 }

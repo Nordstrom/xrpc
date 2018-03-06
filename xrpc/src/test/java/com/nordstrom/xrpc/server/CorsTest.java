@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 class CorsTest {
 
   private OkHttpClient client;
+  private OkHttpClient clientH2;
   private Config config;
   private Server server;
   private String endpoint;
@@ -37,6 +38,7 @@ class CorsTest {
             .getConfig("xrpc")
             .withValue("run_background_health_checks", fromAnyRef(false));
     client = UnsafeHttp.unsafeClient();
+    clientH2 = UnsafeHttp.unsafeClientH2();
   }
 
   @AfterEach
@@ -62,6 +64,23 @@ class CorsTest {
   }
 
   @Test
+  void testCorsEnabledWithShortCircuit_H2() throws IOException {
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.short_circuit", fromAnyRef(true));
+    init();
+    start();
+
+    Request request =
+        new Request.Builder()
+            .url(endpoint + "/people")
+            .method("OPTIONS", null)
+            .addHeader("Origin", "foo.bar")
+            .build();
+    Response response = clientH2.newCall(request).execute();
+    assertEquals(403, response.code());
+  }
+
+  @Test
   void testCorsEnabledPreFlight() throws IOException {
     addConfigValue("cors.enable", fromAnyRef(true));
     addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
@@ -75,6 +94,26 @@ class CorsTest {
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
             .build();
+    Response response = client.newCall(request).execute();
+    assertEquals(200, response.code());
+    assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));
+  }
+
+  @Test
+  void testCorsEnabledPreFlightHttp2() throws IOException {
+    addConfigValue("cors.enable", fromAnyRef(true));
+    addConfigValue("cors.allowed_origins", fromIterable(ImmutableList.of("foo.bar")));
+    init();
+    start();
+
+    Request request =
+        new Request.Builder()
+            .url(endpoint + "/people")
+            .method("OPTIONS", null)
+            .addHeader("Origin", "foo.bar")
+            .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+            .build();
+
     Response response = client.newCall(request).execute();
     assertEquals(200, response.code());
     assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));

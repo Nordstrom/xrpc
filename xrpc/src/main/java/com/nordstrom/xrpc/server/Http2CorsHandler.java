@@ -27,7 +27,6 @@ public class Http2CorsHandler {
 
   @Setter private String origin;
 
-  /** Creates a new instance with the specified {@link CorsConfig}. */
   public Http2CorsHandler() {
     CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
     this.config = config;
