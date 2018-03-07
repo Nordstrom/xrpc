@@ -18,7 +18,7 @@ package com.nordstrom.xrpc.encoding;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Message;
-import com.google.protobuf.MessageOrBuilder;
+import com.google.protobuf.MessageLite;
 import com.google.protobuf.util.JsonFormat;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
@@ -37,12 +37,12 @@ import lombok.AllArgsConstructor;
  */
 @AllArgsConstructor
 public class JsonDecoder implements Decoder {
+  private final ObjectMapper mapper;
+
   /** Media type this decoder supports. */
   public CharSequence mediaType() {
     return HttpHeaderValues.APPLICATION_JSON;
   }
-
-  private final ObjectMapper mapper;
 
   /**
    * Decode a ByteBuf body from JSON format to an object of designated Class type.
@@ -58,9 +58,10 @@ public class JsonDecoder implements Decoder {
         new InputStreamReader(
             new ByteBufInputStream(body),
             HttpUtil.getCharset(contentType, Charset.forName("UTF-8")))) {
-      if (MessageOrBuilder.class.isAssignableFrom(clazz)) {
+      if (MessageLite.class.isAssignableFrom(clazz)) {
         // Use proto classes to decode
-        Message.Builder builder = invoke(clazz, "newBuilder", new Class<?>[] {}, new Object[] {});
+        MessageLite message = protoDefaultInstance(clazz);
+        Message.Builder builder = (Message.Builder) message.toBuilder();
         JsonFormat.parser().merge(reader, builder);
         return (T) builder.build();
       }

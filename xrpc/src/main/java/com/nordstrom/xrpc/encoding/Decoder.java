@@ -16,13 +16,18 @@
 
 package com.nordstrom.xrpc.encoding;
 
+import com.google.protobuf.MessageLite;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Interface for decoding a request ByteBuf into Object. */
 public interface Decoder extends MediaTypeCodec {
+  /** Cached protobuf MessageLite instances keyed by Class. */
+  ConcurrentHashMap<Class<?>, MessageLite> protoDefaultInstances = new ConcurrentHashMap<>();
+
   /**
    * Decode a request body to an object of designated Class type.
    *
@@ -34,33 +39,25 @@ public interface Decoder extends MediaTypeCodec {
   <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException;
 
   /**
-   * Invoke a static method on the target class for decoding. This is used as an intermediate step
-   * for decoding.
+   * Get a protobuf Message instance based on Class. This lazily caches instances as it reflectively
+   * gets them.
    *
-   * @param clazz target Class
-   * @param methodName name of method to invoke
-   * @param types array of method argument types
-   * @param args array of arguments to pass into the method
-   * @param <InT> target Class type
-   * @param <OutT> return type of invoked method
-   * @return result of method invocation
+   * @param clazz proto generated class for which we get the default instance
+   * @return default instance of the given Class
    */
-  @SuppressWarnings("unchecked")
-  default <InT, OutT> OutT invoke(
-      Class<InT> clazz, String methodName, Class<?>[] types, Object[] args) {
-    try {
-      // TODO (AD): add method memoization
-      Method method = clazz.getMethod(methodName, types);
-      // TODO (AD): for now we suppress unchecked cast warning.  should fix this.
-      return (OutT) method.invoke(null, args);
-    } catch (NoSuchMethodException | IllegalAccessException e) {
-      throw new IllegalArgumentException(
-          String.format("%s is not a valid Proto class: %s", clazz.getName(), e.getMessage()));
-    } catch (InvocationTargetException te) {
-      throw new RuntimeException(
-          String.format(
-              "Error decoding into %s: %s", clazz.getName(), te.getTargetException().getMessage()),
-          te.getTargetException());
+  default MessageLite protoDefaultInstance(Class<?> clazz) {
+    MessageLite message = protoDefaultInstances.get(clazz);
+    if (message != null) {
+      return message;
     }
+    try {
+      Method method = clazz.getMethod("getDefaultInstance");
+      message = (MessageLite) method.invoke(null);
+    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalArgumentException(
+          String.format("%s is not a valid Class: %s", clazz.getName(), e.getMessage()));
+    }
+    protoDefaultInstances.put(clazz, message);
+    return message;
   }
 }

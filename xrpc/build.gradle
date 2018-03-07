@@ -47,6 +47,7 @@ tasks.withType(JavaCompile) {
     // the compiler so that the definition works).
     options.compilerArgs += [
         '-XDignore.symbol.file',
+        // TODO (AD): add back cast and remove only for generated proto
         '-Xlint:auxiliaryclass,classfile,deprecation,dep-ann,divzero,empty,fallthrough,' +
             'finally,options,overloads,overrides,path,rawtypes,static,try,unchecked,varargs',
         '-parameters',

@@ -16,11 +16,13 @@
 
 package com.nordstrom.xrpc.encoding;
 
+import com.google.common.base.Preconditions;
+import com.google.protobuf.MessageLite;
+import com.google.protobuf.Parser;
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -44,11 +46,19 @@ public class ProtoDecoder implements Decoder {
    * @return object of type clazz
    */
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException {
     // TODO (AD): given a Content-Type of application/protobuf; proto=org.some.Message,
     // we currently ignore the 2nd part, but should at least validate it in the future.
+
+    Preconditions.checkArgument(
+        MessageLite.class.isAssignableFrom(clazz),
+        String.format("%s does not extend from MessageLite", clazz.getName()));
+
+    MessageLite message = protoDefaultInstance(clazz);
+    Parser<?> parser = message.getParserForType();
     try (ByteBufInputStream stream = new ByteBufInputStream(body)) {
-      return invoke(clazz, "parseFrom", new Class<?>[] {InputStream.class}, new Object[] {stream});
+      return (T) parser.parseFrom(stream);
     }
   }
 }
