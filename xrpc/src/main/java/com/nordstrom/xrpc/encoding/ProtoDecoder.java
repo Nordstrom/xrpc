@@ -16,7 +16,6 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 import com.nordstrom.xrpc.XrpcConstants;
@@ -51,9 +50,10 @@ public class ProtoDecoder implements Decoder {
     // TODO (AD): given a Content-Type of application/protobuf; proto=org.some.Message,
     // we currently ignore the 2nd part, but should at least validate it in the future.
 
-    Preconditions.checkArgument(
-        MessageLite.class.isAssignableFrom(clazz),
-        String.format("%s does not extend from MessageLite", clazz.getName()));
+    if (!MessageLite.class.isAssignableFrom(clazz)) {
+      throw new IllegalArgumentException(
+          String.format("%s does not extend from MessageLite", clazz.getName()));
+    }
 
     MessageLite message = protoDefaultInstance(clazz);
     Parser<?> parser = message.getParserForType();

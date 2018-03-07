@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Interface for decoding a request ByteBuf into Object. */
 public interface Decoder extends MediaTypeCodec {
   /** Cached protobuf MessageLite instances keyed by Class. */
+  // TODO (AD): this is not optimal design -- mutable shared state.
+  // Consider design that makes this immutable.
   ConcurrentHashMap<Class<?>, MessageLite> protoDefaultInstances = new ConcurrentHashMap<>();
 
   /**

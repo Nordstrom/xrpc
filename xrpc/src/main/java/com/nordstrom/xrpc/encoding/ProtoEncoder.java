@@ -47,7 +47,8 @@ public class ProtoEncoder implements Encoder {
   @Override
   public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     if (!(object instanceof MessageLite)) {
-      throw new IllegalArgumentException("object must be instance of MessageLite");
+      throw new IllegalArgumentException(
+          String.format("%s does not extend from MessageLite", object.getClass().getName()));
     }
     MessageLite msg = (MessageLite) object;
     try (ByteBufOutputStream stream = new ByteBufOutputStream(buf)) {
