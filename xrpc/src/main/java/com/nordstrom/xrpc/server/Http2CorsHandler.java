@@ -9,7 +9,6 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Headers;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -25,7 +24,7 @@ public class Http2CorsHandler {
   private static final String NULL_ORIGIN = "null";
   private final CorsConfig config;
 
-  @Setter private String origin;
+  private String origin;
 
   public Http2CorsHandler() {
     CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
@@ -37,15 +36,11 @@ public class Http2CorsHandler {
     this.config = checkNotNull(config, "config");
   }
 
-  protected void setOrigin(Http2Headers headers) {
-    this.origin = headers.get("origin").toString();
-  }
-
   protected boolean isCorsSupportEnabled() {
     return config.isCorsSupportEnabled();
   }
 
-  protected static boolean isPreflightRequest(final Http2Headers headers) {
+  protected boolean isPreflightRequest(final Http2Headers headers) {
     return headers.method().toString().equals(OPTIONS.name())
         && headers.contains(HttpHeaderNames.ORIGIN)
         && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
@@ -91,6 +86,10 @@ public class Http2CorsHandler {
 
   private static void setNullOrigin(final Http2Headers headers) {
     setOrigin(headers, NULL_ORIGIN);
+  }
+
+  protected void setOrigin(Http2Headers headers) {
+    this.origin = headers.get("origin").toString();
   }
 
   private static void setOrigin(final Http2Headers headers, final String origin) {

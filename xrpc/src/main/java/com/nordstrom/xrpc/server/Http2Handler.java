@@ -62,7 +62,7 @@ public final class Http2Handler extends Http2EventAdapter {
   /** The maximum total data payload to accept. */
   private final int maxPayloadBytes;
 
-  /** Helper for Cors requests */
+  /** Helper for a CORS request. */
   private final Http2CorsHandler corsHandler;
 
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {

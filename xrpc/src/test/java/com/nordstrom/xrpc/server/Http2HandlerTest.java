@@ -159,13 +159,14 @@ public class Http2HandlerTest {
         "meter " + status.codeAsText() + " should have been marked");
   }
 
-  /** Helper for testing CORS requests */
+  /** Helper for testing CORS requests. */
   public CorsConfig corsConfig() {
     val config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    XConfig xConfig = new XConfig(config);
-    return xConfig.corsConfig();
+    XConfig xconfig = new XConfig(config);
+    return xconfig.corsConfig();
   }
-  /** Matcher for preflight headers */
+
+  /** Matcher for preflight headers. */
   ArgumentMatcher<Http2Headers> matchesPreflightHeaders(CorsConfig corsConfig) {
     return new ArgumentMatcher<Http2Headers>() {
       @Override
@@ -186,7 +187,7 @@ public class Http2HandlerTest {
     };
   }
 
-  /** Matcher for access control headers */
+  /** Matcher for access control headers. */
   ArgumentMatcher<Http2Headers> matchesAllowOriginsHeaders(CorsConfig corsConfig) {
     return new ArgumentMatcher<Http2Headers>() {
       @Override
@@ -204,7 +205,7 @@ public class Http2HandlerTest {
     };
   }
 
-  /** Matcher for forbidden */
+  /** Matcher for forbidden response headers. */
   ArgumentMatcher<Http2Headers> matchesForbiddenHeaders() {
     return new ArgumentMatcher<Http2Headers>() {
       @Override
