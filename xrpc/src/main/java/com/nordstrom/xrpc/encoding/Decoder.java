@@ -47,7 +47,7 @@ public interface Decoder extends MediaTypeCodec {
    * @param clazz proto generated class for which we get the default instance
    * @return default instance of the given Class
    */
-  default MessageLite protoDefaultInstance(Class<?> clazz) {
+  static MessageLite protoDefaultInstance(Class<?> clazz) {
     MessageLite message = protoDefaultInstances.get(clazz);
     if (message != null) {
       return message;
