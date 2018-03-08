@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.server.http.Recipes;
@@ -45,6 +46,7 @@ import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Headers;
+import java.util.Map;
 import java.util.Optional;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,24 +125,45 @@ public class Http2HandlerTest {
   }
 
   /** Helper which verifies that the given response data was written to the mock encoder. */
-  void verifyResponse(HttpResponseStatus status, Optional<ByteBuf> responseBody, int streamId) {
-    ArgumentMatcher<Http2Headers> matchesStatus =
+  void verifyResponse(
+      HttpResponseStatus status,
+      Map<String, String> expectedHeaders,
+      Optional<ByteBuf> responseBody,
+      int streamId) {
+    ArgumentMatcher<Http2Headers> matchesHeaders =
         new ArgumentMatcher<Http2Headers>() {
           @Override
           public boolean matches(Http2Headers headers) {
-            return status.codeAsText().equals(headers.status());
+            if (!status.codeAsText().equals(headers.status())) {
+              return false;
+            }
+            for (Map.Entry<String, String> entry : expectedHeaders.entrySet()) {
+              String expected = entry.getValue();
+              CharSequence actualSequence = headers.get(entry.getKey());
+              String actual = actualSequence != null ? actualSequence.toString() : null;
+              if (expected != actual && !(expected == null || expected.equals(actual))) {
+                return false;
+              }
+            }
+            return true;
           }
 
           @Override
           public String toString() {
-            return String.format("Http2Headers[:status: %s]", status.codeAsText());
+            StringBuilder message = new StringBuilder("Http2Headers[:status: ");
+            message.append(status.codeAsText());
+            for (Map.Entry<String, String> entry : expectedHeaders.entrySet()) {
+              message.append(", ").append(entry.getKey()).append(": ").append(entry.getValue());
+            }
+            message.append("]");
+            return message.toString();
           }
         };
     if (responseBody.isPresent()) {
       // Both headers and data should've been sent.
       verify(mockEncoder, times(1))
           .writeHeaders(
-              eq(mockContext), eq(streamId), argThat(matchesStatus), anyInt(), eq(false), any());
+              eq(mockContext), eq(streamId), argThat(matchesHeaders), anyInt(), eq(false), any());
       verify(mockEncoder, times(1))
           .writeData(
               eq(mockContext), eq(streamId), eq(responseBody.get()), anyInt(), eq(true), any());
@@ -148,7 +171,7 @@ public class Http2HandlerTest {
       // Only headers should've been sent.
       verify(mockEncoder, times(1))
           .writeHeaders(
-              eq(mockContext), eq(streamId), argThat(matchesStatus), anyInt(), eq(true), any());
+              eq(mockContext), eq(streamId), argThat(matchesHeaders), anyInt(), eq(true), any());
       verify(mockEncoder, never()).writeData(any(), anyInt(), any(), anyInt(), anyBoolean(), any());
     }
 
@@ -200,6 +223,7 @@ public class Http2HandlerTest {
     // Verify a TOO_MANY_REQUESTS response.
     verifyResponse(
         HttpResponseStatus.TOO_MANY_REQUESTS,
+        ImmutableMap.of(),
         Optional.of(Unpooled.wrappedBuffer(XrpcConstants.RATE_LIMIT_RESPONSE)),
         STREAM_ID);
   }
@@ -216,7 +240,7 @@ public class Http2HandlerTest {
 
     assertEquals(1L, requestMeter.getCount());
     // Verify an OK response.
-    verifyResponse(HttpResponseStatus.OK, Optional.empty(), STREAM_ID);
+    verifyResponse(HttpResponseStatus.OK, ImmutableMap.of(), Optional.empty(), STREAM_ID);
   }
 
   /** Test that headers with data expected is handled appropriately. */
@@ -254,6 +278,7 @@ public class Http2HandlerTest {
     assertEquals(1L, requestMeter.getCount());
     verifyResponse(
         HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+        ImmutableMap.of(),
         Optional.of(Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE)),
         STREAM_ID);
   }
@@ -269,7 +294,7 @@ public class Http2HandlerTest {
 
     // Expect an OK response.
     assertEquals(1L, requestMeter.getCount());
-    verifyResponse(HttpResponseStatus.OK, Optional.empty(), STREAM_ID);
+    verifyResponse(HttpResponseStatus.OK, ImmutableMap.of(), Optional.empty(), STREAM_ID);
   }
 
   /** Test that trailer-part headers are handled correctly. */
@@ -288,7 +313,7 @@ public class Http2HandlerTest {
 
     // Expect an OK response, but DON'T expect a request count.
     assertEquals(0L, requestMeter.getCount());
-    verifyResponse(HttpResponseStatus.OK, Optional.empty(), STREAM_ID);
+    verifyResponse(HttpResponseStatus.OK, ImmutableMap.of(), Optional.empty(), STREAM_ID);
     // Assert that the request's headers were updated.
     assertEquals("some-value", fakeRequest.h2Headers().get("some-header"));
   }
@@ -331,7 +356,10 @@ public class Http2HandlerTest {
     // Verify an OK response.
     assertEquals(0L, requestMeter.getCount());
     verifyResponse(
-        HttpResponseStatus.OK, Optional.of(Unpooled.wrappedBuffer(new byte[] {0x20})), STREAM_ID);
+        HttpResponseStatus.OK,
+        ImmutableMap.of(),
+        Optional.of(Unpooled.wrappedBuffer(new byte[] {0x20})),
+        STREAM_ID);
   }
 
   /** Test that getting too much data will return a REQUEST_ENTITY_TOO_LARGE response. */
@@ -353,6 +381,7 @@ public class Http2HandlerTest {
     assertEquals(0L, requestMeter.getCount());
     verifyResponse(
         HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+        ImmutableMap.of(),
         Optional.of(Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE)),
         STREAM_ID);
   }
@@ -362,58 +391,6 @@ public class Http2HandlerTest {
     val config = ConfigFactory.load("test.conf").getConfig("xrpc");
     XConfig xconfig = new XConfig(config);
     return xconfig.corsConfig();
-  }
-
-  /** Matcher for preflight headers. */
-  ArgumentMatcher<Http2Headers> matchesPreflightHeadersGetRequest(CorsConfig corsConfig) {
-    return new ArgumentMatcher<Http2Headers>() {
-      @Override
-      public boolean matches(Http2Headers headers) {
-        return HttpResponseStatus.OK.codeAsText().equals(headers.status())
-            && "GET".equals(headers.get("access-control-allow-methods"));
-      }
-
-      @Override
-      public String toString() {
-        return String.format(
-            "Http2Headers[:status: %s, :access-control-allow-methods: %s]",
-            HttpResponseStatus.OK.codeAsText(), corsConfig.allowedRequestMethods().toString());
-      }
-    };
-  }
-
-  /** Matcher for access control headers. */
-  ArgumentMatcher<Http2Headers> matchesAllowOriginsHeaders(CorsConfig corsConfig) {
-    return new ArgumentMatcher<Http2Headers>() {
-      @Override
-      public boolean matches(Http2Headers headers) {
-        return HttpResponseStatus.OK.codeAsText().equals(headers.status())
-            && corsConfig.origin().equals(headers.get("access-control-allow-origin"));
-      }
-
-      @Override
-      public String toString() {
-        return String.format(
-            "Http2Headers[:access-control-allow-origin: %s, :status: %s]",
-            "test.domain", HttpResponseStatus.OK.codeAsText());
-      }
-    };
-  }
-
-  /** Matcher for forbidden response headers. */
-  ArgumentMatcher<Http2Headers> matchesForbiddenHeaders() {
-    return new ArgumentMatcher<Http2Headers>() {
-      @Override
-      public boolean matches(Http2Headers headers) {
-        return HttpResponseStatus.FORBIDDEN.codeAsText().equals(headers.status());
-      }
-
-      @Override
-      public String toString() {
-        return String.format(
-            "Http2Headers[:status: %s]", HttpResponseStatus.FORBIDDEN.codeAsText());
-      }
-    };
   }
 
   /** Test that OPTIONS request short circuit to preflight response. */
@@ -432,22 +409,16 @@ public class Http2HandlerTest {
 
     testHandler.onHeadersRead(mockContext, STREAM_ID, headers, 1, true);
     assertEquals(1L, requestMeter.getCount());
-    verify(mockEncoder, times(1))
-        .writeHeaders(
-            eq(mockContext),
-            eq(STREAM_ID),
-            argThat(matchesAllowOriginsHeaders(corsConfig)),
-            anyInt(),
-            eq(true),
-            any());
-    verify(mockEncoder, times(1))
-        .writeHeaders(
-            eq(mockContext),
-            eq(STREAM_ID),
-            argThat(matchesPreflightHeadersGetRequest(corsConfig)),
-            anyInt(),
-            eq(true),
-            any());
+
+    verifyResponse(
+        HttpResponseStatus.OK,
+        ImmutableMap.of(
+            "access-control-allow-methods",
+            "GET",
+            "access-control-allow-origin",
+            corsConfig.origin()),
+        Optional.empty(),
+        STREAM_ID);
   }
 
   /** Test that OPTIONS request short circuit to preflight response. */
@@ -462,13 +433,7 @@ public class Http2HandlerTest {
 
     testHandler.onHeadersRead(mockContext, STREAM_ID, headers, 1, true);
     assertEquals(1L, requestMeter.getCount());
-    verify(mockEncoder, times(1))
-        .writeHeaders(
-            eq(mockContext),
-            eq(STREAM_ID),
-            argThat(matchesForbiddenHeaders()),
-            anyInt(),
-            eq(true),
-            any());
+
+    verifyResponse(HttpResponseStatus.FORBIDDEN, ImmutableMap.of(), Optional.empty(), STREAM_ID);
   }
 }

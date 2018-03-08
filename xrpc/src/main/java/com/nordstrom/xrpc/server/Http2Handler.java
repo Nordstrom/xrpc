@@ -168,6 +168,13 @@ public final class Http2Handler extends Http2EventAdapter {
     }
 
     if (endOfStream) {
+
+      Optional<HttpResponse> corsResponse = corsHandler.inbound(request.h2Headers(), streamId);
+      if (corsResponse.isPresent()) {
+        writeResponse(ctx, streamId, corsResponse.get());
+        return processed;
+      }
+
       Handler handler = handlers.get(streamId);
       try {
         HttpResponse response = handler.handle(request);
