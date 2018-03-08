@@ -365,7 +365,7 @@ public class Http2HandlerTest {
   }
 
   /** Matcher for preflight headers. */
-  ArgumentMatcher<Http2Headers> matchesPreflightHeaders_GET(CorsConfig corsConfig) {
+  ArgumentMatcher<Http2Headers> matchesPreflightHeadersGetRequest(CorsConfig corsConfig) {
     return new ArgumentMatcher<Http2Headers>() {
       @Override
       public boolean matches(Http2Headers headers) {
@@ -376,10 +376,8 @@ public class Http2HandlerTest {
       @Override
       public String toString() {
         return String.format(
-            "Http2Headers[:status: %s, :access-control-allow-methods: %s, :access-control-max-age: %s ]",
-            HttpResponseStatus.OK.codeAsText(),
-            corsConfig.allowedRequestMethods().toString(),
-            corsConfig.maxAge());
+            "Http2Headers[:status: %s, :access-control-allow-methods: %s]",
+            HttpResponseStatus.OK.codeAsText(), corsConfig.allowedRequestMethods().toString());
       }
     };
   }
@@ -446,7 +444,7 @@ public class Http2HandlerTest {
         .writeHeaders(
             eq(mockContext),
             eq(STREAM_ID),
-            argThat(matchesPreflightHeaders_GET(corsConfig)),
+            argThat(matchesPreflightHeadersGetRequest(corsConfig)),
             anyInt(),
             eq(false),
             any());
