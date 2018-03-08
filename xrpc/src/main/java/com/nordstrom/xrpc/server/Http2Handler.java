@@ -31,6 +31,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2EventAdapter;
@@ -66,7 +67,10 @@ public final class Http2Handler extends Http2EventAdapter {
   private final Http2CorsHandler corsHandler;
 
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {
-    this(encoder, maxPayloadBytes, new Http2CorsHandler());
+    this(
+        encoder,
+        maxPayloadBytes,
+        new Http2CorsHandler(CorsConfigBuilder.forAnyOrigin().disable().build()));
   }
 
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes, Http2CorsHandler corsHandler) {
@@ -111,7 +115,7 @@ public final class Http2Handler extends Http2EventAdapter {
     // Convert and validate headers.
     Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1Response, true);
 
-    corsHandler.setOutBoundHeaders(headers);
+    corsHandler.outbound(headers);
 
     Optional<ByteBuf> body = Optional.empty();
     if (h1Response instanceof FullHttpResponse) {
@@ -252,7 +256,7 @@ public final class Http2Handler extends Http2EventAdapter {
     // the context.
     if (endOfStream) {
       // Handle CORS..
-      if (corsHandler.handleHeaders(headers, ctx, streamId, this::writeResponse)) {
+      if (corsHandler.inbound(ctx, streamId, headers, this::writeResponse)) {
         return;
       }
 

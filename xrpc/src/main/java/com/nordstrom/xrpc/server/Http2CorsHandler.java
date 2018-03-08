@@ -9,54 +9,69 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.cors.CorsConfig;
-import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Headers;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * A helper class to handle a <a href="http://www.w3.org/TR/cors/">Cross Origin Resource Sharing</a>
- * (CORS) HTTP2 request. Ported from {@link io.netty.handler.codec.http.cors.CorsHandler}.
+ * Initializes CORS support for this HTTP2 request.
  *
- * <p>This handler can be configured using a {@link CorsConfig}, please refer to this class for
+ * <ul>
+ *   <li>Request headers are processed by the inbound method, which responds to forbidden origins or
+ *       pre-flight requests.
+ *   <li>Response headers for cors requests are written with the outbound method.
+ *   <li>When reading inbound headers, the inbound method saves the request origin for use in
+ *       outbound headers.
+ * </ul>
+ *
+ * Adapted from from {@link io.netty.handler.codec.http.cors.CorsHandler}.
+ *
+ * <p>This handler can be configured using a {@link CorsConfig}, please refer to that class for
  * details about the configuration options available.
  */
 @Slf4j
 public class Http2CorsHandler {
   private static final String ANY_ORIGIN = "*";
   private static final String NULL_ORIGIN = "null";
-
   private final CorsConfig config;
 
-  private String origin;
-  private HttpMethod method;
-  private boolean isPreflight;
-
-  public Http2CorsHandler() {
-    CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
-    this.config = config;
-  }
+  private String requestOrigin;
 
   /** Creates a new instance with the specified {@link CorsConfig}. */
   public Http2CorsHandler(CorsConfig config) {
     this.config = checkNotNull(config, "config");
   }
 
-  public boolean handleHeaders(
-      Http2Headers headers,
+  /**
+   * Processes inbound HTTP2 CORS requests.
+   *
+   * <ul>
+   *   <li>if shortCircuit is set to true, will write a forbidden response
+   *   <li>will respond to pre-flight requests
+   *   <li>stores request origin for use in outbound headers
+   * </ul>
+   *
+   * @param headers for the inbound request
+   * @param responseWriter used to respond to forbidden origins or pre-flight requests
+   * @return false if the pipeline should continue handling the request.
+   */
+  public boolean inbound(
       ChannelHandlerContext ctx,
       int streamId,
+      Http2Headers headers,
       Http2ResponseWriter responseWriter) {
-    if (!isCorsSupportEnabled()) {
+    if (!config.isCorsSupportEnabled()) {
       return false;
     }
 
-    setIsPreflight(headers);
-    setRequestOrigin(headers);
-    setRequestMethod(headers);
+    boolean isPreflight = isPreflight(headers);
 
-    Http2Headers responseHeaders = preflightHeaders();
+    this.requestOrigin = headers.get(HttpHeaderNames.ORIGIN).toString();
+
+    HttpMethod requestMethod = requestMethod(headers, isPreflight);
+
+    Http2Headers responseHeaders = preflightHeaders(requestMethod);
     HttpResponseStatus status =
         isShortCircuit() && !validateOrigin()
             ? HttpResponseStatus.FORBIDDEN
@@ -71,47 +86,36 @@ public class Http2CorsHandler {
     return true;
   }
 
-  private boolean isCorsSupportEnabled() {
-    return config.isCorsSupportEnabled();
+  private HttpMethod requestMethod(Http2Headers headers, boolean isPreflight) {
+    return isPreflight
+        ? HttpMethod.valueOf(headers.get(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD).toString())
+        : HttpMethod.OPTIONS;
   }
 
-  private void setRequestOrigin(Http2Headers headers) {
-    this.origin = headers.get(HttpHeaderNames.ORIGIN).toString();
+  private boolean isPreflight(final Http2Headers headers) {
+    return headers.method().toString().equals(HttpMethod.OPTIONS.toString())
+        && headers.contains(HttpHeaderNames.ORIGIN)
+        && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
   }
 
-  private void setRequestMethod(Http2Headers headers) {
-    this.method =
-        isPreflight
-            ? HttpMethod.valueOf(
-                headers.get(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD).toString())
-            : HttpMethod.OPTIONS;
-  }
-
-  private void setIsPreflight(final Http2Headers headers) {
-    this.isPreflight =
-        headers.method().toString().equals(HttpMethod.OPTIONS.toString())
-            && headers.contains(HttpHeaderNames.ORIGIN)
-            && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
-  }
-
-  private Http2Headers preflightHeaders() {
-    final Http2Headers headers = new DefaultHttp2Headers(true);
-    if (setAccessAllowOriginHeader(headers)) {
-      setAllowMethods(headers);
-      setAllowHeaders(headers);
-      setAllowCredentials(headers);
-      setMaxAge(headers);
-      setExposeHeaders(headers);
+  private Http2Headers preflightHeaders(HttpMethod requestMethod) {
+    final Http2Headers responseHeaders = new DefaultHttp2Headers(true);
+    if (setAccessAllowOriginHeader(responseHeaders)) {
+      setAllowMethods(responseHeaders, requestMethod);
+      setAllowHeaders(responseHeaders);
+      setAllowCredentials(responseHeaders);
+      setMaxAge(responseHeaders);
+      setExposeHeaders(responseHeaders);
     }
-    if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH)) {
-      headers.set(HttpHeaderNames.CONTENT_LENGTH, HttpHeaderValues.ZERO);
+    if (!responseHeaders.contains(HttpHeaderNames.CONTENT_LENGTH)) {
+      responseHeaders.set(HttpHeaderNames.CONTENT_LENGTH, HttpHeaderValues.ZERO);
     }
-    return headers;
+    return responseHeaders;
   }
 
-  private void setAllowMethods(final Http2Headers headers) {
-    if (config.allowedRequestMethods().contains(method)) {
-      headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, method.toString());
+  private void setAllowMethods(final Http2Headers headers, HttpMethod requestMethod) {
+    if (config.allowedRequestMethods().contains(requestMethod)) {
+      headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, requestMethod.toString());
     }
   }
 
@@ -157,22 +161,36 @@ public class Http2CorsHandler {
       return true;
     }
 
-    if (origin == null) {
+    if (requestOrigin == null) {
       return true;
     }
 
-    if ("null".equals(origin) && config.isNullOriginAllowed()) {
+    if ("null".equals(requestOrigin) && config.isNullOriginAllowed()) {
       return true;
     }
 
-    return config.origins().contains(origin);
+    return config.origins().contains(requestOrigin);
   }
 
-  // outbound
-  protected boolean setAccessAllowOriginHeader(final Http2Headers headers) {
+  /**
+   * Applies appropriate CORS Headers to outbound response headers.
+   *
+   * @param responseHeaders
+   */
+  protected void outbound(final Http2Headers responseHeaders) {
+    if (!config.isCorsSupportEnabled()) {
+      return;
+    }
+    if (setAccessAllowOriginHeader(responseHeaders)) {
+      setAllowCredentials(responseHeaders);
+      setExposeHeaders(responseHeaders);
+    }
+  }
 
-    if (origin != null) {
-      if (NULL_ORIGIN.equals(origin) && config.isNullOriginAllowed()) {
+  private boolean setAccessAllowOriginHeader(final Http2Headers headers) {
+
+    if (requestOrigin != null) {
+      if (NULL_ORIGIN.equals(requestOrigin) && config.isNullOriginAllowed()) {
         setNullOrigin(headers);
         return true;
       }
@@ -187,31 +205,21 @@ public class Http2CorsHandler {
         return true;
       }
 
-      if (config.origins().contains(origin)) {
-        setOrigin(headers, origin);
+      if (config.origins().contains(requestOrigin)) {
+        setOrigin(headers, requestOrigin);
         setVaryHeader(headers);
         return true;
       }
       log.debug(
           "Request origin [{}]] was not among the configured origins [{}]",
-          origin,
+          requestOrigin,
           config.origins());
     }
     return false;
   }
 
-  protected void setOutBoundHeaders(final Http2Headers headers) {
-    if (!isCorsSupportEnabled()) {
-      return;
-    }
-    if (setAccessAllowOriginHeader(headers)) {
-      setAllowCredentials(headers);
-      setExposeHeaders(headers);
-    }
-  }
-
   private void echoRequestOrigin(final Http2Headers headers) {
-    setOrigin(headers, origin);
+    setOrigin(headers, requestOrigin);
   }
 
   private static void setVaryHeader(final Http2Headers headers) {
