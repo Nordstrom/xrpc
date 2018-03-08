@@ -1,12 +1,12 @@
 package com.nordstrom.xrpc.server;
 
-import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
@@ -26,34 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 public class Http2CorsHandler {
   private static final String ANY_ORIGIN = "*";
   private static final String NULL_ORIGIN = "null";
+
   private final CorsConfig config;
 
   private String origin;
-
-  public boolean handleHeaders(
-      Http2Headers headers,
-      ChannelHandlerContext ctx,
-      int streamId,
-      Http2ResponseWriter responseWriter) {
-    if (!isCorsSupportEnabled()) {
-      return false;
-    }
-
-    setOrigin(headers);
-    Http2Headers responseHeaders = preflightHeaders();
-    HttpResponseStatus status =
-        isShortCircuit() && !validateOrigin()
-            ? HttpResponseStatus.FORBIDDEN
-            : HttpResponseStatus.OK;
-    responseHeaders.status(status.codeAsText());
-
-    if (!isPreflightRequest(headers) && !status.equals(HttpResponseStatus.FORBIDDEN)) {
-      return false;
-    }
-
-    responseWriter.write(ctx, streamId, responseHeaders, Optional.of(Unpooled.EMPTY_BUFFER));
-    return true;
-  }
+  private HttpMethod method;
+  private boolean isPreflight;
 
   public Http2CorsHandler() {
     CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
@@ -65,14 +43,55 @@ public class Http2CorsHandler {
     this.config = checkNotNull(config, "config");
   }
 
+  public boolean handleHeaders(
+      Http2Headers headers,
+      ChannelHandlerContext ctx,
+      int streamId,
+      Http2ResponseWriter responseWriter) {
+    if (!isCorsSupportEnabled()) {
+      return false;
+    }
+
+    setIsPreflight(headers);
+    setRequestOrigin(headers);
+    setRequestMethod(headers);
+
+    Http2Headers responseHeaders = preflightHeaders();
+    HttpResponseStatus status =
+        isShortCircuit() && !validateOrigin()
+            ? HttpResponseStatus.FORBIDDEN
+            : HttpResponseStatus.OK;
+    responseHeaders.status(status.codeAsText());
+
+    if (!isPreflight && !status.equals(HttpResponseStatus.FORBIDDEN)) {
+      return false;
+    }
+
+    responseWriter.write(ctx, streamId, responseHeaders, Optional.of(Unpooled.EMPTY_BUFFER));
+    return true;
+  }
+
   private boolean isCorsSupportEnabled() {
     return config.isCorsSupportEnabled();
   }
 
-  private boolean isPreflightRequest(final Http2Headers headers) {
-    return headers.method().toString().equals(OPTIONS.name())
-        && headers.contains(HttpHeaderNames.ORIGIN)
-        && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
+  private void setRequestOrigin(Http2Headers headers) {
+    this.origin = headers.get(HttpHeaderNames.ORIGIN).toString();
+  }
+
+  private void setRequestMethod(Http2Headers headers) {
+    this.method =
+        isPreflight
+            ? HttpMethod.valueOf(
+                headers.get(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD).toString())
+            : HttpMethod.OPTIONS;
+  }
+
+  private void setIsPreflight(final Http2Headers headers) {
+    this.isPreflight =
+        headers.method().toString().equals(HttpMethod.OPTIONS.toString())
+            && headers.contains(HttpHeaderNames.ORIGIN)
+            && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
   }
 
   private Http2Headers preflightHeaders() {
@@ -91,8 +110,9 @@ public class Http2CorsHandler {
   }
 
   private void setAllowMethods(final Http2Headers headers) {
-    headers.add(
-        HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, config.allowedRequestMethods().toString());
+    if (config.allowedRequestMethods().contains(method)) {
+      headers.add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, method.toString());
+    }
   }
 
   private void setAllowHeaders(final Http2Headers headers) {
@@ -122,10 +142,6 @@ public class Http2CorsHandler {
 
   private static void setNullOrigin(final Http2Headers headers) {
     setOrigin(headers, NULL_ORIGIN);
-  }
-
-  private void setOrigin(Http2Headers headers) {
-    this.origin = headers.get("origin").toString();
   }
 
   private static void setOrigin(final Http2Headers headers, final String origin) {
