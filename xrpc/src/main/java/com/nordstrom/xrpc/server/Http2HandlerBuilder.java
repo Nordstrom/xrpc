@@ -61,8 +61,7 @@ public final class Http2HandlerBuilder
     // TODO(jkinkead): Set MAX_CONCURRENT_STREAMS value to something from config.
     decoder.frameListener(new Http2Handler(encoder, maxPayloadBytes));
 
-    ConnectionHandler handler = new ConnectionHandler(decoder, encoder, initialSettings);
-    return handler;
+    return new ConnectionHandler(decoder, encoder, initialSettings);
   }
 
   /** Trivial extension of Http2ConnectionHandler to expose a public constructor. */

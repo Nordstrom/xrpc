@@ -8,9 +8,10 @@ import lombok.experimental.Accessors;
 
 /**
  * Base collection of MediaTypable objects. Consolidates the logic of lookup up an item based on
- * CharSequence mediaType. It also provides a defaultValue and appropriate getOrDefault.
+ * CharSequence mediaTypes. It also provides a defaultValue and appropriate getOrDefault.
  *
- * <p>Intended for a small set of objects as lookup is O(N).
+ * <p>Intended for a small set of objects as lookup is O(N) where N = Number of supported Media
+ * Types.
  *
  * @param <T> MediaTypeCodec item type
  */

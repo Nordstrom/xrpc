@@ -18,6 +18,8 @@ package com.nordstrom.xrpc.encoding;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
+import com.google.protobuf.MessageOrBuilder;
+import com.google.protobuf.util.JsonFormat;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -27,7 +29,7 @@ import java.nio.charset.Charset;
 import lombok.AllArgsConstructor;
 
 /**
- * An Encoder that encodes an object to ByteBuf in JSON format.
+ * Encoder that encodes an object to ByteBuf in JSON format.
  *
  * <p>Currently this encoder uses Jackson ObjectMapper to encode, but eventually will use
  * configurable JSON encode provider.
@@ -39,7 +41,9 @@ public class JsonEncoder implements Encoder {
       ImmutableSet.copyOf(new String[] {"UTF-8", "UTF-16", "UTF-32"});
 
   private final ObjectMapper mapper;
+  private final JsonFormat.Printer printer;
 
+  /** Media type this encoder supports. */
   public CharSequence mediaType() {
     return HttpHeaderValues.APPLICATION_JSON;
   }
@@ -56,7 +60,14 @@ public class JsonEncoder implements Encoder {
   public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     try (OutputStreamWriter writer =
         new OutputStreamWriter(new ByteBufOutputStream(buf), charset(acceptCharset))) {
-      mapper.writeValue(writer, object);
+      if (object instanceof MessageOrBuilder) {
+        // Encode object of proto generated Class
+        String json = printer.print((MessageOrBuilder) object);
+        writer.write(json);
+      } else {
+        // Encode POJO
+        mapper.writeValue(writer, object);
+      }
       return buf;
     }
   }
@@ -64,7 +75,7 @@ public class JsonEncoder implements Encoder {
   @Override
   public Charset charset(CharSequence acceptCharset) {
     if (acceptCharset == null) {
-      return TextEncoder.DEFAULT_CHARSET;
+      return DEFAULT_CHARSET;
     }
     String[] charsets = CHARSET_DELIMITER.split(acceptCharset);
     for (String charset : charsets) {
@@ -73,6 +84,6 @@ public class JsonEncoder implements Encoder {
         return Charset.forName(charsetUpper);
       }
     }
-    return TextEncoder.DEFAULT_CHARSET;
+    return DEFAULT_CHARSET;
   }
 }
