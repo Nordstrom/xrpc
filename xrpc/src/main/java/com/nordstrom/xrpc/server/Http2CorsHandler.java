@@ -3,12 +3,16 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Headers;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -26,6 +30,31 @@ public class Http2CorsHandler {
 
   private String origin;
 
+  public boolean handleHeaders(
+      Http2Headers headers,
+      ChannelHandlerContext ctx,
+      int streamId,
+      Http2ResponseWriter responseWriter) {
+    if (!isCorsSupportEnabled()) {
+      return false;
+    }
+
+    setOrigin(headers);
+    Http2Headers responseHeaders = preflightHeaders();
+    HttpResponseStatus status =
+        isShortCircuit() && !validateOrigin()
+            ? HttpResponseStatus.FORBIDDEN
+            : HttpResponseStatus.OK;
+    responseHeaders.status(status.codeAsText());
+
+    if (!isPreflightRequest(headers) && !status.equals(HttpResponseStatus.FORBIDDEN)) {
+      return false;
+    }
+
+    responseWriter.write(ctx, streamId, responseHeaders, Optional.of(Unpooled.EMPTY_BUFFER));
+    return true;
+  }
+
   public Http2CorsHandler() {
     CorsConfig config = CorsConfigBuilder.forAnyOrigin().disable().build();
     this.config = config;
@@ -36,23 +65,24 @@ public class Http2CorsHandler {
     this.config = checkNotNull(config, "config");
   }
 
-  protected boolean isCorsSupportEnabled() {
+  private boolean isCorsSupportEnabled() {
     return config.isCorsSupportEnabled();
   }
 
-  protected boolean isPreflightRequest(final Http2Headers headers) {
+  private boolean isPreflightRequest(final Http2Headers headers) {
     return headers.method().toString().equals(OPTIONS.name())
         && headers.contains(HttpHeaderNames.ORIGIN)
         && headers.contains(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD);
   }
 
-  protected Http2Headers preflightHeaders() {
+  private Http2Headers preflightHeaders() {
     final Http2Headers headers = new DefaultHttp2Headers(true);
     if (setAccessAllowOriginHeader(headers)) {
       setAllowMethods(headers);
       setAllowHeaders(headers);
       setAllowCredentials(headers);
       setMaxAge(headers);
+      setExposeHeaders(headers);
     }
     if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH)) {
       headers.set(HttpHeaderNames.CONTENT_LENGTH, HttpHeaderValues.ZERO);
@@ -80,6 +110,12 @@ public class Http2CorsHandler {
     }
   }
 
+  private void setExposeHeaders(final Http2Headers headers) {
+    if (!config.exposedHeaders().isEmpty()) {
+      headers.set(HttpHeaderNames.ACCESS_CONTROL_EXPOSE_HEADERS, config.exposedHeaders());
+    }
+  }
+
   private static void setAnyOrigin(final Http2Headers headers) {
     setOrigin(headers, ANY_ORIGIN);
   }
@@ -88,7 +124,7 @@ public class Http2CorsHandler {
     setOrigin(headers, NULL_ORIGIN);
   }
 
-  protected void setOrigin(Http2Headers headers) {
+  private void setOrigin(Http2Headers headers) {
     this.origin = headers.get("origin").toString();
   }
 
@@ -96,11 +132,11 @@ public class Http2CorsHandler {
     headers.set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
   }
 
-  protected boolean isShortCircuit() {
+  private boolean isShortCircuit() {
     return config.isShortCircuit();
   }
 
-  protected boolean validateOrigin() {
+  private boolean validateOrigin() {
     if (config.isAnyOriginSupported()) {
       return true;
     }
@@ -118,6 +154,7 @@ public class Http2CorsHandler {
 
   // outbound
   protected boolean setAccessAllowOriginHeader(final Http2Headers headers) {
+
     if (origin != null) {
       if (NULL_ORIGIN.equals(origin) && config.isNullOriginAllowed()) {
         setNullOrigin(headers);
@@ -145,6 +182,16 @@ public class Http2CorsHandler {
           config.origins());
     }
     return false;
+  }
+
+  protected void setOutBoundHeaders(final Http2Headers headers) {
+    if (!isCorsSupportEnabled()) {
+      return;
+    }
+    if (setAccessAllowOriginHeader(headers)) {
+      setAllowCredentials(headers);
+      setExposeHeaders(headers);
+    }
   }
 
   private void echoRequestOrigin(final Http2Headers headers) {

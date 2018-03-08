@@ -102,30 +102,8 @@ public final class Http2Handler extends Http2EventAdapter {
       Http2Headers headers,
       Optional<ByteBuf> bodyOpt) {
 
-    if (corsHandler.isCorsSupportEnabled()) {
-      corsHandler.setAccessAllowOriginHeader(headers);
-    }
-
     encoder.writeHeaders(ctx, streamId, headers, 0, !bodyOpt.isPresent(), ctx.newPromise());
     bodyOpt.ifPresent(body -> encoder.writeData(ctx, streamId, body, 0, true, ctx.newPromise()));
-  }
-
-  /**
-   * Writes the given response data to the given stream with the given status code. Closes the
-   * stream after writing the response.
-   */
-  private void writeResponse(
-      final ChannelHandlerContext ctx,
-      final int streamId,
-      Http2Headers headers,
-      HttpResponseStatus status) {
-
-    if (corsHandler.isCorsSupportEnabled()) {
-      corsHandler.setAccessAllowOriginHeader(headers);
-    }
-
-    headers.status(status.codeAsText());
-    encoder.writeHeaders(ctx, streamId, headers, 0, true, ctx.newPromise());
   }
 
   /**
@@ -137,9 +115,8 @@ public final class Http2Handler extends Http2EventAdapter {
 
     // Convert and validate headers.
     Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1Response, true);
-    if (corsHandler.isCorsSupportEnabled()) {
-      corsHandler.setAccessAllowOriginHeader(headers);
-    }
+
+    corsHandler.setOutBoundHeaders(headers);
 
     Optional<ByteBuf> body = Optional.empty();
     if (h1Response instanceof FullHttpResponse) {
@@ -169,10 +146,6 @@ public final class Http2Handler extends Http2EventAdapter {
     headers.set(CONTENT_TYPE, "text/plain");
     headers.setInt(CONTENT_LENGTH, body.readableBytes());
     headers.status(status.codeAsText());
-
-    if (corsHandler.isCorsSupportEnabled()) {
-      corsHandler.setAccessAllowOriginHeader(headers);
-    }
 
     writeResponse(ctx, streamId, headers, Optional.of(body));
   }
@@ -265,31 +238,6 @@ public final class Http2Handler extends Http2EventAdapter {
       return;
     }
 
-    // Handle CORS.
-    if (corsHandler.isCorsSupportEnabled()) {
-      corsHandler.setOrigin(headers);
-      Http2Headers preflightHeaders = corsHandler.preflightHeaders();
-
-      // Friendly short-circuit for OPTIONS requests.
-      if (corsHandler.isPreflightRequest(headers)) {
-        writeResponse(ctx, streamId, preflightHeaders, HttpResponseStatus.OK);
-        ctx.flush();
-        ctx.close();
-        return;
-      }
-
-      // Friendly short-circuit for CORS requests that don't match allowed origin criteria.
-      // It's important to note that neither this nor the netty cors handler has sophisticated
-      // origin matching so that:
-      // http://some.domain != some.domain and *.domain != some.domain
-      if (corsHandler.isShortCircuit() && !corsHandler.validateOrigin()) {
-        writeResponse(ctx, streamId, preflightHeaders, HttpResponseStatus.FORBIDDEN);
-        ctx.flush();
-        ctx.close();
-        return;
-      }
-    }
-
     // Find the request handler. If we found a request for the stream already, the handler will be
     // in our handler map.
     Handler handler;
@@ -308,6 +256,11 @@ public final class Http2Handler extends Http2EventAdapter {
     // If there's no data expected, call the handler. Else, pass the handler and request through in
     // the context.
     if (endOfStream) {
+      // Handle CORS..
+      if (corsHandler.handleHeaders(headers, ctx, streamId, this::writeResponse)) {
+        return;
+      }
+
       try {
         HttpResponse response = handler.handle(request);
 
