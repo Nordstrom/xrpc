@@ -112,7 +112,7 @@ public final class Recipes {
    * following key and value: "access-control-allow-origin", "http://foo.example"
    *
    * <p>If content type or content length are passed in as custom headers, they will be ignored.
-   * Instead, content type will be as specified by the parameter mediaType and content length will
+   * Instead, content type will be as specified by the parameter mediaTypes and content length will
    * be the length of the parameter contentLength.
    */
   public static FullHttpResponse newResponse(

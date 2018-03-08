@@ -8,7 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class DecodersTest {
-  private JsonDecoder jsonDecoder = new JsonDecoder(new ObjectMapper());
+  private JsonDecoder jsonDecoder =
+      new JsonDecoder(new ObjectMapper(), new ProtoDefaultInstances());
+
   private Decoder fooBarDecoder =
       new Decoder() {
         @Override

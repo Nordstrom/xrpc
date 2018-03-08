@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.encoding;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.util.JsonFormat;
 import io.netty.buffer.Unpooled;
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -20,7 +21,8 @@ class JsonEncoderTest {
     }
   }
 
-  private JsonEncoder jsonEncoder = new JsonEncoder(new ObjectMapper());
+  private JsonEncoder jsonEncoder =
+      new JsonEncoder(new ObjectMapper(), JsonFormat.printer().omittingInsignificantWhitespace());
 
   @Test
   void testEncodeJsonUtf16() throws IOException {

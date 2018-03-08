@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.encoding;
 import static org.junit.Assert.assertSame;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.util.JsonFormat;
 import io.netty.buffer.ByteBuf;
 import java.beans.ConstructorProperties;
 import java.io.IOException;
@@ -20,7 +21,8 @@ class EncodersTest {
     }
   }
 
-  private JsonEncoder jsonEncoder = new JsonEncoder(new ObjectMapper());
+  private JsonEncoder jsonEncoder =
+      new JsonEncoder(new ObjectMapper(), JsonFormat.printer().omittingInsignificantWhitespace());
   private Encoder fooBarEncoder =
       new Encoder() {
         @Override
