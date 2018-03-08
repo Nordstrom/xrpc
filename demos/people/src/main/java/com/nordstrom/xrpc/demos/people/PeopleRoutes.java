@@ -35,7 +35,7 @@ public class PeopleRoutes {
         };
 
     routes.get("/people", getPeople);
-    routes.put("/people", postPerson);
+    routes.post("/people", postPerson);
     routes.get("/people/{person}", getPerson);
   }
 
