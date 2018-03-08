@@ -33,6 +33,7 @@ import com.nordstrom.xrpc.encoding.Encoders;
 import com.nordstrom.xrpc.encoding.JsonDecoder;
 import com.nordstrom.xrpc.encoding.JsonEncoder;
 import com.nordstrom.xrpc.encoding.ProtoDecoder;
+import com.nordstrom.xrpc.encoding.ProtoDefaultInstances;
 import com.nordstrom.xrpc.encoding.ProtoEncoder;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.tls.Tls;
@@ -118,6 +119,9 @@ public class Server implements Routes {
     // Json encoder for Proto
     JsonFormat.Printer printer = JsonFormat.printer().omittingInsignificantWhitespace();
 
+    // Default instances for protobuf generated classes.
+    ProtoDefaultInstances protoDefaultInstances = new ProtoDefaultInstances();
+
     this.contextBuilder =
         XrpcConnectionContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
@@ -133,8 +137,8 @@ public class Server implements Routes {
             .decoders(
                 Decoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .decoder(new JsonDecoder(mapper))
-                    .decoder(new ProtoDecoder())
+                    .decoder(new JsonDecoder(mapper, protoDefaultInstances))
+                    .decoder(new ProtoDecoder(protoDefaultInstances))
                     .build())
             .exceptionHandler(new DefaultExceptionHandler());
 

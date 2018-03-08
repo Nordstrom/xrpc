@@ -16,20 +16,11 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.google.protobuf.MessageLite;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** Interface for decoding a request ByteBuf into Object. */
 public interface Decoder extends MediaTypeCodec {
-  /** Cached protobuf MessageLite instances keyed by Class. */
-  // TODO (AD): this is not optimal design -- mutable shared state.
-  // Consider design that makes this immutable.
-  ConcurrentHashMap<Class<?>, MessageLite> protoDefaultInstances = new ConcurrentHashMap<>();
-
   /**
    * Decode a request body to an object of designated Class type.
    *
@@ -39,27 +30,4 @@ public interface Decoder extends MediaTypeCodec {
    * @return object of type clazz
    */
   <T> T decode(ByteBuf body, CharSequence contentType, Class<T> clazz) throws IOException;
-
-  /**
-   * Get a protobuf Message instance based on Class. This lazily caches instances as it reflectively
-   * gets them.
-   *
-   * @param clazz proto generated class for which we get the default instance
-   * @return default instance of the given Class
-   */
-  static MessageLite protoDefaultInstance(Class<?> clazz) {
-    MessageLite message = protoDefaultInstances.get(clazz);
-    if (message != null) {
-      return message;
-    }
-    try {
-      Method method = clazz.getMethod("getDefaultInstance");
-      message = (MessageLite) method.invoke(null);
-    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-      throw new IllegalArgumentException(
-          String.format("%s is not a valid Class: %s", clazz.getName(), e.getMessage()));
-    }
-    protoDefaultInstances.put(clazz, message);
-    return message;
-  }
 }

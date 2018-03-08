@@ -8,7 +8,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 public class ProtoDecoderTest {
-  private ProtoDecoder decoder = new ProtoDecoder();
+  private ProtoDecoder decoder = new ProtoDecoder(new ProtoDefaultInstances());
   private Dino dino = Dino.newBuilder().setName("test-name").setFavColor("test-color").build();
 
   @Test

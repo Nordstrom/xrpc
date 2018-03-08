@@ -22,6 +22,7 @@ import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import java.io.IOException;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -30,7 +31,10 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Currently this decoder uses Proto 3 generated classes to decode.
  */
 @Slf4j
+@AllArgsConstructor
 public class ProtoDecoder implements Decoder {
+  private final ProtoDefaultInstances protoDefaultInstances;
+
   /** Content type this decoder supports. */
   @Override
   public CharSequence mediaType() {
@@ -55,7 +59,7 @@ public class ProtoDecoder implements Decoder {
           String.format("%s does not extend from MessageLite", clazz.getName()));
     }
 
-    MessageLite message = protoDefaultInstance(clazz);
+    MessageLite message = protoDefaultInstances.get(clazz);
     Parser<?> parser = message.getParserForType();
     try (ByteBufInputStream stream = new ByteBufInputStream(body)) {
       return (T) parser.parseFrom(stream);

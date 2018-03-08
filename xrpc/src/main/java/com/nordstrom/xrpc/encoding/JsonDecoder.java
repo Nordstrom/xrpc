@@ -38,6 +38,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class JsonDecoder implements Decoder {
   private final ObjectMapper mapper;
+  private final ProtoDefaultInstances protoDefaultInstances;
 
   /** Media type this decoder supports. */
   public CharSequence mediaType() {
@@ -60,7 +61,7 @@ public class JsonDecoder implements Decoder {
             HttpUtil.getCharset(contentType, Charset.forName("UTF-8")))) {
       if (MessageLite.class.isAssignableFrom(clazz)) {
         // Use proto classes to decode
-        MessageLite message = protoDefaultInstance(clazz);
+        MessageLite message = protoDefaultInstances.get(clazz);
         Message.Builder builder = (Message.Builder) message.toBuilder();
         JsonFormat.parser().merge(reader, builder);
         return (T) builder.build();
