@@ -2,8 +2,6 @@ package com.nordstrom.xrpc.server;
 
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
@@ -18,8 +16,8 @@ import lombok.extern.slf4j.Slf4j;
  * Initializes CORS support for this HTTP2 request.
  *
  * <ul>
- *   <li>Request headers are processed by the inbound method, which responds to forbidden origins or
- *       pre-flight requests.
+ *   <li>Request headers are processed by the inbound method, which returns response headers for
+ *       forbidden origins or pre-flight requests.
  *   <li>Response headers for cors requests are written with the outbound method.
  *   <li>When reading inbound headers, the inbound method saves the request origin for use in
  *       outbound headers.
@@ -44,25 +42,14 @@ public class Http2CorsHandler {
   }
 
   /**
-   * Processes inbound HTTP2 CORS requests.
+   * Processes inbound HTTP2 CORS requests. Saves the request origin for use in outbound headers.
    *
-   * <ul>
-   *   <li>if shortCircuit is set to true, will write a forbidden response
-   *   <li>will respond to pre-flight requests
-   *   <li>stores request origin for use in outbound headers
-   * </ul>
-   *
-   * @param headers for the inbound request
-   * @param responseWriter used to respond to forbidden origins or pre-flight requests
-   * @return false if the pipeline should continue handling the request.
+   * @param headers from the request
+   * @return Optional response headers for requests that do not need to continue down the pipeline.
    */
-  public boolean inbound(
-      ChannelHandlerContext ctx,
-      int streamId,
-      Http2Headers headers,
-      Http2ResponseWriter responseWriter) {
+  public Optional<Http2Headers> inbound(Http2Headers headers) {
     if (!config.isCorsSupportEnabled()) {
-      return false;
+      return Optional.empty();
     }
 
     boolean isPreflight = isPreflight(headers);
@@ -79,11 +66,10 @@ public class Http2CorsHandler {
     responseHeaders.status(status.codeAsText());
 
     if (!isPreflight && !status.equals(HttpResponseStatus.FORBIDDEN)) {
-      return false;
+      return Optional.empty();
     }
 
-    responseWriter.write(ctx, streamId, responseHeaders, Optional.of(Unpooled.EMPTY_BUFFER));
-    return true;
+    return Optional.of(responseHeaders);
   }
 
   private HttpMethod requestMethod(Http2Headers headers, boolean isPreflight) {

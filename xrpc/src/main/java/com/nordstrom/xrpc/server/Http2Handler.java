@@ -100,7 +100,7 @@ public final class Http2Handler extends Http2EventAdapter {
       final int streamId,
       Http2Headers headers,
       Optional<ByteBuf> bodyOpt) {
-
+    corsHandler.outbound(headers);
     encoder.writeHeaders(ctx, streamId, headers, 0, !bodyOpt.isPresent(), ctx.newPromise());
     bodyOpt.ifPresent(body -> encoder.writeData(ctx, streamId, body, 0, true, ctx.newPromise()));
   }
@@ -114,8 +114,6 @@ public final class Http2Handler extends Http2EventAdapter {
 
     // Convert and validate headers.
     Http2Headers headers = HttpConversionUtil.toHttp2Headers(h1Response, true);
-
-    corsHandler.outbound(headers);
 
     Optional<ByteBuf> body = Optional.empty();
     if (h1Response instanceof FullHttpResponse) {
@@ -255,8 +253,10 @@ public final class Http2Handler extends Http2EventAdapter {
     // If there's no data expected, call the handler. Else, pass the handler and request through in
     // the context.
     if (endOfStream) {
-      // Handle CORS..
-      if (corsHandler.inbound(ctx, streamId, headers, this::writeResponse)) {
+      // Handle CORS.
+      Optional<Http2Headers> corsResponseHeaders = corsHandler.inbound(headers);
+      if (corsResponseHeaders.isPresent()) {
+        writeResponse(ctx, streamId, corsResponseHeaders.get(), Optional.of(Unpooled.EMPTY_BUFFER));
         return;
       }
 
