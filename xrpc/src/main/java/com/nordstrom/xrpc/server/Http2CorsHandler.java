@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  *       outbound headers.
  * </ul>
  *
- * Adapted from from {@link io.netty.handler.codec.http.cors.CorsHandler}.
+ * <p>Adapted from from {@link io.netty.handler.codec.http.cors.CorsHandler}.
  *
  * <p>This handler can be configured using a {@link CorsConfig}, please refer to that class for
  * details about the configuration options available.
@@ -161,7 +161,7 @@ public class Http2CorsHandler {
   /**
    * Applies appropriate CORS Headers to outbound response headers.
    *
-   * @param responseHeaders
+   * @param responseHeaders outbound response headers
    */
   protected void outbound(final Http2Headers responseHeaders) {
     if (!config.isCorsSupportEnabled()) {
