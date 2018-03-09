@@ -78,8 +78,8 @@ public class Http2CorsHandler {
     HttpResponse response;
 
     try {
-      // TODO: These get converted to back to Http2 headers when they are written to the stream.
-      // Maybe status should be marked in the final write method in the chain.
+      // TODO: This gets converted to back to Http2 for status logging, there has to be a better
+      // way.
       response = HttpConversionUtil.toHttpResponse(streamId, responseHeaders, true);
     } catch (Http2Exception e) {
       log.error("Error in handling CORS headers.", e);
@@ -130,19 +130,6 @@ public class Http2CorsHandler {
         HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, config.allowedRequestHeaders());
 
     return responseHeaders;
-  }
-
-  private void setAllowCredentials(final Http2Headers headers) {
-    if (config.isCredentialsAllowed()
-        && !headers.get(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN).equals(ANY_ORIGIN)) {
-      headers.set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-    }
-  }
-
-  private void setExposeHeaders(final Http2Headers headers) {
-    if (!config.exposedHeaders().isEmpty()) {
-      headers.set(HttpHeaderNames.ACCESS_CONTROL_EXPOSE_HEADERS, config.exposedHeaders());
-    }
   }
 
   /** True if the given origin is allowed based on the CORS configuration. */
