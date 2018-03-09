@@ -40,8 +40,10 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
@@ -396,7 +398,11 @@ public class Http2HandlerTest {
   /** Test that OPTIONS request short circuit to preflight response. */
   @Test
   public void testOnHeadersRead_preflightOptionsRequest() {
-    CorsConfig corsConfig = corsConfig();
+    CorsConfig corsConfig =
+        CorsConfigBuilder.forOrigin("test.domain")
+            .allowCredentials()
+            .allowedRequestMethods(HttpMethod.GET)
+            .build();
     Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
 
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, corsHandler);
@@ -416,7 +422,9 @@ public class Http2HandlerTest {
             "access-control-allow-methods",
             "GET",
             "access-control-allow-origin",
-            corsConfig.origin()),
+            corsConfig.origin(),
+            "access-control-allow-credentials",
+            "true"),
         Optional.empty(),
         STREAM_ID);
   }
@@ -424,7 +432,7 @@ public class Http2HandlerTest {
   /** Test that OPTIONS request short circuit to preflight response. */
   @Test
   public void testOnHeadersRead_corsShortCircuit() {
-    CorsConfig corsConfig = corsConfig();
+    CorsConfig corsConfig = CorsConfigBuilder.forOrigin("test.domain").shortCircuit().build();
     Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
 
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, corsHandler);
