@@ -26,54 +26,17 @@ public class NotFoundException extends HttpResponseException {
    *
    * @param message Error message
    */
-  public NotFoundException(String message) {
-    super(STATUS_CODE, ERROR_CODE, message, message);
-  }
-
-  /**
-   * Construct NotFoundException with default error code.
-   *
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   */
-  public NotFoundException(String message, String detailedMessage) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage);
-  }
-
-  /**
-   * Construct NotFoundException with a custom error code. This constructor is intended to be used
-   * by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   */
-  public NotFoundException(String errorCode, String message, String detailedMessage) {
-    super(STATUS_CODE, errorCode, message, detailedMessage);
+  protected NotFoundException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct NotFoundException with a default error code and root cause.
    *
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    * @param cause Cause of this error.
    */
-  public NotFoundException(String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage, cause);
-  }
-
-  /**
-   * Construct NotFoundException with a custom error code and root cause. This constructor is
-   * intended to be used by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   * @param cause Cause of this error.
-   */
-  public NotFoundException(
-      String errorCode, String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, errorCode, message, detailedMessage, cause);
+  public NotFoundException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }

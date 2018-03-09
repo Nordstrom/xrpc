@@ -16,42 +16,30 @@
 
 package com.nordstrom.xrpc.exceptions;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.nordstrom.xrpc.encoding.TextEncodable;
-import java.io.IOException;
+import com.nordstrom.xrpc.exceptions.proto.Error;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
 /** Base exception for Exceptions that are meant to convert to HTTP Responses. */
-@JsonSerialize(using = HttpResponseException.JsonSerializer.class)
 @Accessors(fluent = true)
-public abstract class HttpResponseException extends RuntimeException implements TextEncodable {
+public abstract class HttpResponseException extends RuntimeException {
   /** HTTP Status Code. */
   @Getter private final int statusCode;
 
   /** Code used to provide a more specific code for the error. */
   @Getter private final String errorCode;
 
-  /** A more detailed error message that can be used for logging. */
-  @Getter private final String logMessage;
-
   /**
-   * Construct HttpResponseException.
+   * Construct HttpResponseException with a cause.
    *
    * @param statusCode HTTP Status Code
    * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param logMessage A more detailed error message that can be used for logging.
+   * @param message Error message.
    */
-  public HttpResponseException(
-      int statusCode, String errorCode, String message, String logMessage) {
+  public HttpResponseException(int statusCode, String errorCode, String message) {
     super(message);
     this.statusCode = statusCode;
     this.errorCode = errorCode;
-    this.logMessage = logMessage;
   }
 
   /**
@@ -59,41 +47,22 @@ public abstract class HttpResponseException extends RuntimeException implements 
    *
    * @param statusCode HTTP Status Code
    * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param logMessage A more detailed error message that can be used for logging.
+   * @param message Error message.
    * @param cause The Throwable that caused this error.
    */
-  public HttpResponseException(
-      int statusCode, String errorCode, String message, String logMessage, Throwable cause) {
+  public HttpResponseException(int statusCode, String errorCode, String message, Throwable cause) {
     super(message, cause);
     this.statusCode = statusCode;
     this.errorCode = errorCode;
-    this.logMessage = logMessage;
   }
 
-  @Override
-  public String encode() {
-    return String.format("[%s] %s", errorCode(), getMessage());
-  }
-
-  public static class JsonSerializer extends StdSerializer<HttpResponseException> {
-
-    public JsonSerializer() {
-      this(null);
-    }
-
-    public JsonSerializer(Class<HttpResponseException> t) {
-      super(t);
-    }
-
-    @Override
-    public void serialize(
-        HttpResponseException value, JsonGenerator jgen, SerializerProvider provider)
-        throws IOException {
-      jgen.writeStartObject();
-      jgen.writeStringField("errorCode", value.getErrorCode());
-      jgen.writeStringField("message", value.getMessage());
-      jgen.writeEndObject();
-    }
+  /**
+   * Get the error response for this exception. This is used for response encoding. Error is a proto
+   * generated class that can encode to proto and json.
+   *
+   * @return Error proto generated object based on this exception.
+   */
+  public Error error() {
+    return Error.newBuilder().setErrorCode(errorCode).setMessage(getMessage()).build();
   }
 }

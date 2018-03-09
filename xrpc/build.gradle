@@ -97,6 +97,11 @@ dependencies {
 }
 
 sourceSets {
+  main {
+    java {
+      srcDirs 'build/generated/source/proto/main/java'
+    }
+  }
   test {
     java {
       srcDirs 'build/generated/source/proto/test/java'

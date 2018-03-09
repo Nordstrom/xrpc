@@ -140,7 +140,7 @@ public class Server implements Routes {
                     .decoder(new JsonDecoder(mapper, protoDefaultInstances))
                     .decoder(new ProtoDecoder(protoDefaultInstances))
                     .build())
-            .exceptionHandler(new DefaultExceptionHandler());
+            .exceptionHandler(ExceptionHandler.DEFAULT);
 
     addResponseCodeMeters(contextBuilder, metricRegistry);
   }

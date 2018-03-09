@@ -14,4 +14,6 @@ public interface ExceptionHandler {
    * @return HttpResponse appropriate for this Exception
    */
   HttpResponse handle(XrpcRequest request, Exception exception);
+
+  ExceptionHandler DEFAULT = ResponseFactory::exception;
 }

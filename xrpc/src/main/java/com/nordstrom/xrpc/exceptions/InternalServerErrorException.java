@@ -25,46 +25,18 @@ public class InternalServerErrorException extends HttpResponseException {
    * Construct InternalServerErrorException with default error code.
    *
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    */
-  public InternalServerErrorException(String message, String detailedMessage) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage);
-  }
-
-  /**
-   * Construct InternalServerErrorException with a custom error code. This constructor is intended
-   * to be used by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   */
-  public InternalServerErrorException(String errorCode, String message, String detailedMessage) {
-    super(STATUS_CODE, errorCode, message, detailedMessage);
+  public InternalServerErrorException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct InternalServerErrorException with a default error code and root cause.
    *
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    * @param cause Cause of this error.
    */
-  public InternalServerErrorException(String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage, cause);
-  }
-
-  /**
-   * Construct InternalServerErrorException with a custom error code and root cause. This
-   * constructor is intended to be used by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   * @param cause Cause of this error.
-   */
-  public InternalServerErrorException(
-      String errorCode, String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, errorCode, message, detailedMessage, cause);
+  public InternalServerErrorException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }

@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.encoding.Encoder;
 import com.nordstrom.xrpc.exceptions.HttpResponseException;
 import com.nordstrom.xrpc.exceptions.InternalServerErrorException;
@@ -57,21 +58,31 @@ public interface ResponseFactory {
     try {
       // TODO (AD): Use configured response content/type and response specific exceptions to default
       // to meaningful responses here
-      log.error("Handler Exception:", exception);
+      log.error("Handled Exception:", exception);
 
       if (exception instanceof HttpResponseException) {
         HttpResponseException responseException = (HttpResponseException) exception;
         return createResponse(
-            HttpResponseStatus.valueOf(responseException.getStatusCode()), responseException);
+            HttpResponseStatus.valueOf(responseException.statusCode()), responseException.error());
       }
       // TODO (AD): Handle other exceptions that can reasonably be converted to HTTP Responses.
       // For example IllegalArgumentException could become HTTP 400 Bad Request
     } catch (Exception e) {
       log.error("Error Handling Exception:", e);
     }
+    try {
+      // Attempt to return properly encoded response
+      return createResponse(
+          HttpResponseStatus.INTERNAL_SERVER_ERROR,
+          new InternalServerErrorException("Internal Server Error").error());
+    } catch (Exception e) {
+      log.error("Error Handling Exception:", e);
+    }
+    // Properly encoded response failed.  Back to basics.
     return createResponse(
         HttpResponseStatus.INTERNAL_SERVER_ERROR,
-        new InternalServerErrorException("Internal Server Error"));
+        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESPONSE),
+        request().connectionContext().encoders().defaultValue().mediaType());
   }
 
   default <T> HttpResponse createResponse(HttpResponseStatus status, T body) throws IOException {

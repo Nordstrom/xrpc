@@ -25,46 +25,18 @@ public class ForbiddenException extends HttpResponseException {
    * Construct ForbiddenException with default error code.
    *
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    */
-  public ForbiddenException(String message, String detailedMessage) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage);
-  }
-
-  /**
-   * Construct ForbiddenException with a custom error code. This constructor is intended to be used
-   * by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   */
-  public ForbiddenException(String errorCode, String message, String detailedMessage) {
-    super(STATUS_CODE, errorCode, message, detailedMessage);
+  public ForbiddenException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct ForbiddenException with a default error code and root cause.
    *
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    * @param cause Cause of this error.
    */
-  public ForbiddenException(String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, ERROR_CODE, message, detailedMessage, cause);
-  }
-
-  /**
-   * Construct ForbiddenException with a custom error code and root cause. This constructor is
-   * intended to be used by child classes.
-   *
-   * @param errorCode Code used to provide a more specific code for the error.
-   * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
-   * @param cause Cause of this error.
-   */
-  public ForbiddenException(
-      String errorCode, String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, errorCode, message, detailedMessage, cause);
+  public ForbiddenException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }

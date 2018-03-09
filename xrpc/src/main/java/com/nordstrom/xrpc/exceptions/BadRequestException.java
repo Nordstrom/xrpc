@@ -27,20 +27,16 @@ public class BadRequestException extends HttpResponseException {
    * @param message Error message
    */
   public BadRequestException(String message) {
-    super(STATUS_CODE, ERROR_CODE, message, null);
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
-   * Construct BadResponseException with a custom error code and root cause. This constructor is
-   * intended to be used by child classes.
+   * Construct BadResponseException with a custom error code and root cause.
    *
-   * @param errorCode Code used to provide a more specific code for the error.
    * @param message Error message
-   * @param detailedMessage A more detailed error message that can be used for logging.
    * @param cause Cause of this error.
    */
-  public BadRequestException(
-      String errorCode, String message, String detailedMessage, Throwable cause) {
-    super(STATUS_CODE, errorCode, message, detailedMessage, cause);
+  public BadRequestException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }
