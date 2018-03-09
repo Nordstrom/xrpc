@@ -31,10 +31,8 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
-import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.server.http.Recipes;
-import com.typesafe.config.ConfigFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -50,7 +48,6 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Headers;
 import java.util.Map;
 import java.util.Optional;
-import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
@@ -389,13 +386,6 @@ public class Http2HandlerTest {
         ImmutableMap.of(),
         Optional.of(Unpooled.wrappedBuffer(XrpcConstants.PAYLOAD_EXCEEDED_RESPONSE)),
         STREAM_ID);
-  }
-
-  /** Helper for testing CORS requests. */
-  public CorsConfig corsConfig() {
-    val config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    XConfig xconfig = new XConfig(config);
-    return xconfig.corsConfig();
   }
 
   /** Test that OPTIONS request short circuit to preflight response. */
