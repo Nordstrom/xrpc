@@ -20,8 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Initializes CORS support for this HTTP2 request.
  *
- * <p>
- *
  * <ul>
  *   <li>Request headers are processed by the inbound method, which returns an http1 response for
  *       forbidden origins or pre-flight requests.
@@ -30,11 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  *       outbound headers.
  * </ul>
  *
- * <p>
- *
  * <p>Adapted from from {@link io.netty.handler.codec.http.cors.CorsHandler}.
- *
- * <p>
  *
  * <p>This handler can be configured using a {@link CorsConfig}, please refer to that class for
  * details about the configuration options available.
@@ -151,7 +145,7 @@ public class Http2CorsHandler {
     }
   }
 
-  /** @return true if the saved origin is allowed based on the CORS configuration. */
+  /** True if the given origin is allowed based on the CORS configuration. */
   private boolean validateOrigin(String origin) {
     if (config.isAnyOriginSupported()) {
       return true;
