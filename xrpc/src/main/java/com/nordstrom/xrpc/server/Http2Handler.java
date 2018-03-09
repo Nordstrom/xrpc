@@ -254,9 +254,9 @@ public final class Http2Handler extends Http2EventAdapter {
     // the context.
     if (endOfStream) {
       // Handle CORS.
-      Optional<Http2Headers> corsResponseHeaders = corsHandler.inbound(headers);
-      if (corsResponseHeaders.isPresent()) {
-        writeResponse(ctx, streamId, corsResponseHeaders.get(), Optional.of(Unpooled.EMPTY_BUFFER));
+      Optional<HttpResponse> corsResponse = corsHandler.inbound(headers, streamId);
+      if (corsResponse.isPresent()) {
+        writeResponse(ctx, streamId, corsResponse.get());
         return;
       }
 

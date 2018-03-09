@@ -2,13 +2,18 @@ package com.nordstrom.xrpc.server;
 
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
+import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.HttpConversionUtil;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,7 +52,7 @@ public class Http2CorsHandler {
    * @param headers from the request
    * @return Optional response headers for requests that do not need to continue down the pipeline.
    */
-  public Optional<Http2Headers> inbound(Http2Headers headers) {
+  public Optional<HttpResponse> inbound(Http2Headers headers, int streamId) {
     if (!config.isCorsSupportEnabled()) {
       return Optional.empty();
     }
@@ -69,7 +74,18 @@ public class Http2CorsHandler {
       return Optional.empty();
     }
 
-    return Optional.of(responseHeaders);
+    HttpResponse response;
+
+    try {
+      response = HttpConversionUtil.toHttpResponse(streamId, responseHeaders, true);
+    } catch (Http2Exception e) {
+      log.error("Error in handling CORS headers.", e);
+
+      response =
+          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    return Optional.of(response);
   }
 
   private HttpMethod requestMethod(Http2Headers headers, boolean isPreflight) {

@@ -438,7 +438,7 @@ public class Http2HandlerTest {
             eq(STREAM_ID),
             argThat(matchesAllowOriginsHeaders(corsConfig)),
             anyInt(),
-            eq(false),
+            eq(true),
             any());
     verify(mockEncoder, times(1))
         .writeHeaders(
@@ -446,15 +446,7 @@ public class Http2HandlerTest {
             eq(STREAM_ID),
             argThat(matchesPreflightHeadersGetRequest(corsConfig)),
             anyInt(),
-            eq(false),
-            any());
-    verify(mockEncoder, times(1))
-        .writeData(
-            eq(mockContext),
-            eq(STREAM_ID),
-            eq(Unpooled.EMPTY_BUFFER),
-            anyInt(),
-            anyBoolean(),
+            eq(true),
             any());
   }
 
@@ -476,15 +468,7 @@ public class Http2HandlerTest {
             eq(STREAM_ID),
             argThat(matchesForbiddenHeaders()),
             anyInt(),
-            eq(false),
-            any());
-    verify(mockEncoder, times(1))
-        .writeData(
-            eq(mockContext),
-            eq(STREAM_ID),
-            eq(Unpooled.EMPTY_BUFFER),
-            anyInt(),
-            anyBoolean(),
+            eq(true),
             any());
   }
 }
