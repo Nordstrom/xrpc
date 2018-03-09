@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  * Initializes CORS support for this HTTP2 request.
  *
  * <ul>
- *   <li>Request headers are processed by the inbound method, which returns response headers for
+ *   <li>Request headers are processed by the inbound method, which returns an http1 response for
  *       forbidden origins or pre-flight requests.
  *   <li>Response headers for cors requests are written with the outbound method.
  *   <li>When reading inbound headers, the inbound method saves the request origin for use in
@@ -50,7 +50,7 @@ public class Http2CorsHandler {
    * Processes inbound HTTP2 CORS requests. Saves the request origin for use in outbound headers.
    *
    * @param headers from the request
-   * @return Optional response headers for requests that do not need to continue down the pipeline.
+   * @return Optional http1 response for requests that do not need to continue down the pipeline.
    */
   public Optional<HttpResponse> inbound(Http2Headers headers, int streamId) {
     if (!config.isCorsSupportEnabled()) {
