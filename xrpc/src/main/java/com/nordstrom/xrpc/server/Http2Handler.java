@@ -62,9 +62,13 @@ public final class Http2Handler extends Http2EventAdapter {
   /** The maximum total data payload to accept. */
   private final int maxPayloadBytes;
 
-  Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {
+  /** Helper for a CORS request. */
+  private final Http2CorsHandler corsHandler;
+
+  Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes, Http2CorsHandler corsHandler) {
     this.encoder = encoder;
     this.maxPayloadBytes = maxPayloadBytes;
+    this.corsHandler = corsHandler;
 
     encoder.connection().addListener(this);
   }
@@ -88,7 +92,7 @@ public final class Http2Handler extends Http2EventAdapter {
       final int streamId,
       Http2Headers headers,
       Optional<ByteBuf> bodyOpt) {
-
+    corsHandler.outbound(headers);
     encoder.writeHeaders(ctx, streamId, headers, 0, !bodyOpt.isPresent(), ctx.newPromise());
     bodyOpt.ifPresent(body -> encoder.writeData(ctx, streamId, body, 0, true, ctx.newPromise()));
   }
@@ -156,6 +160,13 @@ public final class Http2Handler extends Http2EventAdapter {
     }
 
     if (endOfStream) {
+
+      Optional<HttpResponse> corsResponse = corsHandler.inbound(request.h2Headers(), streamId);
+      if (corsResponse.isPresent()) {
+        writeResponse(ctx, streamId, corsResponse.get());
+        return processed;
+      }
+
       Handler handler = handlers.get(streamId);
       try {
         HttpResponse response = handler.handle(request);
@@ -241,8 +252,16 @@ public final class Http2Handler extends Http2EventAdapter {
     // If there's no data expected, call the handler. Else, pass the handler and request through in
     // the context.
     if (endOfStream) {
+      // Handle CORS.
+      Optional<HttpResponse> corsResponse = corsHandler.inbound(headers, streamId);
+      if (corsResponse.isPresent()) {
+        writeResponse(ctx, streamId, corsResponse.get());
+        return;
+      }
+
       try {
         HttpResponse response = handler.handle(request);
+
         writeResponse(ctx, streamId, response);
       } catch (IOException e) {
         log.error("Error in handling Route", e);
