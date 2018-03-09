@@ -78,6 +78,9 @@ public class Http2HandlerTest {
   private static final String PARAM_NAME = "param";
   /** Stream ID used in most tests. */
   private static final int STREAM_ID = 33;
+  /** Default CORS handler. No CORS allowed. */
+  private static final Http2CorsHandler NO_CORS =
+      new Http2CorsHandler(CorsConfigBuilder.forAnyOrigin().disable().build());
 
   private MetricRegistry metricRegistry = new MetricRegistry();
 
@@ -204,7 +207,7 @@ public class Http2HandlerTest {
 
   @Test
   public void constructorRegistersListener() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
     verify(mockConnection).addListener(testHandler);
   }
 
@@ -214,7 +217,7 @@ public class Http2HandlerTest {
    */
   @Test
   public void testOnHeadersRead_softRateLimited() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     channel.attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);
 
@@ -233,7 +236,7 @@ public class Http2HandlerTest {
   /** Test that a headers-only request to a good path is handled appropriately. */
   @Test
   public void testOnHeadersRead_fullRequestGoodPath() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH);
 
@@ -248,7 +251,7 @@ public class Http2HandlerTest {
   /** Test that headers with data expected is handled appropriately. */
   @Test
   public void testOnHeadersRead_headersStreamContinuing() throws Exception {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(PARAM_PATH_PREFIX + "/group");
 
@@ -271,7 +274,7 @@ public class Http2HandlerTest {
   /** Test that headers with too-large content-length gets a REQUEST_ENTITY_TOO_LARGE response. */
   @Test
   public void testOnHeadersRead_contentLengthTooLarge() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH).addLong(HttpHeaderNames.CONTENT_LENGTH, MAX_PAYLOAD + 10L);
 
@@ -288,7 +291,7 @@ public class Http2HandlerTest {
   /** Test that malformed too-large content-length is ignored. */
   @Test
   public void testOnHeadersRead_contentLengthMalformed() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH).add(HttpHeaderNames.CONTENT_LENGTH, "abc");
 
@@ -302,7 +305,7 @@ public class Http2HandlerTest {
   /** Test that trailer-part headers are handled correctly. */
   @Test
   public void testOnHeadersRead_trailerPart() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Fake the initial request + handler.
     Http2Headers initialHeaders = new DefaultHttp2Headers().method("GET").path(OK_PATH);
@@ -323,7 +326,7 @@ public class Http2HandlerTest {
   /** Test that several data frames will be aggregated into a response. */
   @Test
   public void testOnDataRead_dataAggregated() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request to aggregate data into.
     XrpcRequest fakeRequest = new XrpcRequest((Http2Headers) null, null, null, channel);
@@ -344,7 +347,7 @@ public class Http2HandlerTest {
   /** Test that end-of-stream data frames execute a handler. */
   @Test
   public void testOnDataRead_endOfStreamExecutes() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request and handler.
     XrpcRequest fakeRequest = new XrpcRequest((Http2Headers) null, null, null, channel);
@@ -367,7 +370,7 @@ public class Http2HandlerTest {
   /** Test that getting too much data will return a REQUEST_ENTITY_TOO_LARGE response. */
   @Test
   public void testOnDataRead_payloadTooLarge() {
-    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD);
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request.
     XrpcRequest fakeRequest = new XrpcRequest((Http2Headers) null, null, null, channel);

@@ -31,7 +31,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2EventAdapter;
@@ -65,13 +64,6 @@ public final class Http2Handler extends Http2EventAdapter {
 
   /** Helper for a CORS request. */
   private final Http2CorsHandler corsHandler;
-
-  Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes) {
-    this(
-        encoder,
-        maxPayloadBytes,
-        new Http2CorsHandler(CorsConfigBuilder.forAnyOrigin().disable().build()));
-  }
 
   Http2Handler(Http2ConnectionEncoder encoder, int maxPayloadBytes, Http2CorsHandler corsHandler) {
     this.encoder = encoder;
