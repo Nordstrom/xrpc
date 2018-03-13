@@ -10,7 +10,7 @@ xrpc is published to [jCenter via Bintray](https://bintray.com/nordstromoss/oss_
 
 xrpc uses [travis-ci](https://travis-ci.org/Nordstrom/xrpc) and [gradle-release](https://github.com/researchgate/gradle-release) for publishing jars to Bintray.
 
-In order to make a release, you **must** have write permissions on the xrpc repository in GitHub.
+In order to make a release, you **must** have write permissions to the master branch of the xrpc repository in Github.
 The release process will automatically push commits & the release tag to the repository.
 
 To publish:
