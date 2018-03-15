@@ -53,42 +53,48 @@ public class Http2CorsHandler {
    * @return Optional http1 response for requests that do not need to continue down the pipeline.
    */
   public Optional<HttpResponse> inbound(Http2Headers headers, int streamId) {
-    if (!config.isCorsSupportEnabled()) {
-      return Optional.empty();
-    }
-
-    boolean isPreflight = isPreflight(headers);
-
-    // Save value for use in outbound header generation.
-    this.requestOrigin = headers.get(HttpHeaderNames.ORIGIN).toString();
-
-    HttpResponseStatus status =
-        config.isShortCircuit() && !validateOrigin(requestOrigin)
-            ? HttpResponseStatus.FORBIDDEN
-            : HttpResponseStatus.OK;
-
-    if (!isPreflight && !status.equals(HttpResponseStatus.FORBIDDEN)) {
-      return Optional.empty();
-    }
-
-    HttpMethod requestMethod = requestMethod(headers, isPreflight);
-    Http2Headers responseHeaders = preflightHeaders(requestMethod);
-    responseHeaders.status(status.codeAsText());
-
-    HttpResponse response;
-
     try {
-      // TODO: This gets converted to back to Http2 for status logging, there has to be a better
-      // way.
-      response = HttpConversionUtil.toHttpResponse(streamId, responseHeaders, true);
-    } catch (Http2Exception e) {
-      log.error("Error in handling CORS headers.", e);
+      if (!config.isCorsSupportEnabled()) {
+        return Optional.empty();
+      }
 
-      response =
-          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+      boolean isPreflight = isPreflight(headers);
+
+      // Save value for use in outbound header generation.
+      CharSequence origin = headers.get(HttpHeaderNames.ORIGIN);
+      this.requestOrigin = origin == null ? null : origin.toString();
+
+      HttpResponseStatus status =
+          config.isShortCircuit() && !validateOrigin()
+              ? HttpResponseStatus.FORBIDDEN
+              : HttpResponseStatus.OK;
+
+      if (!isPreflight && !status.equals(HttpResponseStatus.FORBIDDEN)) {
+        return Optional.empty();
+      }
+
+      HttpMethod requestMethod = requestMethod(headers, isPreflight);
+      Http2Headers responseHeaders = preflightHeaders(requestMethod);
+      responseHeaders.status(status.codeAsText());
+
+      HttpResponse response;
+
+      try {
+        // TODO: This gets converted to back to Http2 for status logging, there has to be a better
+        // way.
+        response = HttpConversionUtil.toHttpResponse(streamId, responseHeaders, true);
+      } catch (Http2Exception e) {
+        log.error("Error in handling CORS headers.", e);
+
+        response =
+            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      return Optional.of(response);
+    } catch (Exception e) {
+      log.error("Error handling CORS inbound", e);
+      return Optional.empty();
     }
-
-    return Optional.of(response);
   }
 
   private HttpMethod requestMethod(Http2Headers headers, boolean isPreflight) {
@@ -133,20 +139,20 @@ public class Http2CorsHandler {
   }
 
   /** True if the given origin is allowed based on the CORS configuration. */
-  private boolean validateOrigin(String origin) {
+  private boolean validateOrigin() {
     if (config.isAnyOriginSupported()) {
       return true;
     }
 
-    if (origin == null) {
+    if (requestOrigin == null) {
       return true;
     }
 
-    if ("null".equals(origin) && config.isNullOriginAllowed()) {
+    if (NULL_ORIGIN.equals(requestOrigin) && config.isNullOriginAllowed()) {
       return true;
     }
 
-    return config.origins().contains(origin);
+    return config.origins().contains(requestOrigin);
   }
 
   /**

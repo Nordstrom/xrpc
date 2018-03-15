@@ -111,10 +111,26 @@ public class XrpcRequest implements ResponseFactory {
   }
 
   public ResponseFactory response() {
-    if (responseFactory == null) {
-      responseFactory = () -> XrpcRequest.this;
-    }
-    return responseFactory;
+    return response(false);
+  }
+
+  public ResponseFactory response(boolean pretty) {
+    return new ResponseFactory() {
+      @Override
+      public XrpcRequest request() {
+        return XrpcRequest.this;
+      }
+
+      @Override
+      public boolean pretty() {
+        return pretty;
+      }
+    };
+  }
+
+  @Override
+  public boolean pretty() {
+    return false;
   }
 
   /** Returns the variable with the given name, or null if that variable doesn't exist. */

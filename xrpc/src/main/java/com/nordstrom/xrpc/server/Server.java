@@ -22,8 +22,10 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.util.JsonFormat;
@@ -114,10 +116,15 @@ public class Server implements Routes {
     // This adds support for normal constructor binding.
     // See: https://github.com/FasterXML/jackson-modules-java8/tree/master/parameter-names
     ObjectMapper mapper =
-        new ObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
+        new ObjectMapper()
+            .registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES))
+            .registerModule(new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true));
+    ObjectWriter writer = mapper.writer();
+    ObjectWriter prettyWriter = mapper.writerWithDefaultPrettyPrinter();
 
     // Json encoder for Proto
-    JsonFormat.Printer printer = JsonFormat.printer().omittingInsignificantWhitespace();
+    JsonFormat.Printer prettyPrinter = JsonFormat.printer();
+    JsonFormat.Printer printer = prettyPrinter.omittingInsignificantWhitespace();
 
     // Default instances for protobuf generated classes.
     ProtoDefaultInstances protoDefaultInstances = new ProtoDefaultInstances();
@@ -128,7 +135,7 @@ public class Server implements Routes {
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())
-                    .encoder(new JsonEncoder(mapper, printer))
+                    .encoder(new JsonEncoder(writer, prettyWriter, printer, prettyPrinter))
                     // TODO (AD): For now we won't support text/plain encoding.
                     // Leaving this here as a placeholder.
                     // .encoder(new TextEncoder())

@@ -54,7 +54,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class Http2HandlerTest {
+class Http2HandlerTest {
   private static final int MAX_PAYLOAD = 1024;
   /** Path which has a handler registered. */
   private static final String OK_PATH = "/foo";
@@ -98,14 +98,14 @@ public class Http2HandlerTest {
   @Mock private Http2ConnectionEncoder mockEncoder;
 
   @BeforeEach
-  public void initMocks() {
+  void initMocks() {
     MockitoAnnotations.initMocks(this);
     when(mockEncoder.connection()).thenReturn(mockConnection);
     when(mockContext.channel()).thenReturn(channel);
   }
 
   @BeforeEach
-  public void initContext() {
+  void initContext() {
     XrpcConnectionContext.Builder contextBuilder =
         XrpcConnectionContext.builder().requestMeter(requestMeter);
     Server.addResponseCodeMeters(contextBuilder, metricRegistry);
@@ -185,7 +185,7 @@ public class Http2HandlerTest {
   }
 
   @Test
-  public void getPathFromHeaders_withQueryString() {
+  void getPathFromHeaders_withQueryString() {
     headers.path("/foo/extracted?query1=abc&query2=123");
 
     String path = Http2Handler.getPathFromHeaders(headers);
@@ -194,7 +194,7 @@ public class Http2HandlerTest {
   }
 
   @Test
-  public void getPathFromHeaders_withNoQueryString() {
+  void getPathFromHeaders_withNoQueryString() {
     headers.path("/foo/extracted");
 
     String path = Http2Handler.getPathFromHeaders(headers);
@@ -203,7 +203,7 @@ public class Http2HandlerTest {
   }
 
   @Test
-  public void constructorRegistersListener() {
+  void constructorRegistersListener() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
     verify(mockConnection).addListener(testHandler);
   }
@@ -213,7 +213,7 @@ public class Http2HandlerTest {
    * response.
    */
   @Test
-  public void testOnHeadersRead_softRateLimited() {
+  void testOnHeadersRead_softRateLimited() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     channel.attr(XrpcConstants.XRPC_SOFT_RATE_LIMITED).set(Boolean.TRUE);
@@ -232,7 +232,7 @@ public class Http2HandlerTest {
 
   /** Test that a headers-only request to a good path is handled appropriately. */
   @Test
-  public void testOnHeadersRead_fullRequestGoodPath() {
+  void testOnHeadersRead_fullRequestGoodPath() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH);
@@ -247,7 +247,7 @@ public class Http2HandlerTest {
 
   /** Test that headers with data expected is handled appropriately. */
   @Test
-  public void testOnHeadersRead_headersStreamContinuing() throws Exception {
+  void testOnHeadersRead_headersStreamContinuing() throws Exception {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(PARAM_PATH_PREFIX + "/group");
@@ -270,7 +270,7 @@ public class Http2HandlerTest {
 
   /** Test that headers with too-large content-length gets a REQUEST_ENTITY_TOO_LARGE response. */
   @Test
-  public void testOnHeadersRead_contentLengthTooLarge() {
+  void testOnHeadersRead_contentLengthTooLarge() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH).addLong(HttpHeaderNames.CONTENT_LENGTH, MAX_PAYLOAD + 10L);
@@ -287,7 +287,7 @@ public class Http2HandlerTest {
 
   /** Test that malformed too-large content-length is ignored. */
   @Test
-  public void testOnHeadersRead_contentLengthMalformed() {
+  void testOnHeadersRead_contentLengthMalformed() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     headers.method("GET").path(OK_PATH).add(HttpHeaderNames.CONTENT_LENGTH, "abc");
@@ -301,7 +301,7 @@ public class Http2HandlerTest {
 
   /** Test that trailer-part headers are handled correctly. */
   @Test
-  public void testOnHeadersRead_trailerPart() {
+  void testOnHeadersRead_trailerPart() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Fake the initial request + handler.
@@ -322,7 +322,7 @@ public class Http2HandlerTest {
 
   /** Test that several data frames will be aggregated into a response. */
   @Test
-  public void testOnDataRead_dataAggregated() {
+  void testOnDataRead_dataAggregated() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request to aggregate data into.
@@ -343,7 +343,7 @@ public class Http2HandlerTest {
 
   /** Test that end-of-stream data frames execute a handler. */
   @Test
-  public void testOnDataRead_endOfStreamExecutes() {
+  void testOnDataRead_endOfStreamExecutes() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request and handler.
@@ -366,7 +366,7 @@ public class Http2HandlerTest {
 
   /** Test that getting too much data will return a REQUEST_ENTITY_TOO_LARGE response. */
   @Test
-  public void testOnDataRead_payloadTooLarge() {
+  void testOnDataRead_payloadTooLarge() {
     testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, NO_CORS);
 
     // Create a fake request.
@@ -390,7 +390,7 @@ public class Http2HandlerTest {
 
   /** Test that OPTIONS request short circuit to preflight response. */
   @Test
-  public void testOnHeadersRead_preflightOptionsRequest() {
+  void testOnHeadersRead_preflightOptionsRequest() {
     CorsConfig corsConfig =
         CorsConfigBuilder.forOrigin("test.domain")
             .allowCredentials()
@@ -424,7 +424,27 @@ public class Http2HandlerTest {
 
   /** Test that OPTIONS request short circuit to preflight response. */
   @Test
-  public void testOnHeadersRead_corsShortCircuit() {
+  void testOnHeadersRead_noOrigin() {
+    CorsConfig corsConfig =
+        CorsConfigBuilder.forOrigin("test.domain")
+            .allowCredentials()
+            .allowedRequestMethods(HttpMethod.GET)
+            .build();
+    Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
+
+    testHandler = new Http2Handler(mockEncoder, MAX_PAYLOAD, corsHandler);
+
+    headers.method("GET").path(OK_PATH);
+
+    testHandler.onHeadersRead(mockContext, STREAM_ID, headers, 1, true);
+    assertEquals(1L, requestMeter.getCount());
+
+    verifyResponse(HttpResponseStatus.OK, ImmutableMap.of(), Optional.empty(), STREAM_ID);
+  }
+
+  /** Test that OPTIONS request short circuit to preflight response. */
+  @Test
+  void testOnHeadersRead_corsShortCircuit() {
     CorsConfig corsConfig = CorsConfigBuilder.forOrigin("test.domain").shortCircuit().build();
     Http2CorsHandler corsHandler = new Http2CorsHandler(corsConfig);
 

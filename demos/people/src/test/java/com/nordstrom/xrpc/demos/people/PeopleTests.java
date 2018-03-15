@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 class PeopleTests {
   private Server server;
-  private final OkHttpClient client = UnsafeHttp.unsafeClient();
+  private final OkHttpClient client = UnsafeHttp.unsafeHttp2Client();
 
   @BeforeEach
   void beforeEach() throws IOException {

@@ -22,19 +22,23 @@ class JsonEncoderTest {
   }
 
   private JsonEncoder jsonEncoder =
-      new JsonEncoder(new ObjectMapper(), JsonFormat.printer().omittingInsignificantWhitespace());
+      new JsonEncoder(
+          new ObjectMapper().writer(),
+          new ObjectMapper().writerWithDefaultPrettyPrinter(),
+          JsonFormat.printer().omittingInsignificantWhitespace(),
+          JsonFormat.printer());
 
   @Test
   void testEncodeJsonUtf16() throws IOException {
     assertEquals(
         Unpooled.copiedBuffer("{\"name\":\"foo\"}", Charset.forName("UTF-16")),
-        jsonEncoder.encode(Unpooled.directBuffer(), "utf-16, foo-bar", new Person("foo")));
+        jsonEncoder.encode(Unpooled.directBuffer(), "utf-16, foo-bar", new Person("foo"), false));
   }
 
   @Test
   void testEncodeJsonDefaultCharset() throws IOException {
     assertEquals(
         Unpooled.copiedBuffer("{\"name\":\"foo\"}", Charset.forName("UTF-8")),
-        jsonEncoder.encode(Unpooled.directBuffer(), "baz-bar, foo-bar", new Person("foo")));
+        jsonEncoder.encode(Unpooled.directBuffer(), "baz-bar, foo-bar", new Person("foo"), false));
   }
 }
