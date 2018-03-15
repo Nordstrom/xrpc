@@ -12,7 +12,7 @@ buildscript {
 plugins {
   id 'com.github.sherter.google-java-format' version '0.6'
   id 'net.researchgate.release' version '2.4.0'
-  id 'com.github.spotbugs' version '1.6.0'
+  id 'com.github.spotbugs' version '1.6.1'
   id 'me.champeau.gradle.jmh' version '0.4.4'
 }
 
@@ -26,7 +26,6 @@ release {
 }
 
 apply plugin: 'java'
-apply plugin: 'application'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
@@ -104,8 +103,7 @@ dependencies {
   // alpn agent necessary for http2 testing with okhttp
   agent 'org.mortbay.jetty.alpn:jetty-alpn-agent:2.0.7'
 
-  jmh 'ch.qos.logback:logback-core:1.1.7'
-  jmh 'ch.qos.logback:logback-classic:1.1.7'
+  jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.15'
 }
 
 junitPlatformTest {
@@ -131,7 +129,7 @@ checkstyle {
 }
 
 spotbugs {
-  toolVersion = '3.1.0'
+  toolVersion = '3.1.2'
   ignoreFailures = true
 }
 
@@ -163,6 +161,11 @@ task sourcesJar(type: Jar) {
 
 // Run javadoc as part of the `check` task.
 check.dependsOn(javadoc)
+
+// include: default strategy where the last duplicate file 'wins'.
+jmh {
+  duplicateClassesStrategy = 'include'
+}
 
 def pomExtra = {
   scm {
