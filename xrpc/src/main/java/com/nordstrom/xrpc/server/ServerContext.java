@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Builder(builderClassName = "Builder")
 @Accessors(fluent = true)
 // TODO: (AD) Merge with State
-public class XrpcConnectionContext {
+public class ServerContext {
   @Getter private final Meter requestMeter;
 
   @Singular("meterByStatusCode")

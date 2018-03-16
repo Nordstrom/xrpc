@@ -75,7 +75,7 @@ public final class Http2Handler extends Http2EventAdapter {
 
   /** Marks the meter for the given response status in the given connection context. */
   private void markResponseStatus(ChannelHandlerContext ctx, HttpResponseStatus status) {
-    XrpcConnectionContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
+    ServerContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
     // TODO(jkinkead): Per issue #152, this should track ALL response codes.
     Meter meter = xctx.metersByStatusCode().get(status);
     if (meter != null) {
@@ -192,7 +192,7 @@ public final class Http2Handler extends Http2EventAdapter {
       boolean endOfStream) {
 
     Channel channel = ctx.channel();
-    XrpcConnectionContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
+    ServerContext xctx = channel.attr(XrpcConstants.CONNECTION_CONTEXT).get();
 
     // Check if this is a new stream. This should either be a new stream, or be the set of
     // trailer-headers for a finished request.

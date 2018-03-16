@@ -87,7 +87,7 @@ class Http2HandlerTest {
 
   private Http2Headers headers = new DefaultHttp2Headers();
 
-  private XrpcConnectionContext xrpcContext;
+  private ServerContext xrpcContext;
 
   private Http2Handler testHandler;
 
@@ -106,8 +106,7 @@ class Http2HandlerTest {
 
   @BeforeEach
   void initContext() {
-    XrpcConnectionContext.Builder contextBuilder =
-        XrpcConnectionContext.builder().requestMeter(requestMeter);
+    ServerContext.Builder contextBuilder = ServerContext.builder().requestMeter(requestMeter);
     Server.addResponseCodeMeters(contextBuilder, metricRegistry);
     RouteBuilder routeBuilder = new RouteBuilder();
     routeBuilder
