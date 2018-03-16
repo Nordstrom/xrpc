@@ -92,8 +92,10 @@ public class Http2CorsHandler {
 
       return Optional.of(response);
     } catch (Exception e) {
+      // TODO: (AD) once we've got exception handling in Http2Handler, this can be removed.
       log.error("Error handling CORS inbound", e);
-      return Optional.empty();
+      return Optional.of(
+          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR));
     }
   }
 
