@@ -65,7 +65,7 @@ public class Http2CorsHandler {
       this.requestOrigin = origin == null ? null : origin.toString();
 
       HttpResponseStatus status =
-          config.isShortCircuit() && !validateOrigin()
+          config.isShortCircuit() && !validateOrigin(this.requestOrigin)
               ? HttpResponseStatus.FORBIDDEN
               : HttpResponseStatus.OK;
 
@@ -91,7 +91,7 @@ public class Http2CorsHandler {
       }
 
       return Optional.of(response);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       // TODO: (AD) once we've got exception handling in Http2Handler, this can be removed.
       log.error("Error handling CORS inbound", e);
       return Optional.of(
@@ -141,20 +141,20 @@ public class Http2CorsHandler {
   }
 
   /** True if the given origin is allowed based on the CORS configuration. */
-  private boolean validateOrigin() {
+  private boolean validateOrigin(final String origin) {
     if (config.isAnyOriginSupported()) {
       return true;
     }
 
-    if (requestOrigin == null) {
+    if (origin == null) {
       return true;
     }
 
-    if (NULL_ORIGIN.equals(requestOrigin) && config.isNullOriginAllowed()) {
+    if (NULL_ORIGIN.equals(origin) && config.isNullOriginAllowed()) {
       return true;
     }
 
-    return config.origins().contains(requestOrigin);
+    return config.origins().contains(origin);
   }
 
   /**

@@ -422,7 +422,7 @@ class Http2HandlerTest {
         STREAM_ID);
   }
 
-  /** Test that OPTIONS request short circuit to preflight response. */
+  /** Test that onHeadersRead handles requests with no origin header properly. */
   @Test
   void testOnHeadersRead_noOrigin() {
     CorsConfig corsConfig =

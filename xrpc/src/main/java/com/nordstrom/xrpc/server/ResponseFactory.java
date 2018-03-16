@@ -68,7 +68,6 @@ public interface ResponseFactory {
    * @param status http status
    * @param body body object to be encoded based on Content Negotiation
    * @param <T> type of body object
-   * @return HttpResponse
    * @throws IOException if encoding errors occur
    */
   default <T> HttpResponse createResponse(HttpResponseStatus status, T body) throws IOException {
@@ -85,7 +84,6 @@ public interface ResponseFactory {
    * @param status http status
    * @param body body ByteBuf
    * @param contentType content type of response
-   * @return HttpResponse
    */
   default HttpResponse createResponse(
       HttpResponseStatus status, ByteBuf body, CharSequence contentType) {
@@ -95,11 +93,10 @@ public interface ResponseFactory {
   /**
    * Return http response with status, body, content type, and custom headers.
    *
-   * @param status https status
+   * @param status http status
    * @param body body ByteBuf
    * @param contentType content type of response
    * @param customHeaders if non-null these headers will be added to the response
-   * @return HttpResponse
    */
   default HttpResponse createResponse(
       HttpResponseStatus status,
