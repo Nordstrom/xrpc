@@ -16,16 +16,14 @@
 
 package com.nordstrom.xrpc.server;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.nordstrom.xrpc.server.http.Recipes;
 import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 
-public class AdminHandlers {
+public class AdminHandlers extends RouteBuilder {
   // CHECKSTYLE:OFF
   /**
    * Output metrics reporters in JSON format.
@@ -179,33 +177,24 @@ public class AdminHandlers {
    * }</pre>
    */
   // CHECKSTYLE:ON
-  public static Handler createMetricsHandler() {
-    MetricsModule metrics = new MetricsModule(TimeUnit.SECONDS, TimeUnit.MILLISECONDS, true);
-    // TODO(jkinkead): This should optionally use a custom mapper.
-    ObjectMapper mapper = new ObjectMapper().registerModule(metrics);
-    return xrpcRequest ->
-        Recipes.newResponseOk(
-            xrpcRequest
-                .alloc()
-                .directBuffer()
-                .writeBytes(mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(metrics)),
-            Recipes.ContentType.Application_Json);
+  public static Handler createMetricsHandler(MetricRegistry metrics) {
+    return request -> request.ok(metrics);
   }
 
   /**
    * Simple ping handler, indicating that the service is up. This returns a a returns a `200 OK`
    * with `PONG` body.
    */
-  public static Handler pingHandler = xrpcRequest -> Recipes.newResponseOk("PONG");
+  public static Handler pingHandler = request -> request.ok("PONG");
 
   /** Unimplemented; see https://github.com/Nordstrom/xrpc/issues/52 . */
-  public static Handler infoHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
+  public static Handler infoHandler = request -> request.ok("TODO");
 
   /** Requests a garbage collection from the JVM. */
   public static Handler gcHandler =
-      xrpcRequest -> {
+      request -> {
         Runtime.getRuntime().gc();
-        return Recipes.newResponseOk("OK");
+        return request.ok();
       };
 
   /**
@@ -232,14 +221,9 @@ public class AdminHandlers {
     Preconditions.checkArgument(healthCheckRegistry != null, "healthCheckRegistry may not be null");
     Preconditions.checkArgument(mapper != null, "mapper may not be null");
 
-    return xrpcRequest -> {
+    return request -> {
       SortedMap<String, HealthCheck.Result> healthChecks = healthCheckRegistry.runHealthChecks();
-      return Recipes.newResponseOk(
-          xrpcRequest
-              .alloc()
-              .directBuffer()
-              .writeBytes(mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(healthChecks)),
-          Recipes.ContentType.Application_Json);
+      return request.ok(healthChecks);
     };
   }
 
@@ -247,15 +231,15 @@ public class AdminHandlers {
    * Readiness handler, for use with kubernetes or ELB healthchecks. This returns a `200 OK` with
    * `OK` with `OK` as the body.
    */
-  public static Handler readyHandler = xrpcRequest -> Recipes.newResponseOk("OK");
+  public static Handler readyHandler = request -> request.ok();
 
   /** Unimplemented. */
-  public static Handler restartHandler = xrpcRequest -> Recipes.newResponseOk("TODO");
+  public static Handler restartHandler = request -> request.ok("TODO");
 
   public static Handler createKillHandler(Server server) {
-    return xrpcRequest -> {
+    return request -> {
       server.shutdown();
-      return Recipes.newResponseOk("OK");
+      return request.ok();
     };
   }
 
@@ -272,7 +256,7 @@ public class AdminHandlers {
    * </ul>
    */
   static void registerInfoAdminRoutes(Server server) {
-    server.get("/metrics", createMetricsHandler());
+    server.get("/metrics", createMetricsHandler(server.metricRegistry()));
     // TODO(jkinkead): This should optionally use a custom mapper.
     server.get(
         "/health", createHealthCheckHandler(server.healthCheckRegistry(), new ObjectMapper()));
