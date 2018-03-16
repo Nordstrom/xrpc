@@ -63,7 +63,7 @@ public class Server implements Routes {
   private final Tls tls;
 
   /* Context builder. */
-  private final XrpcConnectionContext.Builder contextBuilder;
+  private final ServerContext.Builder contextBuilder;
 
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
@@ -123,7 +123,7 @@ public class Server implements Routes {
     ProtoDefaultInstances protoDefaultInstances = new ProtoDefaultInstances();
 
     this.contextBuilder =
-        XrpcConnectionContext.builder()
+        ServerContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
             .encoders(
                 Encoders.builder()
@@ -157,10 +157,10 @@ public class Server implements Routes {
     return routeBuilder.iterator();
   }
 
-  /** Adds a meter for all HTTP response codes to the given XrpcConnectionContext. */
+  /** Adds a meter for all HTTP response codes to the given ServerContext. */
   @VisibleForTesting
   static void addResponseCodeMeters(
-      XrpcConnectionContext.Builder contextBuilder, MetricRegistry metricRegistry) {
+      ServerContext.Builder contextBuilder, MetricRegistry metricRegistry) {
     Map<HttpResponseStatus, String> namesByCode = new HashMap<>();
     namesByCode.put(HttpResponseStatus.OK, "ok");
     namesByCode.put(HttpResponseStatus.CREATED, "created");
@@ -222,7 +222,7 @@ public class Server implements Routes {
 
     contextBuilder.routes(routeBuilder.compile(metricRegistry));
 
-    XrpcConnectionContext ctx = contextBuilder.build();
+    ServerContext ctx = contextBuilder.build();
 
     State state =
         State.builder()

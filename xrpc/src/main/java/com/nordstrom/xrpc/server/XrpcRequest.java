@@ -49,7 +49,7 @@ public class XrpcRequest implements ResponseFactory {
   @Getter private final Channel upstreamChannel;
   @Getter private final ByteBufAllocator alloc;
 
-  @Getter private final XrpcConnectionContext connectionContext;
+  @Getter private final ServerContext connectionContext;
 
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
@@ -64,7 +64,7 @@ public class XrpcRequest implements ResponseFactory {
 
   public XrpcRequest(
       FullHttpRequest request,
-      XrpcConnectionContext connectionContext,
+      ServerContext connectionContext,
       Map<String, String> groups,
       Channel channel) {
     this.h1Request = request;
@@ -79,7 +79,7 @@ public class XrpcRequest implements ResponseFactory {
 
   public XrpcRequest(
       Http2Headers headers,
-      XrpcConnectionContext connectionContext,
+      ServerContext connectionContext,
       Map<String, String> groups,
       Channel channel) {
     this.h1Request = null;

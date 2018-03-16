@@ -16,7 +16,7 @@
 
 package com.nordstrom.xrpc;
 
-import com.nordstrom.xrpc.server.XrpcConnectionContext;
+import com.nordstrom.xrpc.server.ServerContext;
 import io.netty.util.AttributeKey;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -26,8 +26,8 @@ public class XrpcConstants {
       AttributeKey.valueOf("XrpcSoftRateLimited");
   public static final AttributeKey<Boolean> XRPC_HARD_RATE_LIMITED =
       AttributeKey.valueOf("XrpcHardRateLimited");
-  public static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
-      AttributeKey.valueOf("XrpcConnectionContext");
+  public static final AttributeKey<ServerContext> CONNECTION_CONTEXT =
+      AttributeKey.valueOf("ServerContext");
   public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
   public static final byte[] PAYLOAD_EXCEEDED_RESPONSE =
       "Request payload too large".getBytes(DEFAULT_CHARSET);

@@ -22,7 +22,7 @@ public class JmhServiceRateLimiterBenchmark {
 
   MetricRegistry metricRegistry = new MetricRegistry();
   XConfig config = new XConfig();
-  XrpcConnectionContext ctx = XrpcConnectionContext.builder().build();
+  ServerContext ctx = ServerContext.builder().build();
   EmbeddedChannel embeddedChannel = new CustomEmbeddedChannel();
   ChannelPipeline cp = embeddedChannel.pipeline();
   ChannelHandler handler = new ServiceRateLimiter(metricRegistry, config, ctx);
