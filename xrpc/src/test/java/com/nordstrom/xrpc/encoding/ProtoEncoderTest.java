@@ -14,7 +14,7 @@ public class ProtoEncoderTest {
 
   @Test
   void testEncode() throws IOException {
-    ByteBuf buf = encoder.encode(Unpooled.directBuffer(), "", dino, false);
+    ByteBuf buf = encoder.encode(Unpooled.directBuffer(), "", dino);
     assertEquals(dino, Dino.parseFrom(bufBytes(buf)));
   }
 

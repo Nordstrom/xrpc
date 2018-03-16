@@ -16,7 +16,7 @@
 
 package com.nordstrom.xrpc.encoding;
 
-import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
@@ -40,10 +40,8 @@ public class JsonEncoder implements Encoder {
   private static final ImmutableSet<String> ALLOWED_CHARSETS =
       ImmutableSet.copyOf(new String[] {"UTF-8", "UTF-16", "UTF-32"});
 
-  private final ObjectWriter pojoJsonWriter;
-  private final ObjectWriter pojoJsonPrettyWriter;
-  private final JsonFormat.Printer protoJsonPrinter;
-  private final JsonFormat.Printer protoJsonPrettyPrinter;
+  private final ObjectMapper mapper;
+  private final JsonFormat.Printer printer;
 
   /** Media type this encoder supports. */
   public CharSequence mediaType() {
@@ -56,27 +54,19 @@ public class JsonEncoder implements Encoder {
    * @param buf target byte buffer for encoding
    * @param acceptCharset Accept-Charset header
    * @param object object to encode
-   * @param pretty if true, write json with pretty formatting
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object, boolean pretty)
-      throws IOException {
+  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     try (OutputStreamWriter writer =
         new OutputStreamWriter(new ByteBufOutputStream(buf), charset(acceptCharset))) {
       if (object instanceof MessageOrBuilder) {
         // Encode object of proto generated Class
-        String json =
-            pretty
-                ? protoJsonPrettyPrinter.print((MessageOrBuilder) object)
-                : protoJsonPrinter.print((MessageOrBuilder) object);
+        String json = printer.print((MessageOrBuilder) object);
         writer.write(json);
-      } else if (pretty) {
-        // Encode POJO pretty
-        pojoJsonPrettyWriter.writeValue(writer, object);
       } else {
         // Encode POJO
-        pojoJsonWriter.writeValue(writer, object);
+        mapper.writeValue(writer, object);
       }
       return buf;
     }

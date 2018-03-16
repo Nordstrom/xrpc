@@ -57,7 +57,7 @@ class EncodingServerTest {
     server.get("/dino", r -> r.ok(dino));
     server.listenAndServe();
     endpoint = server.localEndpoint();
-    client = UnsafeHttp.unsafeHttp2Client();
+    client = UnsafeHttp.unsafeHttp11Client();
   }
 
   @AfterEach

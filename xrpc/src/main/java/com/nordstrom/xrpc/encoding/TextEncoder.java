@@ -45,8 +45,7 @@ public class TextEncoder implements Encoder {
    * @return ByteBuf representing JSON formatted String
    */
   @Override
-  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object, boolean pretty)
-      throws IOException {
+  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     String text =
         (object instanceof Formattable) ? ((TextEncodable) object).encode() : object.toString();
     byte[] bytes = text.getBytes(charset(acceptCharset));

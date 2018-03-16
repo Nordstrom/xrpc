@@ -13,11 +13,22 @@ import okhttp3.Protocol;
 
 /** DO NOT USE OUTSIDE OF TESTING. This class is used to help test HTTP. */
 public class UnsafeHttp {
+  /** Get an https client that is insecure and supports http1.1 protocol. */
   public static OkHttpClient unsafeHttp11Client() {
-    return unsafeHttp2Client(Protocol.HTTP_1_1);
+    return unsafeClient(Protocol.HTTP_1_1);
   }
 
-  public static OkHttpClient unsafeHttp2Client(Protocol... protocols) {
+  /** Get an https client that is insecure and supports http2 protocol. */
+  public static OkHttpClient unsafeHttp2Client() {
+    return unsafeClient(Protocol.HTTP_2, Protocol.HTTP_1_1);
+  }
+
+  /**
+   * Get an https client that is insecure.
+   *
+   * @param protocols variable array of protocols to support. Defaults to http2 and http1.1.
+   */
+  private static OkHttpClient unsafeClient(Protocol... protocols) {
     try {
       X509TrustManager trustManager = unsafeTrustManager();
       final SSLSocketFactory sslSocketFactory = unsafeSslSocketFactory(trustManager);
@@ -28,7 +39,6 @@ public class UnsafeHttp {
               .hostnameVerifier((hostname, session) -> true);
 
       if (protocols.length > 0) {
-        // This defaults to http2, http1.1
         builder.protocols(Arrays.asList(protocols));
       }
       return builder.build();

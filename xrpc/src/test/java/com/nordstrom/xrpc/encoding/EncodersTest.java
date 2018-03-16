@@ -22,16 +22,11 @@ class EncodersTest {
   }
 
   private JsonEncoder jsonEncoder =
-      new JsonEncoder(
-          new ObjectMapper().writer(),
-          new ObjectMapper().writerWithDefaultPrettyPrinter(),
-          JsonFormat.printer().omittingInsignificantWhitespace(),
-          JsonFormat.printer());
+      new JsonEncoder(new ObjectMapper(), JsonFormat.printer().omittingInsignificantWhitespace());
   private Encoder fooBarEncoder =
       new Encoder() {
         @Override
-        public ByteBuf encode(
-            ByteBuf buf, CharSequence acceptCharset, Object object, boolean pretty)
+        public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object)
             throws IOException {
           return null;
         }

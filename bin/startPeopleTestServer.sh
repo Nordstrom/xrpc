@@ -4,7 +4,7 @@ set -e
 
 PORT=8080
 
-./gradlew :demos:people:clean :xrpc:clean :xrpc:compileJava :demos:people:shadowJar && \
+./gradlew :xrpc:compileJava :demos:people:shadowJar && \
 java -ea          \
   $JAVA_OPTS                      \
   -Djava.net.preferIPv4Stack=true \

@@ -42,12 +42,10 @@ public class ProtoEncoder implements Encoder {
    * @param buf target byte buffer for encoding
    * @param acceptCharset Accept-Charset header
    * @param object object to encode
-   * @param pretty write pretty? This is ignored by this encoder
    * @return ByteBuf representing protobuf formatted bytes
    */
   @Override
-  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object, boolean pretty)
-      throws IOException {
+  public ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException {
     if (!(object instanceof MessageLite)) {
       throw new IllegalArgumentException(
           String.format("%s does not extend from MessageLite", object.getClass().getName()));

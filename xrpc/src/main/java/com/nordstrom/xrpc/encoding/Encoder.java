@@ -32,11 +32,9 @@ public interface Encoder extends MediaTypeCodec {
    * @param buf target byte buffer for encoding
    * @param acceptCharset Accept-Charset header
    * @param object object to encode
-   * @param pretty if true, attempt to encode with pretty formatting
    * @return ByteBuf representing encoded object
    */
-  ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object, boolean pretty)
-      throws IOException;
+  ByteBuf encode(ByteBuf buf, CharSequence acceptCharset, Object object) throws IOException;
 
   default Charset charset(CharSequence acceptCharset) {
     String[] charsets = CHARSET_DELIMITER.split(acceptCharset);

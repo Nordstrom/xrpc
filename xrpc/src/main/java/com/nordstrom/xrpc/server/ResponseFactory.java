@@ -19,9 +19,6 @@ public interface ResponseFactory {
   /** Return request associated with this factory. */
   XrpcRequest request();
 
-  /** If true attempt pretty encoding on responses. */
-  boolean pretty();
-
   /** Return 200 OK response with no body. */
   default HttpResponse ok() {
     return createResponse(
@@ -79,9 +76,7 @@ public interface ResponseFactory {
         request().connectionContext().encoders().acceptedEncoder(request().acceptHeader());
     ByteBuf buf = request().byteBuf();
     return createResponse(
-        status,
-        encoder.encode(buf, request().acceptCharsetHeader(), body, pretty()),
-        encoder.mediaType());
+        status, encoder.encode(buf, request().acceptCharsetHeader(), body), encoder.mediaType());
   }
 
   /**

@@ -178,7 +178,7 @@ public class AdminHandlers extends RouteBuilder {
    */
   // CHECKSTYLE:ON
   public static Handler createMetricsHandler(MetricRegistry metrics) {
-    return request -> request.response(true).ok(metrics);
+    return request -> request.ok(metrics);
   }
 
   /**
@@ -223,7 +223,7 @@ public class AdminHandlers extends RouteBuilder {
 
     return request -> {
       SortedMap<String, HealthCheck.Result> healthChecks = healthCheckRegistry.runHealthChecks();
-      return request.response(true).ok(healthChecks);
+      return request.ok(healthChecks);
     };
   }
 
