@@ -28,6 +28,7 @@ import lombok.Singular;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
+/** Contextual data for the server. The same instance of this is used for all channel handlers. */
 @Slf4j
 @Builder(builderClassName = "Builder")
 @Accessors(fluent = true)
