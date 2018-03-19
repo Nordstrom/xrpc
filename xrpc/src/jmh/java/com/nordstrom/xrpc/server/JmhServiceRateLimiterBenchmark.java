@@ -6,8 +6,6 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.embedded.EmbeddedChannel;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -39,20 +37,5 @@ public class JmhServiceRateLimiterBenchmark {
   @BenchmarkMode({Mode.AverageTime, Mode.Throughput})
   public void basicServiceRateLimiter() {
     cp.fireChannelActive();
-  }
-
-  class CustomEmbeddedChannel extends EmbeddedChannel {
-
-    private InetSocketAddress socketAddress;
-
-    public CustomEmbeddedChannel() {
-      super();
-      socketAddress = new InetSocketAddress("localhost", 0);
-    }
-
-    @Override
-    protected SocketAddress remoteAddress0() {
-      return this.socketAddress;
-    }
   }
 }
