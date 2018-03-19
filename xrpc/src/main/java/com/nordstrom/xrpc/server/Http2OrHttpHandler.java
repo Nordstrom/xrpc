@@ -29,15 +29,15 @@ import io.netty.util.AttributeKey;
 
 @ChannelHandler.Sharable
 public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
-  private static final AttributeKey<XrpcConnectionContext> CONNECTION_CONTEXT =
-      AttributeKey.valueOf("XrpcConnectionContext");
+  private static final AttributeKey<ServerContext> CONNECTION_CONTEXT =
+      AttributeKey.valueOf("ServerContext");
   private final UrlRouter router;
-  private final XrpcConnectionContext xctx;
+  private final ServerContext xctx;
   private final CorsConfig corsConfig;
   private final int maxPayloadBytes;
 
   protected Http2OrHttpHandler(
-      UrlRouter router, XrpcConnectionContext xctx, CorsConfig corsConfig, int maxPayloadBytes) {
+      UrlRouter router, ServerContext xctx, CorsConfig corsConfig, int maxPayloadBytes) {
     super(ApplicationProtocolNames.HTTP_1_1);
     this.router = router;
     this.xctx = xctx;
@@ -51,7 +51,12 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       ChannelPipeline cp = ctx.pipeline();
-      cp.addLast("codec", new Http2HandlerBuilder().maxPayloadBytes(maxPayloadBytes).build());
+      cp.addLast(
+          "codec",
+          new Http2HandlerBuilder()
+              .maxPayloadBytes(maxPayloadBytes)
+              .corsHandler(new Http2CorsHandler(corsConfig))
+              .build());
       return;
     }
 

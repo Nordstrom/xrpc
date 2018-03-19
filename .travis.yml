@@ -8,6 +8,8 @@ before_deploy:
   - ./gradlew generatePomFileForXrpcMavenPublication publishToMavenLocal
 deploy:
   - provider: bintray
+    edge:
+      branch: v1.8.47
     skip_cleanup: true
     file: .travis/bintray_descriptor.json
     user: $BINTRAY_USERNAME

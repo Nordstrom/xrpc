@@ -25,18 +25,17 @@ import org.junit.jupiter.api.Test;
 
 class CorsTest {
 
-  private OkHttpClient client;
+  private OkHttpClient http11Client;
+  private OkHttpClient http2Client;
   private Config config;
   private Server server;
   private String endpoint;
 
   @BeforeEach
   void beforeEach() {
-    config =
-        ConfigFactory.load("test.conf")
-            .getConfig("xrpc")
-            .withValue("run_background_health_checks", fromAnyRef(false));
-    client = UnsafeHttp.unsafeClient();
+    config = ConfigFactory.load("test.conf").getConfig("xrpc");
+    http11Client = UnsafeHttp.unsafeHttp11Client();
+    http2Client = UnsafeHttp.unsafeHttp2Client();
   }
 
   @AfterEach
@@ -57,7 +56,9 @@ class CorsTest {
             .method("OPTIONS", null)
             .addHeader("Origin", "foo.bar")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = http11Client.newCall(request).execute();
+    assertEquals(403, response.code());
+    response = http2Client.newCall(request).execute();
     assertEquals(403, response.code());
   }
 
@@ -75,7 +76,10 @@ class CorsTest {
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = http11Client.newCall(request).execute();
+    assertEquals(200, response.code());
+    assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));
+    response = http2Client.newCall(request).execute();
     assertEquals(200, response.code());
     assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));
   }
@@ -95,7 +99,11 @@ class CorsTest {
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = http11Client.newCall(request).execute();
+    assertEquals(200, response.code());
+    assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));
+    assertEquals("hello foo.bar", Objects.requireNonNull(response.body()).string());
+    response = http2Client.newCall(request).execute();
     assertEquals(200, response.code());
     assertEquals("foo.bar", response.header(ACCESS_CONTROL_ALLOW_ORIGIN.toString()));
     assertEquals("hello foo.bar", Objects.requireNonNull(response.body()).string());
@@ -116,7 +124,9 @@ class CorsTest {
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = http11Client.newCall(request).execute();
+    assertEquals("GET", response.header(ACCESS_CONTROL_ALLOW_METHODS.toString()));
+    response = http2Client.newCall(request).execute();
     assertEquals("GET", response.header(ACCESS_CONTROL_ALLOW_METHODS.toString()));
   }
 
@@ -135,7 +145,9 @@ class CorsTest {
             .addHeader("Origin", "foo.bar")
             .addHeader(ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = http11Client.newCall(request).execute();
+    assertEquals("foo-header", response.header(ACCESS_CONTROL_ALLOW_HEADERS.toString()));
+    response = http2Client.newCall(request).execute();
     assertEquals("foo-header", response.header(ACCESS_CONTROL_ALLOW_HEADERS.toString()));
   }
 

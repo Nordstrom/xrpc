@@ -25,7 +25,7 @@ class ExceptionTest {
   @BeforeEach
   void beforeEach() {
     config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    client = UnsafeHttp.unsafeClient();
+    client = UnsafeHttp.unsafeHttp11Client();
   }
 
   @AfterEach
