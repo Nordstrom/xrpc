@@ -22,7 +22,7 @@ import lombok.experimental.Accessors;
 
 /** Base exception for Exceptions that are meant to convert to HTTP Responses. */
 @Accessors(fluent = true)
-public abstract class HttpResponseException extends RuntimeException {
+public class HttpResponseException extends RuntimeException {
   /** HTTP Status Code. */
   @Getter private final int statusCode;
 

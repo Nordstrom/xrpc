@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public interface ResponseFactory {
-  Logger log = LoggerFactory.getLogger(ResponseFactory.class);
+  Logger errorLog = LoggerFactory.getLogger(ExceptionHandler.class);
 
   XrpcRequest request();
 
@@ -58,7 +58,7 @@ public interface ResponseFactory {
     try {
       // TODO (AD): Use configured response content/type and response specific exceptions to default
       // to meaningful responses here
-      log.error("Handled Exception:", exception);
+      errorLog.error("Handled Exception:", exception);
 
       if (exception instanceof HttpResponseException) {
         HttpResponseException responseException = (HttpResponseException) exception;
@@ -68,7 +68,7 @@ public interface ResponseFactory {
       // TODO (AD): Handle other exceptions that can reasonably be converted to HTTP Responses.
       // For example IllegalArgumentException could become HTTP 400 Bad Request
     } catch (Exception e) {
-      log.error("Error Handling Exception:", e);
+      errorLog.error("Error Handling HttpResponseException:", e);
     }
     try {
       // Attempt to return properly encoded response
@@ -76,7 +76,7 @@ public interface ResponseFactory {
           HttpResponseStatus.INTERNAL_SERVER_ERROR,
           new InternalServerErrorException("Internal Server Error").error());
     } catch (Exception e) {
-      log.error("Error Handling Exception:", e);
+      errorLog.error("Error Handling Exception:", e);
     }
     // Properly encoded response failed.  Back to basics.
     return createResponse(
