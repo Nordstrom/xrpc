@@ -71,12 +71,10 @@ public interface ResponseFactory {
 
   default HttpResponse exception(Exception exception) {
     try {
-      // TODO (AD): Use configured response content/type and response specific exceptions to default
-      // to meaningful responses here
-      errorLog.error("Handled Exception:", exception);
-
       if (exception instanceof HttpResponseException) {
         HttpResponseException responseException = (HttpResponseException) exception;
+        errorLog.info("HTTP Response Exception: {}", exception.toString());
+
         return createResponse(
             HttpResponseStatus.valueOf(responseException.statusCode()), responseException.error());
       }
@@ -87,6 +85,7 @@ public interface ResponseFactory {
     }
     try {
       // Attempt to return properly encoded response
+      errorLog.error("Handled Exception:", exception);
       return createResponse(
           HttpResponseStatus.INTERNAL_SERVER_ERROR,
           new InternalServerErrorException("Internal Server Error").error());
