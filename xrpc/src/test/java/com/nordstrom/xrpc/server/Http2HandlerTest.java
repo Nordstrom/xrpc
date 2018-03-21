@@ -115,7 +115,7 @@ class Http2HandlerTest {
     contextBuilder.routes(routeBuilder.compile(metricRegistry));
     xrpcContext = contextBuilder.build();
 
-    channel.attr(XrpcConstants.CONNECTION_CONTEXT).set(xrpcContext);
+    channel.attr(ServerContext.ATTRIBUTE_KEY).set(xrpcContext);
   }
 
   /** Helper which verifies that no response was written to the mock encoder. */

@@ -36,7 +36,7 @@ public class UrlRouter extends ChannelDuplexHandler {
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-    ServerContext xctx = ctx.channel().attr(XrpcConstants.CONNECTION_CONTEXT).get();
+    ServerContext xctx = ctx.channel().attr(ServerContext.ATTRIBUTE_KEY).get();
     xctx.requestMeter().mark();
 
     if (ctx.channel().hasAttr(XrpcConstants.XRPC_SOFT_RATE_LIMITED)) {

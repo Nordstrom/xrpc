@@ -21,17 +21,21 @@ import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.AttributeKey;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
+/** Contextual data for the server. The same instance of this is used for all channel handlers. */
 @Slf4j
 @Builder(builderClassName = "Builder")
 @Accessors(fluent = true)
 // TODO: (AD) Merge with State
 public class ServerContext {
+  public static final AttributeKey<ServerContext> ATTRIBUTE_KEY =
+      AttributeKey.valueOf("ServerContext");
   @Getter private final Meter requestMeter;
 
   @Singular("meterByStatusCode")
