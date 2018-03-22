@@ -3,7 +3,10 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.encoding.Encoder;
+import com.nordstrom.xrpc.exceptions.HttpResponseException;
+import com.nordstrom.xrpc.exceptions.InternalServerErrorException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -14,8 +17,12 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import java.io.IOException;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface ResponseFactory {
+  Logger errorLog = LoggerFactory.getLogger(ExceptionHandler.class);
+
   /** Return request associated with this factory. */
   XrpcRequest request();
 
@@ -60,6 +67,36 @@ public interface ResponseFactory {
    */
   default <T> HttpResponse internalServerError(T body) throws IOException {
     return createResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR, body);
+  }
+
+  default HttpResponse exception(Exception exception) {
+    try {
+      if (exception instanceof HttpResponseException) {
+        HttpResponseException responseException = (HttpResponseException) exception;
+        errorLog.info("HTTP Response Exception: {}", exception.toString());
+
+        return createResponse(
+            HttpResponseStatus.valueOf(responseException.statusCode()), responseException.error());
+      }
+      // TODO (AD): Handle other exceptions that can reasonably be converted to HTTP Responses.
+      // For example IllegalArgumentException could become HTTP 400 Bad Request
+    } catch (Exception e) {
+      errorLog.error("Error Handling HttpResponseException:", e);
+    }
+    try {
+      // Attempt to return properly encoded response
+      errorLog.error("Handled Exception:", exception);
+      return createResponse(
+          HttpResponseStatus.INTERNAL_SERVER_ERROR,
+          new InternalServerErrorException("Internal Server Error").error());
+    } catch (Exception e) {
+      errorLog.error("Error Handling Exception:", e);
+    }
+    // Properly encoded response failed.  Back to basics.
+    return createResponse(
+        HttpResponseStatus.INTERNAL_SERVER_ERROR,
+        Unpooled.wrappedBuffer(XrpcConstants.INTERNAL_SERVER_ERROR_RESPONSE),
+        request().connectionContext().encoders().defaultValue().mediaType());
   }
 
   /**

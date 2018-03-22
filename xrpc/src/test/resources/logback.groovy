@@ -1,16 +1,20 @@
 import ch.qos.logback.classic.filter.ThresholdFilter
 
 appender("CONSOLE", ConsoleAppender) {
-    withJansi = true
+  withJansi = true
 
-    filter(ThresholdFilter) {
-        level = DEBUG
-    }
-
-    encoder(PatternLayoutEncoder) {
-        pattern = "%-4relative [%thread] %-5level %logger{30} - %msg%n"
-        outputPatternAsHeader = false
-    }
+  filter(ThresholdFilter) {
+    level = DEBUG
+  }
+  encoder(PatternLayoutEncoder) {
+    pattern = "%-4relative [%thread] %-5level %logger{30} - %msg%n"
+    outputPatternAsHeader = false
+  }
 }
 
-root(INFO, ["CONSOLE"])
+if (System.getenv("DEBUG") != null) {
+  root(DEBUG, ["CONSOLE"])
+} else {
+  logger("com.nordstrom.xrpc.server.ResponseFactory", OFF)
+  root(WARN, ["CONSOLE"])
+}
