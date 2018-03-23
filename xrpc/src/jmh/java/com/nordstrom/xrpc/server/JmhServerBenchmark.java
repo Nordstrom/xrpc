@@ -13,10 +13,6 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @org.openjdk.jmh.annotations.State(Scope.Thread)
 public class JmhServerBenchmark {
@@ -27,7 +23,7 @@ public class JmhServerBenchmark {
 
   MetricRegistry metricRegistry = new MetricRegistry();
   XConfig config = new XConfig();
-  XrpcConnectionContext ctx = XrpcConnectionContext.builder().build();
+  ServerContext ctx = ServerContext.builder().build();
 
   private final com.nordstrom.xrpc.server.State state =
       com.nordstrom.xrpc.server.State.builder()
@@ -56,14 +52,5 @@ public class JmhServerBenchmark {
   @Benchmark
   public void benchmark() {
     cp.fireChannelActive();
-  }
-
-  public static void main(String[] args) throws RunnerException {
-    Options options =
-        new OptionsBuilder()
-            .include(".*" + JmhServerBenchmark.class.getSimpleName() + ".*")
-            .forks(0)
-            .build();
-    new Runner(options).run();
   }
 }
