@@ -1,0 +1,61 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.3'
+  }
+}
+
+plugins {
+  id 'com.github.sherter.google-java-format' version '0.6'
+  id 'net.researchgate.release' version '2.4.0'
+}
+
+release {
+  preTagCommitMessage = 'Updating to release version '
+  tagCommitMessage = 'New release: '
+  newVersionCommitMessage = 'Creating new SNAPSHOT version '
+  git {
+    pushToRemote = 'upstream'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.google.protobuf'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'checkstyle'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+checkstyle {
+  toolVersion = '8.3'
+}
+
+test {
+  useJUnitPlatform()
+}
+
+dependencies {
+  compile 'com.google.guava:guava:21.0'
+  compile 'com.google.protobuf:protobuf-java:3.0.0'
+  compile 'com.google.protobuf:protobuf-java-util:3.0.0'
+  compile 'org.projectlombok:lombok:1.16.20'
+  compile 'org.slf4j:slf4j-api:1.7.25'
+  compile 'com.salesforce.servicelibs:jprotoc:0.8.0'
+  testCompile 'org.hamcrest:java-hamcrest:2.0.0.0'
+  testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+  runtimeOnly 'ch.qos.logback:logback-classic:1.1.7'
+  runtimeOnly 'ch.qos.logback:logback-core:1.1.7'
+  runtimeOnly 'org.codehaus.groovy:groovy-all:2.4.1'
+}
