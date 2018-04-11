@@ -13,7 +13,7 @@ import com.google.protobuf.DescriptorProtos.SourceCodeInfo.Location;
 import java.util.List;
 import lombok.val;
 
-public class ServicesBuilder {
+public class ModelBuilder {
   private static final int METHOD_NUMBER_OF_PATHS = 4;
   private static final String CLASS_PREFIX = "";
   private static final String CLASS_SUFFIX = "";
@@ -22,7 +22,7 @@ public class ServicesBuilder {
 
   private final ProtoTypeMap typeMap;
 
-  public ServicesBuilder(ProtoTypeMap typeMap) {
+  public ModelBuilder(ProtoTypeMap typeMap) {
     this.typeMap = typeMap;
   }
 
@@ -66,7 +66,7 @@ public class ServicesBuilder {
         .className(String.format("%s%s%s", CLASS_PREFIX, serviceProto.getName(), CLASS_SUFFIX))
         .serviceName(serviceProto.getName())
         .deprecated(serviceProto.getOptions() != null && serviceProto.getOptions().getDeprecated())
-        .javaDoc(getJavaDoc(getComments(serviceLocation)))
+        .comments(getJavaDoc(getComments(serviceLocation)))
         .protoName(fileProto.getName())
         .packageName(packageName)
         .methods(methods)
@@ -86,7 +86,7 @@ public class ServicesBuilder {
         .outputType(typeMap.toJavaTypeName(methodProto.getOutputType()))
         .deprecated(methodProto.getOptions() != null && methodProto.getOptions().getDeprecated())
         .methodNumber(methodNumber)
-        .javaDoc(getJavaDoc(methodLocation))
+        .comments(getJavaDoc(methodLocation))
         .build();
   }
 

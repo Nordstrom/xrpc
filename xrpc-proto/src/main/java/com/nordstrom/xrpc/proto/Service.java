@@ -17,7 +17,7 @@ class Service {
   String className;
   String serviceName;
   boolean deprecated;
-  String[] javaDoc;
+  String[] comments;
   @Singular ImmutableList<Method> methods;
 
   public String absoluteFileName() {

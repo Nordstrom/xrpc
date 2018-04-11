@@ -1,0 +1,3 @@
+/Users/a50r/dev/src/github.com/andyday/xrpc/compiler/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/a50r/dev/src/github.com/andyday/xrpc/compiler/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/a50r/dev/src/github.com/andyday/xrpc/compiler/cmake-build-debug/CMakeFiles/compiler.dir

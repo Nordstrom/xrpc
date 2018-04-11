@@ -15,7 +15,7 @@ class Method {
   String outputType;
   boolean deprecated;
   int methodNumber;
-  String[] javaDoc;
+  String[] comments;
 
   // This method mimics the upper-casing method ogf gRPC to ensure compatibility
   // See

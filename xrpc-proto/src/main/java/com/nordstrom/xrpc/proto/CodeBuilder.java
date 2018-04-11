@@ -2,7 +2,7 @@ package com.nordstrom.xrpc.proto;
 
 import java.util.Arrays;
 
-public class ServiceCodeBuilder {
+public class CodeBuilder {
   private static final String NL = System.getProperty("line.separator");
 
   private static final String I1 = NL + "  ";
@@ -22,7 +22,7 @@ public class ServiceCodeBuilder {
         .append("import com.nordstrom.xrpc.server.Service;");
 
     // Append interface java doc if it exists
-    buildJavaDoc(service.javaDoc(), NL);
+    buildJavaDoc(service.comments(), NL);
 
     // Append interface definition for service
     builder
@@ -73,7 +73,7 @@ public class ServiceCodeBuilder {
 
   private void buildMethod(Method method) {
     // Append method java doc if it exists
-    buildJavaDoc(method.javaDoc(), I1);
+    buildJavaDoc(method.comments(), I1);
 
     // Append method definition
     builder

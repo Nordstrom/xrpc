@@ -6,16 +6,14 @@ import static java.util.stream.Collectors.toList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
-import com.google.protobuf.compiler.PluginProtos;
 import com.google.protobuf.compiler.PluginProtos.CodeGeneratorRequest;
 import com.google.protobuf.compiler.PluginProtos.CodeGeneratorResponse;
+import com.google.protobuf.compiler.PluginProtos.CodeGeneratorResponse.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import lombok.val;
 
-public class ProtoServerGenerator {
+public class ProtoPlugin {
 
   public static void main(String[] args) {
     try {
@@ -23,12 +21,8 @@ public class ProtoServerGenerator {
       byte[] generatorRequestBytes = ByteStreams.toByteArray(System.in);
       val request = CodeGeneratorRequest.parseFrom(generatorRequestBytes);
 
-      val generator = new ProtoServerGenerator();
-      List<PluginProtos.CodeGeneratorResponse.File> outputFiles = generator.generate(request);
-
-      // Send the files back to protoc
-      PluginProtos.CodeGeneratorResponse response =
-          CodeGeneratorResponse.newBuilder().addAllFile(outputFiles).build();
+      val generator = new ProtoPlugin();
+      CodeGeneratorResponse response = generator.generateResponse(request);
       response.writeTo(System.out);
 
     } catch (Exception ex) {
@@ -47,7 +41,14 @@ public class ProtoServerGenerator {
     System.exit(1);
   }
 
-  public List<CodeGeneratorResponse.File> generate(CodeGeneratorRequest request) {
+  public CodeGeneratorResponse generateResponse(CodeGeneratorRequest request) {
+    List<File> outputFiles = generateFiles(request);
+
+    // Send the files back to protoc
+    return CodeGeneratorResponse.newBuilder().addAllFile(outputFiles).build();
+  }
+
+  public List<CodeGeneratorResponse.File> generateFiles(CodeGeneratorRequest request) {
     final ProtoTypeMap typeMap = ProtoTypeMap.of(request.getProtoFileList());
 
     ImmutableList<FileDescriptorProto> protosToGenerate =
@@ -57,15 +58,9 @@ public class ProtoServerGenerator {
             .filter(protoFile -> request.getFileToGenerateList().contains(protoFile.getName()))
             .collect(collectingAndThen(toList(), ImmutableList::copyOf));
 
-    val servicesBuilder = new ServicesBuilder(typeMap);
+    val servicesBuilder = new ModelBuilder(typeMap);
     val services = servicesBuilder.buildServices(protosToGenerate);
     return generateFiles(services);
-  }
-
-  private List<Service> loadServices(Stream<FileDescriptorProto> protos, ProtoTypeMap typeMap) {
-    List<Service> contexts = new ArrayList<>();
-
-    return contexts;
   }
 
   private List<CodeGeneratorResponse.File> generateFiles(List<Service> services) {
@@ -73,7 +68,7 @@ public class ProtoServerGenerator {
   }
 
   private CodeGeneratorResponse.File buildFile(Service service) {
-    val builder = new ServiceCodeBuilder();
+    val builder = new CodeBuilder();
     val content = builder.buildService(service);
     return CodeGeneratorResponse.File.newBuilder()
         .setName(service.absoluteFileName())
