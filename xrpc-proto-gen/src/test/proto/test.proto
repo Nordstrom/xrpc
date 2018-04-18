@@ -1,0 +1,45 @@
+// A simple service definition for testing the protoc plugin.
+syntax = "proto3";
+
+package xrpc.testing;
+
+option java_package = "com.nordstrom.xrpc.testing.integration";
+
+message SimpleRequest {
+}
+
+message SimpleResponse {
+}
+
+
+// A simple service.
+service SimpleService {
+  // One request followed by one response.
+  // The server returns the client payload as-is.
+  rpc SimpleCall(SimpleRequest) returns (SimpleResponse);
+}
+
+message ComplexRequest {
+}
+
+message ComplexResponse {
+}
+
+message DifferentRequest {
+}
+
+message DifferentResponse {
+}
+
+// A complex service.
+service ComplexService {
+  // Do something
+  rpc DoSomething(ComplexRequest) returns (ComplexResponse);
+
+  // Do something else
+  rpc DoSomethingElse(ComplexRequest) returns (ComplexResponse);
+
+  // Do something different.
+  // uses different messages.
+  rpc DoSomethingCompletelyDifferent(DifferentRequest) returns (DifferentResponse);
+}

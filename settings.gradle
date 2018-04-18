@@ -1,5 +1,5 @@
 include 'xrpc'
-include 'compiler'
+include 'xrpc-proto-gen'
 include 'xrpc-testing'
 include 'demos:dino'
 include 'demos:people'

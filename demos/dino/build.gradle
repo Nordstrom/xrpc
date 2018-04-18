@@ -64,12 +64,6 @@ protobuf {
   protoc {
     artifact = 'com.google.protobuf:protoc:3.0.0'
   }
-
-  generateProtoTasks {
-    ofSourceSet('main')*.plugins {
-      xrpc {}
-    }
-  }
 }
 
 shadowJar {

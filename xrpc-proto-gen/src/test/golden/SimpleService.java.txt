@@ -1,0 +1,45 @@
+package com.nordstrom.xrpc.testing.integration;
+
+import static com.nordstrom.xrpc.testing.integration.Test.SimpleRequest;
+import static com.nordstrom.xrpc.testing.integration.Test.SimpleResponse;
+
+import com.nordstrom.xrpc.server.RouteBuilder;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Service;
+import javax.annotation.Generated;
+
+/**
+ * <pre>
+ * A simple service.
+ * </pre>
+ */
+@Generated(
+    value = "by xRPC proto compiler",
+    comments = "Source: test.proto")
+public interface SimpleServiceXrpc extends Service {
+
+  // Interface methods that strictly reflect the proto.
+
+  /**
+   * <pre>
+   * One request followed by one response.
+   * The server returns the client payload as-is.
+   * </pre>
+   */
+  SimpleResponse simpleCall(SimpleRequest input);
+
+
+  /** Get defined routes for this service. */
+  @Override
+  default Routes routes() {
+    RouteBuilder routes = new RouteBuilder();
+
+    routes.post("/SimpleService/SimpleCall", request -> {
+      SimpleRequest input = request.body(SimpleRequest.class);
+      SimpleResponse output = simpleCall(input);
+      return request.ok(output);
+    });
+
+    return routes;
+  }
+}

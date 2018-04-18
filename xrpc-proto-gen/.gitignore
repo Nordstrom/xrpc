@@ -1,0 +1,4 @@
+/cmake-build-debug/
+/CMakeLists.txt  # used by CLion
+/.gradle/
+/.idea/
