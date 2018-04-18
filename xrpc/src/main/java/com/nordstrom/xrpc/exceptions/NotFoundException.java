@@ -26,7 +26,7 @@ public class NotFoundException extends HttpResponseException {
    *
    * @param message Error message
    */
-  protected NotFoundException(String message) {
+  public NotFoundException(String message) {
     super(STATUS_CODE, ERROR_CODE, message);
   }
 
