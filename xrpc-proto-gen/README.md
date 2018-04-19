@@ -4,6 +4,50 @@ xRPC Java Codegen Plugin for Protobuf Compiler
 This generates the Java interfaces out of the service definition from a
 `.proto` file. It works with the Protobuf Compiler (``protoc``).
 
+## Codegen Semantics
+For the following protobuf definition:
+
+```protobuf
+syntax = "proto3";
+
+package somepackage;
+
+option java_package = "com.nordstrom.somepackage";
+
+message SomeRequest {
+}
+
+message SomeResponse {
+}
+
+
+service SomeService {
+  rpc SomeMethod(SomeRequest) returns (SomeResponse);
+}
+
+```
+
+It produces the following java interface:
+```java
+package com.nordstrom.somepackage;
+
+public interface SomeServiceXrpc implements Service {
+  
+  SomeResponse someMethod(SomeRequest input);
+  
+  default Routes routes() {
+    
+    RouteBuilder routes = new RouteBuilder();
+    
+    routes.post("/SomeService/SomeMethod", request -> {
+      SomeRequest input = request.body(SomeRequest.class);
+      SomeResponse output = someMethod(input);
+      return request.ok(output);
+    }
+  }
+}      
+```
+
 ## System requirement
 
 * Linux, Mac OS X with Clang, or Windows with MSYS2
