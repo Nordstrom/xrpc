@@ -1,6 +1,6 @@
 # This is used to build all xrpc projects.  It is broken down into parts strategically to take
 # advantage of docker cache.
-FROM java-protoc
+FROM nordstrom/java-protoc
 
 WORKDIR /build
 
