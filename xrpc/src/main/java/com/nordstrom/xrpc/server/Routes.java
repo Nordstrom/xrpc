@@ -160,4 +160,8 @@ public interface Routes extends Iterable<Route> {
     }
     return this;
   }
+
+  default Routes addService(Service service) {
+    return addRoutes(service.routes());
+  }
 }

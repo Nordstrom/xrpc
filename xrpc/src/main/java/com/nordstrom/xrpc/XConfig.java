@@ -82,6 +82,8 @@ public class XConfig {
 
   private final CorsConfig corsConfig;
 
+  // DUMMY LINE
+
   /**
    * Construct a config object using the default configuration values <a
    * href="https://github.com/Nordstrom/xrpc/blob/master/src/main/resources/com/nordstrom/xrpc/xrpc.conf">here</a>.

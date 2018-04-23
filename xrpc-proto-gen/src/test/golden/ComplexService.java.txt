@@ -1,0 +1,73 @@
+package com.nordstrom.xrpc.testing.integration;
+
+import static com.nordstrom.xrpc.testing.integration.Test.ComplexRequest;
+import static com.nordstrom.xrpc.testing.integration.Test.ComplexResponse;
+import static com.nordstrom.xrpc.testing.integration.Test.DifferentRequest;
+import static com.nordstrom.xrpc.testing.integration.Test.DifferentResponse;
+
+import com.nordstrom.xrpc.server.RouteBuilder;
+import com.nordstrom.xrpc.server.Routes;
+import com.nordstrom.xrpc.server.Service;
+import javax.annotation.Generated;
+
+/**
+ * <pre>
+ * A complex service.
+ * </pre>
+ */
+@Generated(
+    value = "by xRPC proto compiler",
+    comments = "Source: test.proto")
+public interface ComplexServiceXrpc extends Service {
+
+  // Interface methods that strictly reflect the proto.
+
+  /**
+   * <pre>
+   * Do something
+   * </pre>
+   */
+  ComplexResponse doSomething(ComplexRequest input);
+
+  /**
+   * <pre>
+   * Do something else
+   * </pre>
+   */
+  ComplexResponse doSomethingElse(ComplexRequest input);
+
+  /**
+   * <pre>
+   * Do something different.
+   * uses different messages.
+   * </pre>
+   */
+  DifferentResponse doSomethingCompletelyDifferent(DifferentRequest input);
+
+
+  /** Get defined routes for this service. */
+  @Override
+  default Routes routes() {
+    RouteBuilder routes = new RouteBuilder();
+
+    routes.post("/ComplexService/DoSomething", request -> {
+      ComplexRequest input = request.body(ComplexRequest.class);
+      ComplexResponse output = doSomething(input);
+      return request.ok(output);
+    });
+
+    routes.post("/ComplexService/DoSomethingElse", request -> {
+      ComplexRequest input = request.body(ComplexRequest.class);
+      ComplexResponse output = doSomethingElse(input);
+      return request.ok(output);
+    });
+
+    routes.post("/ComplexService/DoSomethingCompletelyDifferent", request -> {
+      DifferentRequest input = request.body(DifferentRequest.class);
+      DifferentResponse output = doSomethingCompletelyDifferent(input);
+      return request.ok(output);
+    });
+
+    return routes;
+  }
+}
