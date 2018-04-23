@@ -1,7 +1,11 @@
 language: java
+sudo: required
 install: true
+services:
+  - docker
+
 script:
-  - ./gradlew clean check
+  - docker build -t xrpc .
 before_deploy:
   - sed -i 's/VERSION_NUMBER/'$(./gradlew xrpc:properties | grep "version:" | awk '{print $2}')'/g' .travis/bintray_descriptor.json
   - sed -i 's/RELEASE_DATE/'$(date +%Y-%m-%d)'/g' .travis/bintray_descriptor.json

@@ -1,0 +1,11 @@
+*.md
+LICENSE
+*.iml
+/.gradle/
+/.idea/
+build
+out
+.gitignore
+.editorconfig
+Dockerfile
+.dockerignore

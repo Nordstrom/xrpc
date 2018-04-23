@@ -4,7 +4,7 @@ apply plugin: "com.google.osdetector"
 apply plugin: "java"
 apply plugin: "maven"
 
-description = 'The protoc plugin for gRPC Java'
+description = 'The protoc plugin for xRPC Java'
 
 buildscript {
   repositories {

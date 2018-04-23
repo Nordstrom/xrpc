@@ -1,6 +1,6 @@
+include 'xrpc-testing'
 include 'xrpc'
 include 'xrpc-proto-gen'
-include 'xrpc-testing'
 include 'demos:dino'
 include 'demos:people'
 include 'demos:request-response-pipeline'
