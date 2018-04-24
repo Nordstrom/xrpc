@@ -160,4 +160,14 @@ public interface Routes extends Iterable<Route> {
     }
     return this;
   }
+
+  /**
+   * Adds all routes from a Service to this route collection.
+   *
+   * @param service add routes from this Service
+   * @return this builder
+   */
+  default Routes addService(Service service) {
+    return addRoutes(service.routes());
+  }
 }
