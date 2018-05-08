@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.nordstrom.xrpc.encoding.dino.proto.Dino;
 import com.nordstrom.xrpc.server.Server;
-import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.xjeffrose.xio.test.OkHttpUnsafe;
 import java.beans.ConstructorProperties;
 import java.io.IOException;
 import lombok.Getter;
@@ -37,7 +37,7 @@ class EncodingServerTest {
   private Dino dino;
 
   @BeforeEach
-  void beforeEach() throws IOException {
+  void beforeEach() throws Exception {
     server = new Server(config);
     server.post(
         "/person",
@@ -57,7 +57,7 @@ class EncodingServerTest {
     server.get("/dino", r -> r.ok(dino));
     server.listenAndServe();
     endpoint = server.localEndpoint();
-    client = UnsafeHttp.unsafeHttp11Client();
+    client = OkHttpUnsafe.getUnsafeClient();
   }
 
   @AfterEach

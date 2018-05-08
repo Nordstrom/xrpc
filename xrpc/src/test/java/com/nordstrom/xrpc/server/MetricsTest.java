@@ -20,12 +20,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.xjeffrose.xio.test.OkHttpUnsafe;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -41,13 +42,13 @@ class MetricsTest {
   private String endpoint;
 
   @BeforeEach
-  void beforeEach() throws IOException {
+  void beforeEach() throws Exception {
     config = ConfigFactory.load("test.conf");
     server = new Server(config.getConfig("xrpc"));
     server.listenAndServe();
     endpoint = server.localEndpoint();
-    h11client = UnsafeHttp.unsafeHttp11Client();
-    h2client = UnsafeHttp.unsafeHttp2Client();
+    h11client = OkHttpUnsafe.getUnsafeClient();
+    h2client = OkHttpUnsafe.getUnsafeClient(Protocol.HTTP_2, Protocol.HTTP_1_1);
   }
 
   @AfterEach

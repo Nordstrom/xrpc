@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.nordstrom.xrpc.exceptions.proto.Error;
 import com.nordstrom.xrpc.server.Server;
-import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
+import com.xjeffrose.xio.test.OkHttpUnsafe;
 import java.io.IOException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -23,9 +23,9 @@ class ExceptionTest {
   private String endpoint;
 
   @BeforeEach
-  void beforeEach() {
+  void beforeEach() throws Exception {
     config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    client = UnsafeHttp.unsafeHttp11Client();
+    client = OkHttpUnsafe.getUnsafeClient();
   }
 
   @AfterEach

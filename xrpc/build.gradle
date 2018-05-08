@@ -88,7 +88,7 @@ dependencies {
   compile 'io.netty:netty-transport-native-kqueue:4.1.19.Final'
   compile 'org.projectlombok:lombok:1.16.20'
   compile 'org.slf4j:slf4j-api:1.7.25'
-  testCompile project(':xrpc-testing')
+  testCompile 'com.xjeffrose:xio-test:0.13.5'
   testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
   testCompile 'org.apiguardian:apiguardian-api:1.0.0'
   testCompile 'org.mockito:mockito-core:2.13.0'
