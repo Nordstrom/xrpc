@@ -3,7 +3,7 @@ package com.nordstrom.xrpc.demos.people;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.nordstrom.xrpc.server.Server;
-import com.nordstrom.xrpc.testing.UnsafeHttp;
+import com.xjeffrose.xio.test.OkHttpUnsafe;
 import java.io.IOException;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -16,13 +16,14 @@ import org.junit.jupiter.api.Test;
 
 class PeopleTests {
   private Server server;
-  private final OkHttpClient client = UnsafeHttp.unsafeHttp2Client();
+  private OkHttpClient client;
 
   @BeforeEach
-  void beforeEach() throws IOException {
+  void beforeEach() throws Exception {
     server = new Server(0);
     Application.configure(server);
     server.listenAndServe();
+    client = OkHttpUnsafe.getUnsafeClient();
   }
 
   @AfterEach

@@ -10,13 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import com.nordstrom.xrpc.server.http.Recipes;
-import com.nordstrom.xrpc.testing.UnsafeHttp;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
+import com.xjeffrose.xio.test.OkHttpUnsafe;
 import java.io.IOException;
 import java.util.Objects;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -32,10 +33,10 @@ class CorsTest {
   private String endpoint;
 
   @BeforeEach
-  void beforeEach() {
+  void beforeEach() throws Exception {
     config = ConfigFactory.load("test.conf").getConfig("xrpc");
-    http11Client = UnsafeHttp.unsafeHttp11Client();
-    http2Client = UnsafeHttp.unsafeHttp2Client();
+    http11Client = OkHttpUnsafe.getUnsafeClient();
+    http2Client = OkHttpUnsafe.getUnsafeClient(Protocol.HTTP_2, Protocol.HTTP_1_1);
   }
 
   @AfterEach

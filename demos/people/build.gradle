@@ -46,7 +46,7 @@ dependencies {
   compile 'io.netty:netty-all:4.1.19.Final'
   compile 'org.projectlombok:lombok:1.16.16'
   compile 'org.slf4j:slf4j-api:1.7.25'
-  testCompile project(':xrpc-testing')
+  testCompile 'com.xjeffrose:xio-test:0.13.5'
   testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
   testCompile 'org.apiguardian:apiguardian-api:1.0.0'
   testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.0.1'
