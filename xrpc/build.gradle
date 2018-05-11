@@ -61,8 +61,7 @@ tasks.withType(JavaCompile) {
     '--add-exports',
     'java.base/sun.security.validator=ALL-UNNAMED',
     '--add-exports',
-    'java.base/sun.security.provider.certpath=ALL-UNNAMED',
-    '-Werror']
+    'java.base/sun.security.provider.certpath=ALL-UNNAMED']
   options.fork = true
   options.forkOptions.executable = 'javac'
 }
