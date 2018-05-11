@@ -97,7 +97,8 @@ dependencies {
   compile 'io.netty:netty-tcnative-boringssl-static:2.0.7.Final'
   compile 'io.netty:netty-transport-native-epoll:4.1.19.Final'
   compile 'io.netty:netty-transport-native-kqueue:4.1.19.Final'
-  compile 'org.projectlombok:lombok:1.16.20'
+//  compile 'org.projectlombok:lombok:1.16.20'
+  compile files('libs/lombock-edge.jar'
   compile 'org.slf4j:slf4j-api:1.7.25'
   testCompile 'com.xjeffrose:xio-test:0.13.5'
   testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
@@ -115,6 +116,8 @@ dependencies {
   agent 'org.mortbay.jetty.alpn:jetty-alpn-agent:2.0.7'
 
   jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.15'
+
+
 }
 
 junitPlatformTest {
