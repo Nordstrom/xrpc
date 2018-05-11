@@ -44,6 +44,7 @@ targetCompatibility = 1.10
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
   options.compilerArgs += [
+    '-Werror',
     '-XDignore.symbol.file',
     '-Xlint:all',
     '-Xlint:cast',
@@ -64,7 +65,8 @@ tasks.withType(JavaCompile) {
     'java.base/sun.security.validator=ALL-UNNAMED',
     '--add-exports',
     'java.base/sun.security.provider.certpath=ALL-UNNAMED',
-    '-Werror']
+    ]
+
   options.fork = true
   options.forkOptions.executable = 'javac'
 }
