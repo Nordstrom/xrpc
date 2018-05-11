@@ -46,6 +46,7 @@ tasks.withType(JavaCompile) {
   options.compilerArgs += [
     '-XDignore.symbol.file',
     '-Xlint:all',
+    '-Xlint:cast',
     '-Xlint:-deprecation',
     '-Xlint:-unchecked',
     '-Xlint:-rawtypes',
@@ -63,7 +64,7 @@ tasks.withType(JavaCompile) {
     'java.base/sun.security.validator=ALL-UNNAMED',
     '--add-exports',
     'java.base/sun.security.provider.certpath=ALL-UNNAMED',
-    ]
+    '-Werror']
   options.fork = true
   options.forkOptions.executable = 'javac'
 }
