@@ -50,6 +50,7 @@ tasks.withType(JavaCompile) {
     '-Xlint:-unchecked',
     '-Xlint:-rawtypes',
     '-Xlint:-serial',
+    '-Xlint:-processing',
     '--add-exports',
     'java.base/sun.security.x509=ALL-UNNAMED',
     '--add-exports',
