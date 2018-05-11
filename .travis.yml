@@ -1,7 +1,39 @@
 language: java
-install: true
+
+sudo: false
+dist: trusty
+
+# Specify which branches/tags that we do not want to be built: r5.0.0-M5
+branches:
+  except:
+    - /^r\d.*$/
+
+# Get latest install-jdk.sh script
+before_install:
+  - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
+
+matrix:
+  include:
+# Java 10 "Oracle JDK" (not yet provided by Travis CI)
+    - env: JDK='Oracle JDK 10'
+      install: . ./install-jdk.sh -F 10 -L BCL
+# Java 10 "OpenJDK"
+    - env: JDK='OpenJDK 10' JACOCO='-PenableJaCoCo'
+      install: . ./install-jdk.sh -F 10 -L GPL
+# Java 11 "Oracle JDK"
+    - env: JDK='Oracle JDK 11'
+      install: . ./install-jdk.sh -F 11 -L BCL
+# The following environments are known to fail
+  allow_failures:
+    - env: JDK='Oracle JDK 11'
+
 script:
+# Display Gradle, Groovy, JVM and other versions
+  - ./gradlew --version
+# Build JUnit 5
   - ./gradlew clean check
+
+
 before_deploy:
   - sed -i 's/VERSION_NUMBER/'$(./gradlew xrpc:properties | grep "version:" | awk '{print $2}')'/g' .travis/bintray_descriptor.json
   - sed -i 's/RELEASE_DATE/'$(date +%Y-%m-%d)'/g' .travis/bintray_descriptor.json

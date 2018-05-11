@@ -39,18 +39,25 @@ archivesBaseName = 'xrpc'
 
 description = """Simple, production ready Java API server built on top of functional composition."""
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.10
+targetCompatibility = 1.10
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
   // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
   // the compiler so that the definition works).
   options.compilerArgs += [
     '-XDignore.symbol.file',
-    // TODO (AD): add back cast and remove only for generated proto
-    '-Xlint:auxiliaryclass,classfile,deprecation,dep-ann,divzero,empty,fallthrough,' +
-      'finally,options,overloads,overrides,path,rawtypes,static,try,unchecked,varargs',
-    '-parameters',
+    '-Xlint:all',
+    '-Xlint:-deprecation',
+    '-Xlint:-unchecked',
+    '-Xlint:-rawtypes',
+    '-Xlint:-serial',
+    '--add-exports java.base/sun.security.x509=ALL-UNNAMED',
+    '--add-exports java.base/java.nio=ALL-UNNAMED',
+    '--add-exports java.base/sun.security.util=ALL-UNNAMED',
+    '--add-exports java.base/com.sun.tools.javac.code=ALL-UNNAMED',
+    '--add-exports java.base/sun.security.validator=ALL-UNNAMED',
+    '--add-exports java.base/sun.security.provider.certpath=ALL-UNNAMED',
     '-Werror']
   options.fork = true
   options.forkOptions.executable = 'javac'
