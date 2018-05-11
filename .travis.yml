@@ -30,9 +30,8 @@ matrix:
 script:
 # Display Gradle, Groovy, JVM and other versions
   - ./gradlew --version
-# Build JUnit 5
+# Build Xrpc
   - ./gradlew clean check
-
 
 before_deploy:
   - sed -i 's/VERSION_NUMBER/'$(./gradlew xrpc:properties | grep "version:" | awk '{print $2}')'/g' .travis/bintray_descriptor.json

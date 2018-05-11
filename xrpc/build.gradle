@@ -43,8 +43,6 @@ sourceCompatibility = 1.10
 targetCompatibility = 1.10
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
-  // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
-  // the compiler so that the definition works).
   options.compilerArgs += [
     '-XDignore.symbol.file',
     '-Xlint:all',
@@ -52,7 +50,8 @@ tasks.withType(JavaCompile) {
     '-Xlint:-unchecked',
     '-Xlint:-rawtypes',
     '-Xlint:-serial',
-    '--add-exports java.base/sun.security.x509=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/sun.security.x509=ALL-UNNAMED',
     '--add-exports java.base/java.nio=ALL-UNNAMED',
     '--add-exports java.base/sun.security.util=ALL-UNNAMED',
     '--add-exports java.base/com.sun.tools.javac.code=ALL-UNNAMED',
