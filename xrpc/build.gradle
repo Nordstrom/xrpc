@@ -79,6 +79,8 @@ configurations {
 }
 
 dependencies {
+  compile files('libs/lombock-edge.jar')
+
   compile 'com.google.auto.value:auto-value:1.5.3'
   compile 'com.google.guava:guava:21.0'
   compile 'com.squareup.okhttp3:okhttp:3.10.0'
@@ -98,7 +100,6 @@ dependencies {
   compile 'io.netty:netty-transport-native-epoll:4.1.19.Final'
   compile 'io.netty:netty-transport-native-kqueue:4.1.19.Final'
 //  compile 'org.projectlombok:lombok:1.16.20'
-  compile files('libs/lombock-edge.jar'
   compile 'org.slf4j:slf4j-api:1.7.25'
   testCompile 'com.xjeffrose:xio-test:0.13.5'
   testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
