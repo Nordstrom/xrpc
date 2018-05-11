@@ -52,11 +52,16 @@ tasks.withType(JavaCompile) {
     '-Xlint:-serial',
     '--add-exports',
     'java.base/sun.security.x509=ALL-UNNAMED',
-    '--add-exports java.base/java.nio=ALL-UNNAMED',
-    '--add-exports java.base/sun.security.util=ALL-UNNAMED',
-    '--add-exports java.base/com.sun.tools.javac.code=ALL-UNNAMED',
-    '--add-exports java.base/sun.security.validator=ALL-UNNAMED',
-    '--add-exports java.base/sun.security.provider.certpath=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/java.nio=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/sun.security.util=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/com.sun.tools.javac.code=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/sun.security.validator=ALL-UNNAMED',
+    '--add-exports',
+    'java.base/sun.security.provider.certpath=ALL-UNNAMED',
     '-Werror']
   options.fork = true
   options.forkOptions.executable = 'javac'
