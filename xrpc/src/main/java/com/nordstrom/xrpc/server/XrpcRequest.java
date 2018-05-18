@@ -217,9 +217,8 @@ public class XrpcRequest implements ResponseFactory {
     if (h1Request != null) {
       return Optional.of(h1Request.method());
     } else if (h2Headers != null) {
-      return Optional.ofNullable(h2Headers.method()).map(rawMethod ->
-        new HttpMethod(rawMethod.toString())
-      );
+      return Optional.ofNullable(h2Headers.method())
+          .map(rawMethod -> new HttpMethod(rawMethod.toString()));
     }
 
     throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
