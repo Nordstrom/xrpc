@@ -24,11 +24,16 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http2.Http2Headers;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.AbstractMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -186,6 +191,38 @@ public class XrpcRequest implements ResponseFactory {
     } else {
       throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
     }
+  }
+
+  /** Returns a stream of all the HTTP headers. */
+  public Stream<Map.Entry<CharSequence, CharSequence>> allHeaders() {
+    if (h1Request != null) {
+      // Converting stream to CharSequence.
+      return h1Request
+          .headers()
+          .entries()
+          .stream()
+          .map(
+              entry ->
+                  new AbstractMap.SimpleEntry<CharSequence, CharSequence>(
+                      entry.getKey(), entry.getValue()));
+    } else if (h2Headers != null) {
+      Iterable<Map.Entry<CharSequence, CharSequence>> iterable = h2Headers::iterator;
+      return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
+  }
+
+  /** Returns the HTTP method. */
+  public Optional<HttpMethod> method() {
+    if (h1Request != null) {
+      return Optional.of(h1Request.method());
+    } else if (h2Headers != null) {
+      return Optional.ofNullable(h2Headers.method())
+          .map(rawMethod -> new HttpMethod(rawMethod.toString()));
+    }
+
+    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
   }
 
   public CharSequence acceptHeader() {
