@@ -217,13 +217,12 @@ public class XrpcRequest implements ResponseFactory {
     if (h1Request != null) {
       return Optional.of(h1Request.method());
     } else if (h2Headers != null) {
-      CharSequence rawMethod = h2Headers.method();
-      if (rawMethod != null) {
-        return Optional.of(new HttpMethod(rawMethod.toString()));
-      }
+      return Optional.ofNullable(h2Headers.method()).map(rawMethod ->
+        new HttpMethod(rawMethod.toString())
+      );
     }
 
-    return Optional.empty();
+    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
   }
 
   public CharSequence acceptHeader() {
