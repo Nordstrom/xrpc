@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
@@ -212,17 +213,17 @@ public class XrpcRequest implements ResponseFactory {
   }
 
   /** Returns the HTTP method. */
-  public HttpMethod method() {
+  public Optional<HttpMethod> method() {
     if (h1Request != null) {
-      return h1Request.method();
+      return Optional.of(h1Request.method());
     } else if (h2Headers != null) {
       CharSequence rawMethod = h2Headers.method();
       if (rawMethod != null) {
-        return new HttpMethod(rawMethod.toString());
+        return Optional.of(new HttpMethod(rawMethod.toString()));
       }
     }
 
-    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 method set");
+    return Optional.empty();
   }
 
   public CharSequence acceptHeader() {
