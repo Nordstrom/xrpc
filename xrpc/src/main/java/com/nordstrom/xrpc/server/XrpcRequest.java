@@ -211,7 +211,7 @@ public class XrpcRequest implements ResponseFactory {
     }
   }
 
-  /** Returns the HTTP method */
+  /** Returns the HTTP method. */
   public HttpMethod method() throws IllegalStateException {
     if (h1Request != null) {
       return h1Request.method();
