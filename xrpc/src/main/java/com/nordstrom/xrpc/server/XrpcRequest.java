@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -197,11 +196,14 @@ public class XrpcRequest implements ResponseFactory {
   public List<Map.Entry<CharSequence, CharSequence>> allHeaders() {
     if (h1Request != null) {
       return h1Request
-        .headers()
-        .entries()
-        .stream()
-        .map( entry -> new AbstractMap.SimpleEntry<CharSequence, CharSequence>(entry.getKey(), entry.getValue()))
-        .collect(Collectors.toList());
+          .headers()
+          .entries()
+          .stream()
+          .map(
+              entry ->
+                  new AbstractMap.SimpleEntry<CharSequence, CharSequence>(
+                      entry.getKey(), entry.getValue()))
+          .collect(Collectors.toList());
     } else if (h2Headers != null) {
       List<Map.Entry<CharSequence, CharSequence>> list = new ArrayList<>();
       h2Headers.iterator().forEachRemaining(list::add);
