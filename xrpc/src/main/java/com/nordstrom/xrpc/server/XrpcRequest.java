@@ -30,10 +30,9 @@ import io.netty.handler.codec.http2.Http2Headers;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -193,7 +192,8 @@ public class XrpcRequest implements ResponseFactory {
     }
   }
 
-  public List<Map.Entry<CharSequence, CharSequence>> allHeaders() {
+  /** Returns a stream of all the HTTP headers. */
+  public Stream<Map.Entry<CharSequence, CharSequence>> allHeaders() throws IllegalStateException {
     if (h1Request != null) {
       return h1Request
           .headers()
@@ -202,18 +202,17 @@ public class XrpcRequest implements ResponseFactory {
           .map(
               entry ->
                   new AbstractMap.SimpleEntry<CharSequence, CharSequence>(
-                      entry.getKey(), entry.getValue()))
-          .collect(Collectors.toList());
+                      entry.getKey(), entry.getValue()));
     } else if (h2Headers != null) {
-      List<Map.Entry<CharSequence, CharSequence>> list = new ArrayList<>();
-      h2Headers.iterator().forEachRemaining(list::add);
-      return list;
+      Iterable<Map.Entry<CharSequence, CharSequence>> iterable = h2Headers::iterator;
+      return StreamSupport.stream(iterable.spliterator(), false);
     } else {
       throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
     }
   }
 
-  public HttpMethod method() {
+  /** Returns the HTTP method */
+  public HttpMethod method() throws IllegalStateException {
     if (h1Request != null) {
       return h1Request.method();
     } else if (h2Headers != null) {
@@ -223,7 +222,7 @@ public class XrpcRequest implements ResponseFactory {
       }
     }
 
-    return null;
+    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 method set");
   }
 
   public CharSequence acceptHeader() {
