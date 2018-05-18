@@ -196,6 +196,7 @@ public class XrpcRequest implements ResponseFactory {
   /** Returns a stream of all the HTTP headers. */
   public Stream<Map.Entry<CharSequence, CharSequence>> allHeaders() {
     if (h1Request != null) {
+      // Converting stream to CharSequence.
       return h1Request
           .headers()
           .entries()
