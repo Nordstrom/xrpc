@@ -193,7 +193,7 @@ public class XrpcRequest implements ResponseFactory {
   }
 
   /** Returns a stream of all the HTTP headers. */
-  public Stream<Map.Entry<CharSequence, CharSequence>> allHeaders() throws IllegalStateException {
+  public Stream<Map.Entry<CharSequence, CharSequence>> allHeaders() {
     if (h1Request != null) {
       return h1Request
           .headers()
@@ -206,13 +206,13 @@ public class XrpcRequest implements ResponseFactory {
     } else if (h2Headers != null) {
       Iterable<Map.Entry<CharSequence, CharSequence>> iterable = h2Headers::iterator;
       return StreamSupport.stream(iterable.spliterator(), false);
-    } else {
-      throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
     }
+
+    throw new IllegalStateException("Neither HTTP/1 nor HTTP/2 headers set");
   }
 
   /** Returns the HTTP method. */
-  public HttpMethod method() throws IllegalStateException {
+  public HttpMethod method() {
     if (h1Request != null) {
       return h1Request.method();
     } else if (h2Headers != null) {
