@@ -10,23 +10,23 @@ i.e your implementation does not need to change and it will automatically respon
 and a http/2 client the same way. The user is free to determine whatever payload they would like, 
 but our recommendation is JSON where you don't control both ends and protobuf (version 3) where you do.
 
-# Running the demos
+## Running the demos
 
-## Running the people demo app in a test server
+### Running the people demo app in a test server
 
 ```shell
 $ ./bin/startPeopleTestServer.sh
 ```
 
-## Basic http set
+#### Basic http set
 
 ```shell
 $ curl -k -d '{"name": "bob"}' -X POST https://localhost:8080/people
 ```
 
-## Basic http/2 get
+#### Basic http/2 get
 
-### Note: This demo requires curl with http/2
+##### Note: This demo requires curl with http/2
 See: https://simonecarletti.com/blog/2016/01/http2-curl-macosx/
 
 ```shell
@@ -39,16 +39,16 @@ $ curl -k  https://localhost:8080/people --http1.1
 [{"name":"bob"}]
 ```
 
-# Running the dino demo app in a test server
+### Running the dino demo app in a test server
 Run the dino app server to demo proto buffer handling.
 
 ```shell
 $ ./bin/startDinoTestServer.sh
 ```
 
-## Proto http set
+#### Proto http set
 
-### Note: This demo requires curl with http/2
+##### Note: This demo requires curl with http/2
 See: https://simonecarletti.com/blog/2016/01/http2-curl-macosx/
 
 ```shell
@@ -57,7 +57,7 @@ $ java -cp demos/dino/build/libs/xrpc-dino-demo-0.1.1-SNAPSHOT-all.jar \
     curl -k -X GET https://localhost:8080/DinoService/SetDino --data-binary @-
 ```
 
-## Proto http get
+#### Proto http get
 
 ```shell
 $ java -cp demos/dino/build/libs/xrpc-dino-demo-0.1.1-SNAPSHOT-all.jar \
@@ -66,7 +66,7 @@ $ java -cp demos/dino/build/libs/xrpc-dino-demo-0.1.1-SNAPSHOT-all.jar \
 trexblue
 ```
 
-# Admin routes
+## Admin routes
 
 xrpc comes with some built in admin routes. See also [AdminHandlers.java](https://github.com/Nordstrom/xrpc/blob/master/src/main/java/com/nordstrom/xrpc/server/AdminHandlers.java).
 
@@ -78,17 +78,19 @@ flags.
 Informational routes are enabled by default, while unsafe routes are disabled by default.
 
 Informational routes:
+
 * `/metrics` -> Returns the metrics reporters in JSON format
 * `/health` -> Expose a summary of downstream health checks
 * `/ping` -> Responds with a 200-OK status code and the text 'PONG'
 * `/ready` -> Exposes a Kubernetes or ELB specific healthcheck for liveliness
 
 Unsafe routes:
+
 * `/restart` -> Restart service
 * `/killkillkill` -> Shutdown service
 * `/gc`: Request a garbage collection from the JVM
 
-# Contributing
+## Contributing
 
 Please see [the contributing guide](CONTRIBUTING.md) for details on contributing to this repository.
 
