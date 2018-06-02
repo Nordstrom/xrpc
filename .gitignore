@@ -7,3 +7,21 @@ demo/out/
 out/
 xrpc.iml
 .DS_Store
+xrpc/bin/
+# Eclipse project files
+.classpath
+.project
+local.properties
+.settings/
+
+artifacts/
+.metadata
+
+demos/dino/bin/
+demos/people/bin/
+demos/request-response-pipeline/bin/
+
+.vscode/
+bin/build.gradle
+bin/demos/
+bin/xrpc/

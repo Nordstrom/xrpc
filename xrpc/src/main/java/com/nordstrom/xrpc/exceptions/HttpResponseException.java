@@ -67,12 +67,11 @@ public class HttpResponseException extends RuntimeException {
   }
 
   /**
-   * Get the error response for this exception. This is used for response encoding. Error is a proto
-   * generated class that can encode to proto and json.
+   * Get the error response for this exception. This is used for response encoding.
    *
-   * @return Error proto generated object based on this exception.
+   * @return Error object based on this exception.
    */
-  public Error error() {
+  public Object error() {
     return Error.newBuilder().setErrorCode(errorCode).setMessage(getMessage()).build();
   }
 
