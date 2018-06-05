@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ExceptionTest {
+class ExceptionsTest {
   private OkHttpClient client;
   private Config config;
   private Server server;

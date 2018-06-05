@@ -12,7 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ExceptionsRoutesTests {
+class ExceptionsTests {
   private Server server;
   private OkHttpClient client;
 
