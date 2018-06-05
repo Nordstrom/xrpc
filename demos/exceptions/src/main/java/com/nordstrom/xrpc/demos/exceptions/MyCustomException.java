@@ -13,5 +13,4 @@ public class MyCustomException extends HttpResponseException {
   public MyCustomException(Object myError) {
     super(STATUS_CODE, myError, "Some error message");
   }
-
 }
