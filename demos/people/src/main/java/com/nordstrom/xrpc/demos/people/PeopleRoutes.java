@@ -38,19 +38,6 @@ public class PeopleRoutes extends RouteBuilder {
     get("/people", getPeople);
     post("/people", postPerson);
     get("/people/{person}", getPerson);
-
-    Handler customException =
-        request -> {
-          ErrorResponse errorResponse = new ErrorResponse();
-          errorResponse.setBusinessReason("Some business reason");
-          errorResponse.setBusinessStatusCode("4.2.3000");
-          throw new MyCustomException(errorResponse);
-        };
-
-    // This route demonstrate how to throw custom exception payload to the client in xrpc
-    // Output of this route will be 400 with this json payload {"businessReason":"Some business
-    // reason","businessStatusCode":"4.2.3000"}
-    get("/show-customexception", customException);
   }
 
   // Application POJO for use in request / response.

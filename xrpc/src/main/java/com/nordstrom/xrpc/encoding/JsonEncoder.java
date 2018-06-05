@@ -66,7 +66,9 @@ public class JsonEncoder implements Encoder {
         writer.write(json);
       } else {
         // Encode POJO
-        mapper.writeValue(writer, object);
+        if (object != null) {
+          mapper.writeValue(writer, object);
+        }
       }
       return buf;
     }

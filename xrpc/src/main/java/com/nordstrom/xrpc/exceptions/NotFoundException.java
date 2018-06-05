@@ -19,24 +19,25 @@ package com.nordstrom.xrpc.exceptions;
 /** Exception to be converted to an HTTP 404 Not Found response. */
 public class NotFoundException extends HttpResponseException {
   private static final int STATUS_CODE = 404;
-  private static final String ERROR_CODE = "NotFound";
 
   /**
    * Construct NotFoundException with default error code.
    *
    * @param message Error message
+   * @param error Error object
    */
-  public NotFoundException(String message) {
-    super(STATUS_CODE, ERROR_CODE, message);
+  public NotFoundException(String message, Object error) {
+    super(STATUS_CODE, error, message);
   }
 
   /**
    * Construct NotFoundException with a default error code and root cause.
    *
    * @param message Error message
+   * @param error Error object
    * @param cause Cause of this error.
    */
-  public NotFoundException(String message, Throwable cause) {
-    super(STATUS_CODE, ERROR_CODE, message, cause);
+  public NotFoundException(String message, Object error, Throwable cause) {
+    super(STATUS_CODE, error, message, cause);
   }
 }

@@ -17,8 +17,6 @@
 package com.nordstrom.xrpc.exceptions;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.nordstrom.xrpc.exceptions.proto.Error;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -28,42 +26,38 @@ public class HttpResponseException extends RuntimeException {
   /** HTTP Status Code. */
   @Getter private final int statusCode;
 
-  /** Code used to provide a more specific code for the error. */
-  @Getter private final String errorCode;
+  /** Error object . */
+  @Getter private final Object errorObject;
 
   /**
    * Construct HttpResponseException with a cause.
    *
    * @param statusCode HTTP Status Code
-   * @param errorCode Code used to provide a more specific code for the error.
+   * @param error Error object.
    * @param message Error message.
    */
-  public HttpResponseException(int statusCode, String errorCode, String message) {
+  public HttpResponseException(int statusCode, Object error, String message) {
     super(message);
     Preconditions.checkArgument(
         statusCode >= 200 && statusCode <= 527, "statusCode should be >= 200 && <= 527");
-    Preconditions.checkArgument(
-        !Strings.isNullOrEmpty(errorCode), "errorCode should be non-null and non-empty");
     this.statusCode = statusCode;
-    this.errorCode = errorCode;
+    this.errorObject = error;
   }
 
   /**
    * Construct HttpResponseException with a cause.
    *
    * @param statusCode HTTP Status Code
-   * @param errorCode Code used to provide a more specific code for the error.
+   * @param error Error object.
    * @param message Error message.
    * @param cause The Throwable that caused this error.
    */
-  public HttpResponseException(int statusCode, String errorCode, String message, Throwable cause) {
+  public HttpResponseException(int statusCode, Object error, String message, Throwable cause) {
     super(message, cause);
     Preconditions.checkArgument(
         statusCode >= 200 && statusCode <= 527, "statusCode should be >= 200 && <= 527");
-    Preconditions.checkArgument(
-        !Strings.isNullOrEmpty(errorCode), "errorCode should be non-null and non-empty");
     this.statusCode = statusCode;
-    this.errorCode = errorCode;
+    this.errorObject = error;
   }
 
   /**
@@ -72,23 +66,6 @@ public class HttpResponseException extends RuntimeException {
    * @return Error object based on this exception.
    */
   public Object error() {
-    return Error.newBuilder().setErrorCode(errorCode).setMessage(getMessage()).build();
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder buffer =
-        new StringBuilder()
-            .append(getClass().getName())
-            .append(": [")
-            .append(statusCode())
-            .append("] ")
-            .append(errorCode());
-
-    String message = getLocalizedMessage();
-    if (!Strings.isNullOrEmpty(message)) {
-      buffer.append(": ").append(message);
-    }
-    return buffer.toString();
+    return errorObject;
   }
 }

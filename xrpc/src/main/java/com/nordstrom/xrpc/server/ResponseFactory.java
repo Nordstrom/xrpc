@@ -9,12 +9,7 @@ import com.nordstrom.xrpc.exceptions.HttpResponseException;
 import com.nordstrom.xrpc.exceptions.InternalServerErrorException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.*;
 import java.io.IOException;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -88,7 +83,7 @@ public interface ResponseFactory {
       errorLog.error("Handled Exception:", exception);
       return createResponse(
           HttpResponseStatus.INTERNAL_SERVER_ERROR,
-          new InternalServerErrorException("Internal Server Error").error());
+          new InternalServerErrorException("Internal Server Error", null).error());
     } catch (Exception e) {
       errorLog.error("Error Handling Exception:", e);
     }

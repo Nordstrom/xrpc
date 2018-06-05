@@ -19,15 +19,15 @@ package com.nordstrom.xrpc.exceptions;
 /** Exception to be converted to an HTTP 403 Forbidden response. */
 public class ForbiddenException extends HttpResponseException {
   private static final int STATUS_CODE = 403;
-  private static final String ERROR_CODE = "Forbidden";
 
   /**
    * Construct ForbiddenException with default error code.
    *
    * @param message Error message
+   * @param error Error object
    */
-  public ForbiddenException(String message) {
-    super(STATUS_CODE, ERROR_CODE, message);
+  public ForbiddenException(String message, Object error) {
+    super(STATUS_CODE, error, message);
   }
 
   /**
@@ -36,7 +36,7 @@ public class ForbiddenException extends HttpResponseException {
    * @param message Error message
    * @param cause Cause of this error.
    */
-  public ForbiddenException(String message, Throwable cause) {
-    super(STATUS_CODE, ERROR_CODE, message, cause);
+  public ForbiddenException(String message, Object error, Throwable cause) {
+    super(STATUS_CODE, error, message, cause);
   }
 }

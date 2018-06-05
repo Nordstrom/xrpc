@@ -99,21 +99,4 @@ class PeopleTests {
 
     assertEquals(404, response.code());
   }
-
-  @Test
-  void testCustomException() throws IOException {
-    Response response =
-        client
-            .newCall(
-                new Request.Builder()
-                    .get()
-                    .url(server.localEndpoint() + "/show-customexception")
-                    .build())
-            .execute();
-
-    assertEquals(400, response.code());
-    assertEquals(
-        "{\"businessReason\":\"Some business reason\",\"businessStatusCode\":\"4.2.3000\"}",
-        response.body().string());
-  }
 }

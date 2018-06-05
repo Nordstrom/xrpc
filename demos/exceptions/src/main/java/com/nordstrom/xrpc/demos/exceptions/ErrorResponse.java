@@ -1,4 +1,4 @@
-package com.nordstrom.xrpc.demos.people;
+package com.nordstrom.xrpc.demos.exceptions;
 
 import lombok.Getter;
 import lombok.Setter;

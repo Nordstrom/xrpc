@@ -39,7 +39,12 @@ class ExceptionTest {
     server.get(
         "/bad-request",
         r -> {
-          throw new BadRequestException("bad request message");
+          throw new BadRequestException(
+              "bad request message",
+              com.nordstrom.xrpc.exceptions.Error.builder()
+                  .message("bad request message")
+                  .errorCode("BadRequest")
+                  .build());
         });
 
     start();
@@ -60,7 +65,12 @@ class ExceptionTest {
     server.get(
         "/not-found",
         r -> {
-          throw new NotFoundException("not found message");
+          throw new NotFoundException(
+              "not found message",
+              com.nordstrom.xrpc.exceptions.Error.builder()
+                  .message("not found message")
+                  .errorCode("NotFound")
+                  .build());
         });
     start();
     Response response =
@@ -77,7 +87,12 @@ class ExceptionTest {
     server.get(
         "/unauthorized",
         r -> {
-          throw new UnauthorizedException("unauthorized message");
+          throw new UnauthorizedException(
+              "unauthorized message",
+              com.nordstrom.xrpc.exceptions.Error.builder()
+                  .message("unauthorized message")
+                  .errorCode("Unauthorized")
+                  .build());
         });
     start();
     Response response =
@@ -97,7 +112,12 @@ class ExceptionTest {
     server.get(
         "/forbidden",
         r -> {
-          throw new ForbiddenException("forbidden message");
+          throw new ForbiddenException(
+              "forbidden message",
+              com.nordstrom.xrpc.exceptions.Error.builder()
+                  .message("forbidden message")
+                  .errorCode("Forbidden")
+                  .build());
         });
     start();
     Response response =
@@ -110,12 +130,17 @@ class ExceptionTest {
   }
 
   @Test
-  void testBadRequestProtoFromAccept() throws IOException {
+  void testBadRequestProtoFromAcceptWithResponseBody() throws IOException {
     init();
     server.get(
         "/bad-request",
         r -> {
-          throw new BadRequestException("bad request message");
+          throw new BadRequestException(
+              "bad request message",
+              Error.newBuilder()
+                  .setErrorCode("BadRequest")
+                  .setMessage("bad request message")
+                  .build());
         });
     start();
     Response response =
@@ -135,6 +160,28 @@ class ExceptionTest {
   }
 
   @Test
+  void testBadRequestProtoFromAcceptWithoutReponseBody() throws IOException {
+    init();
+    server.get(
+        "/bad-request",
+        r -> {
+          throw new BadRequestException("bad request message", null);
+        });
+    start();
+    Response response =
+        client
+            .newCall(
+                new Request.Builder()
+                    .get()
+                    .url(endpoint + "/bad-request")
+                    .header("Accept", "application/protobuf,  some/other")
+                    .build())
+            .execute();
+    assertEquals(400, response.code());
+    assertEquals("application/protobuf", response.header("Content-Type"));
+  }
+
+  @Test
   void testUnhandled() throws IOException {
     init();
     server.get(
@@ -146,9 +193,7 @@ class ExceptionTest {
     Response response =
         client.newCall(new Request.Builder().get().url(endpoint + "/unhandled").build()).execute();
     assertEquals(500, response.code());
-    assertEquals(
-        "{\"errorCode\":\"InternalServerError\",\"message\":\"Internal Server Error\"}",
-        response.body().string());
+    assertEquals("", response.body().string());
   }
 
   private void addConfigValue(String path, ConfigValue value) {
