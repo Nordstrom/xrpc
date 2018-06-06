@@ -17,27 +17,26 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 400 Bad Request response. */
-public class UnauthorizedException extends HttpResponseException {
+public class UnauthorizedException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 401;
+  private static final String ERROR_CODE = "Unauthorized";
 
   /**
    * Construct UnauthorizedException with default error code.
    *
    * @param message Error message
-   * @param error Error object
    */
-  public UnauthorizedException(String message, Object error) {
-    super(STATUS_CODE, error, message);
+  public UnauthorizedException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct UnauthorizedException with a default error code and root cause.
    *
    * @param message Error message
-   * @param error Error object
    * @param cause Cause of this error.
    */
-  public UnauthorizedException(String message, Object error, Throwable cause) {
-    super(STATUS_CODE, error, message, cause);
+  public UnauthorizedException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }

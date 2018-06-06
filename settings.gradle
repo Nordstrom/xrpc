@@ -2,7 +2,6 @@ include 'xrpc'
 include 'xrpc-testing'
 include 'demos:dino'
 include 'demos:people'
-include 'demos:exceptions'
 include 'demos:request-response-pipeline'
 
 rootProject.name = 'xrpc'

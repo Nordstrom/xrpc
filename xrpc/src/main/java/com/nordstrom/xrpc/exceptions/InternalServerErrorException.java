@@ -17,27 +17,26 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 500 Internal Server Error response. */
-public class InternalServerErrorException extends HttpResponseException {
+public class InternalServerErrorException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 500;
+  private static final String ERROR_CODE = "InternalServerError";
 
   /**
    * Construct InternalServerErrorException with default error code.
    *
    * @param message Error message
-   * @param error Error object
    */
-  public InternalServerErrorException(String message, Object error) {
-    super(STATUS_CODE, error, message);
+  public InternalServerErrorException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct InternalServerErrorException with a default error code and root cause.
    *
    * @param message Error message
-   * @param error Error object
    * @param cause Cause of this error.
    */
-  public InternalServerErrorException(String message, Object error, Throwable cause) {
-    super(STATUS_CODE, error, message, cause);
+  public InternalServerErrorException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }

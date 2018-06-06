@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ExceptionsTest {
+class ExceptionTest {
   private OkHttpClient client;
   private Config config;
   private Server server;
@@ -39,12 +39,7 @@ class ExceptionsTest {
     server.get(
         "/bad-request",
         r -> {
-          throw new BadRequestException(
-              "bad request message",
-              com.nordstrom.xrpc.exceptions.Error.builder()
-                  .message("bad request message")
-                  .errorCode("BadRequest")
-                  .build());
+          throw new BadRequestException("bad request message");
         });
 
     start();
@@ -65,12 +60,7 @@ class ExceptionsTest {
     server.get(
         "/not-found",
         r -> {
-          throw new NotFoundException(
-              "not found message",
-              com.nordstrom.xrpc.exceptions.Error.builder()
-                  .message("not found message")
-                  .errorCode("NotFound")
-                  .build());
+          throw new NotFoundException("not found message");
         });
     start();
     Response response =
@@ -87,12 +77,7 @@ class ExceptionsTest {
     server.get(
         "/unauthorized",
         r -> {
-          throw new UnauthorizedException(
-              "unauthorized message",
-              com.nordstrom.xrpc.exceptions.Error.builder()
-                  .message("unauthorized message")
-                  .errorCode("Unauthorized")
-                  .build());
+          throw new UnauthorizedException("unauthorized message");
         });
     start();
     Response response =
@@ -112,12 +97,7 @@ class ExceptionsTest {
     server.get(
         "/forbidden",
         r -> {
-          throw new ForbiddenException(
-              "forbidden message",
-              com.nordstrom.xrpc.exceptions.Error.builder()
-                  .message("forbidden message")
-                  .errorCode("Forbidden")
-                  .build());
+          throw new ForbiddenException("forbidden message");
         });
     start();
     Response response =
@@ -130,17 +110,12 @@ class ExceptionsTest {
   }
 
   @Test
-  void testBadRequestProtoFromAcceptWithResponseBody() throws IOException {
+  void testBadRequestProtoFromAccept() throws IOException {
     init();
     server.get(
         "/bad-request",
         r -> {
-          throw new BadRequestException(
-              "bad request message",
-              Error.newBuilder()
-                  .setErrorCode("BadRequest")
-                  .setMessage("bad request message")
-                  .build());
+          throw new BadRequestException("bad request message");
         });
     start();
     Response response =
@@ -160,28 +135,6 @@ class ExceptionsTest {
   }
 
   @Test
-  void testBadRequestProtoFromAcceptWithoutReponseBody() throws IOException {
-    init();
-    server.get(
-        "/bad-request",
-        r -> {
-          throw new BadRequestException("bad request message", null);
-        });
-    start();
-    Response response =
-        client
-            .newCall(
-                new Request.Builder()
-                    .get()
-                    .url(endpoint + "/bad-request")
-                    .header("Accept", "application/protobuf,  some/other")
-                    .build())
-            .execute();
-    assertEquals(400, response.code());
-    assertEquals("application/protobuf", response.header("Content-Type"));
-  }
-
-  @Test
   void testUnhandled() throws IOException {
     init();
     server.get(
@@ -193,7 +146,30 @@ class ExceptionsTest {
     Response response =
         client.newCall(new Request.Builder().get().url(endpoint + "/unhandled").build()).execute();
     assertEquals(500, response.code());
-    assertEquals("", response.body().string());
+    assertEquals(
+      "{\"errorCode\":\"InternalServerError\",\"message\":\"Internal Server Error\"}",
+      response.body().string());
+  }
+
+  @Test
+  void testCustomExceptionJson() throws IOException {
+    init();
+    server.get(
+      "/show-customexception",
+      r -> {
+        ErrorResponse errorResponse = new ErrorResponse("some business reason", "5.1.3");
+        throw new MyCustomException(errorResponse);
+      });
+    start();
+    Response response =
+      client
+        .newCall(new Request.Builder().get().url(endpoint + "/show-customexception").build())
+        .execute();
+    assertEquals(513, response.code());
+    assertEquals("application/json", response.header("Content-Type"));
+    assertEquals(
+      "{\"businessReason\":\"some business reason\",\"businessStatusCode\":\"5.1.3\"}",
+      response.body().string());
   }
 
   private void addConfigValue(String path, ConfigValue value) {

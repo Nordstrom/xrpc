@@ -17,27 +17,26 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 400 Bad Request response. */
-public class BadRequestException extends HttpResponseException {
+public class BadRequestException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 400;
+  private static final String ERROR_CODE = "BadRequest";
 
   /**
    * Construct BadResponseException with default error code.
    *
    * @param message Error message
-   * @param error Error object
    */
-  public BadRequestException(String message, Object error) {
-    super(STATUS_CODE, error, message);
+  public BadRequestException(String message) {
+    super(STATUS_CODE, ERROR_CODE, message);
   }
 
   /**
    * Construct BadResponseException with a custom error code and root cause.
    *
    * @param message Error message
-   * @param error Error object
    * @param cause Cause of this error.
    */
-  public BadRequestException(String message, Object error, Throwable cause) {
-    super(STATUS_CODE, error, message, cause);
+  public BadRequestException(String message, Throwable cause) {
+    super(STATUS_CODE, ERROR_CODE, message, cause);
   }
 }
