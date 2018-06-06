@@ -2,6 +2,8 @@ package com.nordstrom.xrpc.exceptions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.exceptions.proto.Error;
 import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
@@ -147,33 +149,42 @@ class ExceptionTest {
         client.newCall(new Request.Builder().get().url(endpoint + "/unhandled").build()).execute();
     assertEquals(500, response.code());
     assertEquals(
-      "{\"errorCode\":\"InternalServerError\",\"message\":\"Internal Server Error\"}",
-      response.body().string());
+        "{\"errorCode\":\"InternalServerError\",\"message\":\"Internal Server Error\"}",
+        response.body().string());
   }
 
   @Test
   void testCustomExceptionJson() throws IOException {
     init();
+    ErrorResponse errorResponse = new ErrorResponse("some business reason", "5.1.3");
     server.get(
-      "/show-customexception",
-      r -> {
-        ErrorResponse errorResponse = new ErrorResponse("some business reason", "5.1.3");
-        throw new MyCustomException(errorResponse);
-      });
+        "/show-customexception",
+        r -> {
+          throw new MyCustomException(errorResponse);
+        });
     start();
     Response response =
-      client
-        .newCall(new Request.Builder().get().url(endpoint + "/show-customexception").build())
-        .execute();
+        client
+            .newCall(new Request.Builder().get().url(endpoint + "/show-customexception").build())
+            .execute();
     assertEquals(513, response.code());
     assertEquals("application/json", response.header("Content-Type"));
-    assertEquals(
-      "{\"businessReason\":\"some business reason\",\"businessStatusCode\":\"5.1.3\"}",
-      response.body().string());
+    assertEquals(jsonString(errorResponse), response.body().string());
   }
 
   private void addConfigValue(String path, ConfigValue value) {
     config = config.withValue(path, value);
+  }
+
+  private static String jsonString(Object object) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    String jsonString = null;
+    try {
+      jsonString = objectMapper.writeValueAsString(object);
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
+    return jsonString;
   }
 
   private void init() {
