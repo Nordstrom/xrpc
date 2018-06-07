@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 500 Internal Server Error response. */
-public class InternalServerErrorException extends HttpResponseException {
+public class InternalServerErrorException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 500;
   private static final String ERROR_CODE = "InternalServerError";
 

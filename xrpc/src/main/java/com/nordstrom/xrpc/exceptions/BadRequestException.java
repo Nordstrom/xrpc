@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 400 Bad Request response. */
-public class BadRequestException extends HttpResponseException {
+public class BadRequestException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 400;
   private static final String ERROR_CODE = "BadRequest";
 

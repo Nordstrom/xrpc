@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 403 Forbidden response. */
-public class ForbiddenException extends HttpResponseException {
+public class ForbiddenException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 403;
   private static final String ERROR_CODE = "Forbidden";
 

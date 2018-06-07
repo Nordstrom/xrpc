@@ -2,6 +2,7 @@ package com.nordstrom.xrpc.exceptions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nordstrom.xrpc.exceptions.proto.Error;
 import com.nordstrom.xrpc.server.Server;
 import com.typesafe.config.Config;
@@ -151,8 +152,32 @@ class ExceptionTest {
         response.body().string());
   }
 
+  @Test
+  void testCustomExceptionJson() throws Exception {
+    init();
+    ErrorResponse expectedResponse = new ErrorResponse("some business reason", "5.1.3");
+    server.get(
+        "/show-customexception",
+        r -> {
+          throw new MyCustomException(
+              expectedResponse.getBusinessReason(), expectedResponse.getBusinessStatusCode());
+        });
+    start();
+    Response response =
+        client
+            .newCall(new Request.Builder().get().url(endpoint + "/show-customexception").build())
+            .execute();
+    assertEquals(513, response.code());
+    assertEquals("application/json", response.header("Content-Type"));
+    assertEquals(jsonString(expectedResponse), response.body().string());
+  }
+
   private void addConfigValue(String path, ConfigValue value) {
     config = config.withValue(path, value);
+  }
+
+  private static String jsonString(Object object) throws Exception {
+    return new ObjectMapper().writeValueAsString(object);
   }
 
   private void init() {

@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 404 Not Found response. */
-public class NotFoundException extends HttpResponseException {
+public class NotFoundException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 404;
   private static final String ERROR_CODE = "NotFound";
 

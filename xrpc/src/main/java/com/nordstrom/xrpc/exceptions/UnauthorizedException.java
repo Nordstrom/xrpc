@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.exceptions;
 
 /** Exception to be converted to an HTTP 400 Bad Request response. */
-public class UnauthorizedException extends HttpResponseException {
+public class UnauthorizedException extends DefaultHttpResponseException {
   private static final int STATUS_CODE = 401;
   private static final String ERROR_CODE = "Unauthorized";
 

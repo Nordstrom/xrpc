@@ -7,3 +7,13 @@ demo/out/
 out/
 xrpc.iml
 .DS_Store
+
+bin/
+!bin/*.sh
+
+.classpath
+.project
+
+.settings
+
+.vscode/
