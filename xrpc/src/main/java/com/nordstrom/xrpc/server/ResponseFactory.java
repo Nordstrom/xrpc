@@ -88,7 +88,7 @@ public interface ResponseFactory {
       errorLog.error("Handled Exception:", exception);
       return createResponse(
           HttpResponseStatus.INTERNAL_SERVER_ERROR,
-          new InternalServerErrorException("Internal Server Error", null).error());
+          new InternalServerErrorException("Internal Server Error").error());
     } catch (Exception e) {
       errorLog.error("Error Handling Exception:", e);
     }

@@ -1,12 +1,8 @@
 package com.nordstrom.xrpc.exceptions;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Value;
 
-@Getter
-@Setter
-@Builder
+@Value
 public class ErrorResponse {
   private String businessReason;
   private String businessStatusCode;
