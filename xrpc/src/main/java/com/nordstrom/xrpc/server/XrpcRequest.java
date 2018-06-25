@@ -17,6 +17,7 @@
 package com.nordstrom.xrpc.server;
 
 import com.nordstrom.xrpc.encoding.Decoder;
+import com.nordstrom.xrpc.utils.RandomIdGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
@@ -32,7 +33,6 @@ import java.nio.charset.Charset;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
@@ -58,11 +58,10 @@ public class XrpcRequest implements ResponseFactory {
   @Getter private final ServerContext connectionContext;
 
   /**
-   * Unique GUID assigned to each incoming request. This value can be used as part of
-   * request/response logging, exception logging, custom http header to upstream calls for tracing
-   * etc
+   * Unique Id assigned to each incoming request. This value can be used as part of request/response
+   * logging, exception logging, custom http header to upstream calls for tracing etc
    */
-  @Getter private final String requestContextId;
+  @Getter private final String id;
 
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
@@ -88,7 +87,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = null;
-    this.requestContextId = UUID.randomUUID().toString();
+    this.id = RandomIdGenerator.generate();
   }
 
   public XrpcRequest(
@@ -104,7 +103,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = alloc.compositeBuffer();
-    this.requestContextId = UUID.randomUUID().toString();
+    this.id = RandomIdGenerator.generate();
   }
 
   public HttpQuery query() {
