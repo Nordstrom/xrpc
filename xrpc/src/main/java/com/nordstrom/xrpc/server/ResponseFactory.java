@@ -3,6 +3,7 @@ package com.nordstrom.xrpc.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import com.google.common.base.Preconditions;
 import com.nordstrom.xrpc.XrpcConstants;
 import com.nordstrom.xrpc.encoding.Encoder;
 import com.nordstrom.xrpc.exceptions.HttpResponseException;
@@ -106,8 +107,10 @@ public interface ResponseFactory {
    * @param body body object to be encoded based on Content Negotiation
    * @param <T> type of body object
    * @throws IOException if encoding errors occur
+   * @throws IllegalArgumentException if the provided body is null
    */
   default <T> HttpResponse createResponse(HttpResponseStatus status, T body) throws IOException {
+    Preconditions.checkArgument(body != null, "null body passed in to createResponse");
     final Encoder encoder =
         request().connectionContext().encoders().acceptedEncoder(request().acceptHeader());
     ByteBuf buf = request().byteBuf();

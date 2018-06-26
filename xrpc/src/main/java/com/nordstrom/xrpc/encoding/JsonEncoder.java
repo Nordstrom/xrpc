@@ -61,14 +61,12 @@ public class JsonEncoder implements Encoder {
     try (OutputStreamWriter writer =
         new OutputStreamWriter(new ByteBufOutputStream(buf), charset(acceptCharset))) {
       if (object instanceof MessageOrBuilder) {
-        // Encode object of proto generated Class
+        // Encode proto using its defined serialization.
         String json = printer.print((MessageOrBuilder) object);
         writer.write(json);
       } else {
-        // Encode POJO
-        if (object != null) {
-          mapper.writeValue(writer, object);
-        }
+        // Encode POJO using Jackson.
+        mapper.writeValue(writer, object);
       }
       return buf;
     }
