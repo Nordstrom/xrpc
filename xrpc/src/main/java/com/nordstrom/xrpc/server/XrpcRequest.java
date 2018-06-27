@@ -17,7 +17,7 @@
 package com.nordstrom.xrpc.server;
 
 import com.nordstrom.xrpc.encoding.Decoder;
-import com.nordstrom.xrpc.utils.RandomIdGenerator;
+import com.nordstrom.xrpc.utils.RequestIdGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
@@ -87,7 +87,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = null;
-    this.id = RandomIdGenerator.generate();
+    this.id = RequestIdGenerator.generate();
   }
 
   public XrpcRequest(
@@ -103,7 +103,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = alloc.compositeBuffer();
-    this.id = RandomIdGenerator.generate();
+    this.id = RequestIdGenerator.generate();
   }
 
   public HttpQuery query() {
