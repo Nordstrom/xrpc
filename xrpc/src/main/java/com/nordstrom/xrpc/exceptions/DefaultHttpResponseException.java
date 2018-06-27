@@ -20,6 +20,12 @@ public class DefaultHttpResponseException extends HttpResponseException {
   }
 
   @Override
+  public Error error() {
+    // Workaround for the fact that we can't make HttpResponseException generic.
+    return (Error) super.error();
+  }
+
+  @Override
   public String toString() {
     StringBuilder buffer =
         new StringBuilder()
