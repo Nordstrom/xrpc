@@ -125,6 +125,7 @@ public class Server implements Routes {
     this.contextBuilder =
         ServerContext.builder()
             .requestMeter(metricRegistry.meter("requests"))
+            .config(config)
             .encoders(
                 Encoders.builder()
                     .defaultContentType(config.defaultContentType())

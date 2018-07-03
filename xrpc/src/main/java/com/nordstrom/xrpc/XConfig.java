@@ -67,6 +67,7 @@ public class XConfig {
   private final ImmutableSet<String> ipWhiteList;
   private final boolean slf4jReporter;
   private final boolean jmxReporter;
+  private final boolean requestResponseLogging;
   private final boolean consoleReporter;
   private final int slf4jReporterPollingRate;
   private final int consoleReporterPollingRate;
@@ -159,6 +160,7 @@ public class XConfig {
     corsConfig = buildCorsConfig(config.getConfig("cors"));
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
+    requestResponseLogging = config.getBoolean("enable_request_response_logging");
   }
 
   private CorsConfig buildCorsConfig(Config config) {
