@@ -181,6 +181,7 @@ public final class X509CertificateGenerator {
       throws CertificateException {
     java.security.cert.X509Certificate[] chain;
     final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
+    rawCertString = rawCertString.replace("\r\n", "\n");
     String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
 
     for (String cert : certs) {
