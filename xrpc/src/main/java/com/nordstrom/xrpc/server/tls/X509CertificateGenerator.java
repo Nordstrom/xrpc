@@ -17,6 +17,7 @@
 package com.nordstrom.xrpc.server.tls;
 
 import com.nordstrom.xrpc.XrpcConstants;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -37,7 +38,9 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerValue;
@@ -172,6 +175,31 @@ public final class X509CertificateGenerator {
         }
       }
     }
+  }
+
+  public static java.security.cert.X509Certificate[] parseX509Certificates(String rawCertString)
+      throws CertificateException {
+    java.security.cert.X509Certificate[] chain;
+    final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
+    String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
+
+    for (String cert : certs) {
+      CertificateFactory cf = CertificateFactory.getInstance("X.509");
+      java.security.cert.X509Certificate x509Certificate =
+          (java.security.cert.X509Certificate)
+              cf.generateCertificate(
+                  new ByteArrayInputStream(
+                      (cert + "-----END CERTIFICATE-----\n")
+                          .getBytes(XrpcConstants.DEFAULT_CHARSET)));
+      certList.add(x509Certificate);
+    }
+
+    chain = new java.security.cert.X509Certificate[certList.size()];
+
+    for (int i = 0; i < certList.size(); i++) {
+      chain[i] = certList.get(i);
+    }
+    return chain;
   }
 
   public static class DerKeySpec {
