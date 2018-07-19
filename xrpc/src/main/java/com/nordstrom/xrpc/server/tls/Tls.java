@@ -90,7 +90,6 @@ public class Tls {
   public SslContext buildEncryptionHandler() {
     try {
 
-      final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
       final String rawCertString = cert;
       PrivateKey privateKey;
       // PublicKey publicKey;
@@ -111,25 +110,7 @@ public class Tls {
       java.security.cert.X509Certificate[] chain;
 
       if (cert != null) {
-
-        String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
-
-        for (String cert : certs) {
-          CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          java.security.cert.X509Certificate x509Certificate =
-              (java.security.cert.X509Certificate)
-                  cf.generateCertificate(
-                      new ByteArrayInputStream(
-                          (cert + "-----END CERTIFICATE-----\n")
-                              .getBytes(XrpcConstants.DEFAULT_CHARSET)));
-          certList.add(x509Certificate);
-        }
-
-        chain = new java.security.cert.X509Certificate[certList.size()];
-
-        for (int i = 0; i < certList.size(); i++) {
-          chain[i] = certList.get(i);
-        }
+        chain = parseX509Certificates(rawCertString);
       } else {
         if (selfSignedCert == null) {
           selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
@@ -200,5 +181,30 @@ public class Tls {
     }
 
     return null;
+  }
+
+  private java.security.cert.X509Certificate[] parseX509Certificates(String rawCertString)
+      throws CertificateException {
+    java.security.cert.X509Certificate[] chain;
+    final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
+    String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
+
+    for (String cert : certs) {
+      CertificateFactory cf = CertificateFactory.getInstance("X.509");
+      java.security.cert.X509Certificate x509Certificate =
+          (java.security.cert.X509Certificate)
+              cf.generateCertificate(
+                  new ByteArrayInputStream(
+                      (cert + "-----END CERTIFICATE-----\n")
+                          .getBytes(XrpcConstants.DEFAULT_CHARSET)));
+      certList.add(x509Certificate);
+    }
+
+    chain = new java.security.cert.X509Certificate[certList.size()];
+
+    for (int i = 0; i < certList.size(); i++) {
+      chain[i] = certList.get(i);
+    }
+    return chain;
   }
 }
