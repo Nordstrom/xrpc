@@ -4,13 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 class X509CertificateGeneratorTest {
   @Test
   public void parseX509CertificateGeneratorShouldAcceptOneCertificate()
       throws CertificateException {
-    String cert = getStandardCert();
+    String cert = getStandardCert() + "\n";
 
     X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(cert);
 
@@ -20,7 +21,7 @@ class X509CertificateGeneratorTest {
   @Test
   public void parseX509CertificateGeneratorShouldAcceptTwoCertificates()
       throws CertificateException {
-    String cert = getStandardCert() + getStandardCert();
+    String cert = getStandardCert() + "\n" + getStandardCert() + "\n";
 
     X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(cert);
 
@@ -54,6 +55,6 @@ class X509CertificateGeneratorTest {
         + "2iDJ6m6K7hQGrn2iWZiIqBtvLfTyyRRfJs8sjX7tN8Cp1Tm5gr8ZDOo0rwAhaPit\n"
         + "c+LJMto4JQtV05od8GiG7S5BNO98pVAdvzr508EIDObtHopYJeS4d60tbvVS3bR0\n"
         + "j6tJLp07kzQoH3jOlOrHvdPJbRzeXDLz\n"
-        + "-----END CERTIFICATE-----\n";
+        + "-----END CERTIFICATE-----";
   }
 }
