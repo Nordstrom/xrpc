@@ -18,12 +18,15 @@ package com.nordstrom.xrpc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.nordstrom.xrpc.server.tls.TlsConfig;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -58,8 +61,6 @@ public class XConfig {
   private final int maxConnections;
   private final double softReqPerSec;
   private final double hardReqPerSec;
-  private final String cert;
-  private final String key;
   private final int port;
   private final double globalSoftReqPerSec;
   private final double globalHardReqPerSec;
@@ -73,6 +74,7 @@ public class XConfig {
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
   private final String defaultContentType;
+  private final TlsConfig tlsConfig;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
       PlatformDependent.newConcurrentHashMap();
@@ -81,6 +83,9 @@ public class XConfig {
   private final int rateLimiterPoolSize;
 
   private final CorsConfig corsConfig;
+
+  private final String cert;
+  private final String key;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -158,7 +163,27 @@ public class XConfig {
 
     corsConfig = buildCorsConfig(config.getConfig("cors"));
 
+    tlsConfig = buildTlsConfig(config);
+
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
+  }
+
+  private TlsConfig buildTlsConfig(Config config) {
+    Config tlsConf = config.getConfig("tls_config");
+    ClientAuth clientAuth = getEnum(tlsConf, "client_auth", ClientAuth.class, ClientAuth.NONE);
+    String certificate =
+        tlsConf.hasPath("path_to_certificate")
+            ? readFromFile(Paths.get(tlsConf.getString("path_to_certificate")))
+            : tlsConf.getString("certificate");
+    String privateKey =
+        tlsConf.hasPath("path_to_private_key")
+            ? readFromFile(Paths.get(tlsConf.getString("path_to_private_key")))
+            : tlsConf.getString("private_key");
+    return TlsConfig.builder()
+        .certificate(certificate)
+        .privateKey(privateKey)
+        .clientAuth(clientAuth)
+        .build();
   }
 
   private CorsConfig buildCorsConfig(Config config) {
@@ -201,7 +226,6 @@ public class XConfig {
                   List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
                   List<Double> val = new ArrayList<>();
                   valString.forEach(v -> val.add(Double.parseDouble(v)));
-
                   clientRateLimitOverride.put(key, val);
                 }));
   }
@@ -215,6 +239,15 @@ public class XConfig {
       return new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
       throw new RuntimeException("Could not read cert/key from path: " + path, e);
+    }
+  }
+
+  private <T extends Enum<T>> T getEnum(
+      Config config, String key, Class<T> enumClass, T defaultValue) {
+    try {
+      return config.getEnum(enumClass, key);
+    } catch (ConfigException.Missing e) {
+      return defaultValue;
     }
   }
 }

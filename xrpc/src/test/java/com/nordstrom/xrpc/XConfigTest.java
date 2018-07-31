@@ -16,29 +16,37 @@
 
 package com.nordstrom.xrpc;
 
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import io.netty.handler.ssl.ClientAuth;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class XConfigTest {
-  Config rawConfig = ConfigFactory.load("test.conf");
-  XConfig config = new XConfig(rawConfig.getConfig("xrpc"));
 
-  @BeforeEach
-  void setUp() {}
-
-  @AfterEach
-  void tearDown() {}
+  private static final String CERTIFICATE_REGEX =
+      "[\n]-----BEGIN CERTIFICATE-----[\\s\\S]*-----END CERTIFICATE-----[\n]";
+  private static final String PRIVATE_KEY_REGEX =
+      "[\n]-----BEGIN RSA PRIVATE KEY-----[\\s\\S]*-----END RSA PRIVATE KEY-----[\n]";
+  private static final ImmutableSet<Object> NONE = ImmutableSet.of();
+  private static final int TEN_MEGABYTES = 10485760;
+  private static final int SECONDS = 1;
+  private XConfig config = new XConfig();
 
   @Test
   void getClientRateLimitOverride() {
+    Config rawConfig = ConfigFactory.load("test.conf");
+    XConfig config = new XConfig(rawConfig.getConfig("xrpc"));
+
     Map<String, List<Double>> configTest = config.getClientRateLimitOverride();
 
     double expected1 = Double.parseDouble("550");
@@ -56,12 +64,53 @@ class XConfigTest {
   }
 
   @Test
-  void ipBlacklist() {
-    ImmutableSet<String> blackList = config.ipBlackList();
+  void shouldSetDefaultXrpcConfigValues() {
+    assertThat(config.port(), is(8080));
+    assertThat(config.adminRoutesEnableInfo(), is(true));
+    assertThat(config.adminRoutesEnableUnsafe(), is(false));
+    assertThat(config.maxPayloadBytes(), is(TEN_MEGABYTES));
+    assertThat(config.readerIdleTimeout(), is(200 * SECONDS));
+    assertThat(config.writerIdleTimeout(), is(400 * SECONDS));
+    assertThat(config.allIdleTimeout(), is(0));
+    assertThat(config.workerNameFormat(), is("xrpc-worker-%d"));
+    assertThat(config.bossThreadCount(), is(4));
+    assertThat(config.workerThreadCount(), is(40));
+    assertThat(config.asyncHealthCheckThreadCount(), is(0));
+    assertThat(config.maxConnections(), is(2000));
+    assertThat(config.rateLimiterPoolSize(), is(24));
+    assertThat(config.softReqPerSec(), is(500.0d));
+    assertThat(config.hardReqPerSec(), is(550.0d));
+    assertThat(config.globalSoftReqPerSec(), is(700.0d));
+    assertThat(config.globalHardReqPerSec(), is(750.0d));
+    assertThat(
+        config.getClientRateLimitOverride(),
+        is(ImmutableMap.of("127.0.0.1", Arrays.asList(500d, 550d))));
+    assertThat(config.slf4jReporter(), is(false));
+    assertThat(config.slf4jReporterPollingRate(), is(30 * SECONDS));
+    assertThat(config.consoleReporter(), is(false));
+    assertThat(config.consoleReporterPollingRate(), is(30 * SECONDS));
+    assertThat(config.jmxReporter(), is(true));
+    assertThat(config.ipBlackList(), is(NONE));
+    assertThat(config.ipWhiteList(), is(NONE));
+    assertThat(config.defaultContentType(), is("application/json"));
+    assertThat(config.cert(), matchesPattern(CERTIFICATE_REGEX));
+    assertThat(config.key(), matchesPattern(PRIVATE_KEY_REGEX));
   }
 
   @Test
-  void ipWhitelist() {
-    ImmutableSet<String> whiteList = config.ipWhiteList();
+  void shouldSetDefaultCorsConfigValues() {
+    assertThat(config.corsConfig().isCorsSupportEnabled(), is(false));
+    assertThat(config.corsConfig().origins(), is(NONE));
+    assertThat(config.corsConfig().allowedRequestHeaders(), is(NONE));
+    assertThat(config.corsConfig().allowedRequestMethods(), is(NONE));
+    assertThat(config.corsConfig().isCredentialsAllowed(), is(false));
+    assertThat(config.corsConfig().isShortCircuit(), is(false));
+  }
+
+  @Test
+  void shouldSetDefaultTlsConfigValues() {
+    assertThat(config.tlsConfig().getClientAuth(), is(ClientAuth.NONE));
+    assertThat(config.tlsConfig().getCertificate(), matchesPattern(CERTIFICATE_REGEX));
+    assertThat(config.tlsConfig().getPrivateKey(), matchesPattern(PRIVATE_KEY_REGEX));
   }
 }

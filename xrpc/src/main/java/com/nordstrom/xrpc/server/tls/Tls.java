@@ -53,18 +53,11 @@ public class Tls {
   private static final String PASSWORD = "passwordsAreGood";
   // TODO(JR): This should only be called if a cert is not provided
   private static final X509Certificate selfSignedCert = createSelfSigned();
-  private final String cert;
-  private final String key;
-  private SslContext sslCtx;
+  private final TlsConfig tlsConfig;
+  private final SslContext sslCtx;
 
-  public Tls() {
-    this.cert = null;
-    this.key = null;
-  }
-
-  public Tls(String cert, String key) {
-    this.cert = cert;
-    this.key = key;
+  public Tls(TlsConfig tlsConfig) {
+    this.tlsConfig = tlsConfig;
     this.sslCtx = buildEncryptionHandler();
   }
 
@@ -91,7 +84,8 @@ public class Tls {
     try {
 
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
-      final String rawCertString = cert;
+      final String rawCertString = tlsConfig.getCertificate();
+      final String key = tlsConfig.getPrivateKey();
       PrivateKey privateKey;
       // PublicKey publicKey;
       // TODO(JR): Leave code in, we should really validate the signature with the public key
@@ -110,7 +104,7 @@ public class Tls {
 
       java.security.cert.X509Certificate[] chain;
 
-      if (cert != null) {
+      if (tlsConfig.getCertificate() != null) {
 
         String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
 
@@ -144,6 +138,7 @@ public class Tls {
         log.info("Using OpenSSL");
         sslCtx =
             SslContextBuilder.forServer(privateKey, chain)
+                .clientAuth(tlsConfig.getClientAuth())
                 .sslProvider(SslProvider.OPENSSL)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(
