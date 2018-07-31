@@ -164,6 +164,7 @@ public class Tls {
         kmf.init(keyStore, PASSWORD.toCharArray());
         sslCtx =
             SslContextBuilder.forServer(kmf)
+                .clientAuth(tlsConfig.getClientAuth())
                 .sslProvider(SslProvider.JDK)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(
