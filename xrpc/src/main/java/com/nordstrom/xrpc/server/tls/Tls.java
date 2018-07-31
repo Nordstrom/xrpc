@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server.tls;
 
+import com.google.common.base.Strings;
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
@@ -84,8 +85,8 @@ public class Tls {
     try {
 
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
-      final String rawCertString = tlsConfig.getCertificate();
-      final String key = tlsConfig.getPrivateKey();
+      final String rawCertString = tlsConfig.certificate();
+      final String key = tlsConfig.certificate();
       PrivateKey privateKey;
       // PublicKey publicKey;
       // TODO(JR): Leave code in, we should really validate the signature with the public key
@@ -104,7 +105,7 @@ public class Tls {
 
       java.security.cert.X509Certificate[] chain;
 
-      if (tlsConfig.getCertificate() != null) {
+      if (!Strings.isNullOrEmpty(tlsConfig.certificate())) {
 
         String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
 
@@ -138,7 +139,7 @@ public class Tls {
         log.info("Using OpenSSL");
         sslCtx =
             SslContextBuilder.forServer(privateKey, chain)
-                .clientAuth(tlsConfig.getClientAuth())
+                .clientAuth(tlsConfig.clientAuth())
                 .sslProvider(SslProvider.OPENSSL)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(
@@ -164,7 +165,7 @@ public class Tls {
         kmf.init(keyStore, PASSWORD.toCharArray());
         sslCtx =
             SslContextBuilder.forServer(kmf)
-                .clientAuth(tlsConfig.getClientAuth())
+                .clientAuth(tlsConfig.clientAuth())
                 .sslProvider(SslProvider.JDK)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(

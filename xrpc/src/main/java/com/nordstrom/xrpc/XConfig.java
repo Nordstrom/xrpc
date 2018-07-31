@@ -151,7 +151,7 @@ public class XConfig {
   }
 
   private TlsConfig buildTlsConfig(Config config) {
-    Config tlsConf = config.getConfig("tls_config");
+    Config tlsConf = config.getConfig("tls");
     ClientAuth clientAuth = getEnum(tlsConf, "client_auth", ClientAuth.class, ClientAuth.NONE);
     String certificate =
         tlsConf.hasPath("path_to_certificate")
@@ -161,11 +161,7 @@ public class XConfig {
         tlsConf.hasPath("path_to_private_key")
             ? readFromFile(Paths.get(tlsConf.getString("path_to_private_key")))
             : tlsConf.getString(DEFAULT_XRPC_PRIVATE_KEY);
-    return TlsConfig.builder()
-        .certificate(certificate)
-        .privateKey(privateKey)
-        .clientAuth(clientAuth)
-        .build();
+    return new TlsConfig(clientAuth, certificate, privateKey);
   }
 
   private CorsConfig buildCorsConfig(Config config) {
