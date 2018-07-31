@@ -8,10 +8,14 @@ import java.security.cert.X509Certificate;
 import org.junit.jupiter.api.Test;
 
 public class TlsTest {
+
+  public static final String CRLF = "\r\n";
+  public static final String LF = "\n";
+
   @Test
   public void parseX509CertificateGeneratorShouldAcceptOneCertificate()
       throws CertificateException {
-    String cert = getStandardCert() + "\n";
+    String cert = getStandardCert() + LF;
 
     X509Certificate[] certificates = parseX509Certificates(cert);
 
@@ -21,7 +25,7 @@ public class TlsTest {
   @Test
   public void parseX509CertificateGeneratorShouldAcceptTwoCertificates()
       throws CertificateException {
-    String cert = getStandardCert() + "\n" + getStandardCert() + "\n";
+    String cert = getStandardCert() + LF + getStandardCert() + LF;
 
     X509Certificate[] certificates = parseX509Certificates(cert);
 
@@ -31,7 +35,7 @@ public class TlsTest {
   @Test
   public void parseX509CertificateGeneratorShouldAcceptTwoCertificatesDelimitedByCrlf()
       throws CertificateException {
-    String cert = getStandardCert() + "\r\n" + getStandardCert() + "\n";
+    String cert = getStandardCert() + CRLF + getStandardCert() + LF;
 
     X509Certificate[] certificates = parseX509Certificates(cert);
 
@@ -40,10 +44,11 @@ public class TlsTest {
 
   @Test
   public void parseX509CertificateGeneratorShouldAcceptTwoCertificatesDelimitedByAllCrlf()
-    throws CertificateException {
-    String cert = getStandardCert().replace("\n", "\r\n") + "\r\n";
+      throws CertificateException {
+    String cert = getStandardCert().replace(LF, CRLF);
+    String certs = cert + CRLF + cert + CRLF;
 
-    X509Certificate[] certificates = parseX509Certificates(cert);
+    X509Certificate[] certificates = parseX509Certificates(certs);
 
     assertEquals(2, certificates.length);
   }

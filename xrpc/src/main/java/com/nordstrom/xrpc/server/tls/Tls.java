@@ -184,7 +184,7 @@ public class Tls {
   }
 
   public static java.security.cert.X509Certificate[] parseX509Certificates(String rawCertString)
-    throws CertificateException {
+      throws CertificateException {
     java.security.cert.X509Certificate[] chain;
     final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
     rawCertString = rawCertString.replace("\r\n", "\n");
@@ -193,11 +193,11 @@ public class Tls {
     for (String cert : certs) {
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
       java.security.cert.X509Certificate x509Certificate =
-        (java.security.cert.X509Certificate)
-          cf.generateCertificate(
-            new ByteArrayInputStream(
-              (cert + "-----END CERTIFICATE-----\n")
-                .getBytes(XrpcConstants.DEFAULT_CHARSET)));
+          (java.security.cert.X509Certificate)
+              cf.generateCertificate(
+                  new ByteArrayInputStream(
+                      (cert + "-----END CERTIFICATE-----\n")
+                          .getBytes(XrpcConstants.DEFAULT_CHARSET)));
       certList.add(x509Certificate);
     }
 
