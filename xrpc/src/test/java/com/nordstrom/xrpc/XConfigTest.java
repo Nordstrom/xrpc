@@ -107,8 +107,8 @@ class XConfigTest {
 
   @Test
   void shouldSetDefaultTlsConfigValues() {
-    assertThat(config.tlsConfig().getClientAuth(), is(ClientAuth.NONE));
-    assertThat(config.tlsConfig().getCertificate(), matchesPattern(CERTIFICATE_REGEX));
-    assertThat(config.tlsConfig().getPrivateKey(), matchesPattern(PRIVATE_KEY_REGEX));
+    assertThat(config.tlsConfig().clientAuth(), is(ClientAuth.NONE));
+    assertThat(config.tlsConfig().certificate(), matchesPattern(CERTIFICATE_REGEX));
+    assertThat(config.tlsConfig().privateKey(), matchesPattern(PRIVATE_KEY_REGEX));
   }
 }
