@@ -16,8 +16,10 @@
 
 package com.nordstrom.xrpc;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -65,49 +67,49 @@ class XConfigTest {
 
   @Test
   void shouldSetDefaultXrpcConfigValues() {
+    assertEquals(TEN_MEGABYTES, config.maxPayloadBytes());
+    assertEquals(200 * SECONDS, config.readerIdleTimeout());
+    assertEquals(400 * SECONDS, config.writerIdleTimeout());
+    assertEquals(0, config.allIdleTimeout());
+    assertEquals("xrpc-worker-%d", config.workerNameFormat());
+    assertEquals(4, config.bossThreadCount());
+    assertEquals(40, config.workerThreadCount());
+    assertEquals(0, config.asyncHealthCheckThreadCount());
+    assertEquals(2000, config.maxConnections());
+    assertEquals(24, config.rateLimiterPoolSize());
+    assertEquals(500.0d, config.softReqPerSec());
+    assertEquals(550.0d, config.hardReqPerSec());
+    assertEquals(700.0d, config.globalSoftReqPerSec());
+    assertEquals(750.0d, config.globalHardReqPerSec());
+    assertEquals(
+        ImmutableMap.of("127.0.0.1", Arrays.asList(500d, 550d)),
+        config.getClientRateLimitOverride());
+    assertEquals(30 * SECONDS, config.slf4jReporterPollingRate());
+    assertEquals(30 * SECONDS, config.consoleReporterPollingRate());
+    assertEquals(NONE, config.ipBlackList());
+    assertEquals(NONE, config.ipWhiteList());
+    assertEquals("application/json", config.defaultContentType());
     assertThat(config.port(), is(8080));
-    assertThat(config.adminRoutesEnableInfo(), is(true));
-    assertThat(config.adminRoutesEnableUnsafe(), is(false));
-    assertThat(config.maxPayloadBytes(), is(TEN_MEGABYTES));
-    assertThat(config.readerIdleTimeout(), is(200 * SECONDS));
-    assertThat(config.writerIdleTimeout(), is(400 * SECONDS));
-    assertThat(config.allIdleTimeout(), is(0));
-    assertThat(config.workerNameFormat(), is("xrpc-worker-%d"));
-    assertThat(config.bossThreadCount(), is(4));
-    assertThat(config.workerThreadCount(), is(40));
-    assertThat(config.asyncHealthCheckThreadCount(), is(0));
-    assertThat(config.maxConnections(), is(2000));
-    assertThat(config.rateLimiterPoolSize(), is(24));
-    assertThat(config.softReqPerSec(), is(500.0d));
-    assertThat(config.hardReqPerSec(), is(550.0d));
-    assertThat(config.globalSoftReqPerSec(), is(700.0d));
-    assertThat(config.globalHardReqPerSec(), is(750.0d));
-    assertThat(
-        config.getClientRateLimitOverride(),
-        is(ImmutableMap.of("127.0.0.1", Arrays.asList(500d, 550d))));
-    assertThat(config.slf4jReporter(), is(false));
-    assertThat(config.slf4jReporterPollingRate(), is(30 * SECONDS));
-    assertThat(config.consoleReporter(), is(false));
-    assertThat(config.consoleReporterPollingRate(), is(30 * SECONDS));
-    assertThat(config.jmxReporter(), is(true));
-    assertThat(config.ipBlackList(), is(NONE));
-    assertThat(config.ipWhiteList(), is(NONE));
-    assertThat(config.defaultContentType(), is("application/json"));
+    assertTrue(config.adminRoutesEnableInfo());
+    assertTrue(config.jmxReporter());
+    assertFalse(config.slf4jReporter());
+    assertFalse(config.adminRoutesEnableUnsafe());
+    assertFalse(config.consoleReporter());
   }
 
   @Test
   void shouldSetDefaultCorsConfigValues() {
-    assertThat(config.corsConfig().isCorsSupportEnabled(), is(false));
-    assertThat(config.corsConfig().origins(), is(NONE));
-    assertThat(config.corsConfig().allowedRequestHeaders(), is(NONE));
-    assertThat(config.corsConfig().allowedRequestMethods(), is(NONE));
-    assertThat(config.corsConfig().isCredentialsAllowed(), is(false));
-    assertThat(config.corsConfig().isShortCircuit(), is(false));
+    assertEquals(NONE, config.corsConfig().origins());
+    assertEquals(NONE, config.corsConfig().allowedRequestHeaders());
+    assertEquals(NONE, config.corsConfig().allowedRequestMethods());
+    assertFalse(config.corsConfig().isCorsSupportEnabled());
+    assertFalse(config.corsConfig().isCredentialsAllowed());
+    assertFalse(config.corsConfig().isShortCircuit());
   }
 
   @Test
   void shouldSetDefaultTlsConfigValues() {
-    assertThat(config.tlsConfig().clientAuth(), is(ClientAuth.NONE));
+    assertEquals(ClientAuth.NONE, config.tlsConfig().clientAuth());
     assertThat(config.tlsConfig().certificate(), matchesPattern(CERTIFICATE_REGEX));
     assertThat(config.tlsConfig().privateKey(), matchesPattern(PRIVATE_KEY_REGEX));
   }
