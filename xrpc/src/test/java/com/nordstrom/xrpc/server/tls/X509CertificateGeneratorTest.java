@@ -1,13 +1,12 @@
 package com.nordstrom.xrpc.server.tls;
 
-import static com.nordstrom.xrpc.server.tls.Tls.parseX509Certificates;
 import static org.junit.Assert.assertEquals;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import org.junit.jupiter.api.Test;
 
-public class TlsTest {
+public class X509CertificateGeneratorTest {
 
   public static final String CRLF = "\r\n";
   public static final String LF = "\n";
@@ -17,7 +16,7 @@ public class TlsTest {
       throws CertificateException {
     String cert = getStandardCert() + LF;
 
-    X509Certificate[] certificates = parseX509Certificates(cert);
+    X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(cert);
 
     assertEquals(1, certificates.length);
   }
@@ -27,7 +26,7 @@ public class TlsTest {
       throws CertificateException {
     String cert = getStandardCert() + LF + getStandardCert() + LF;
 
-    X509Certificate[] certificates = parseX509Certificates(cert);
+    X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(cert);
 
     assertEquals(2, certificates.length);
   }
@@ -37,7 +36,7 @@ public class TlsTest {
       throws CertificateException {
     String cert = getStandardCert() + CRLF + getStandardCert() + LF;
 
-    X509Certificate[] certificates = parseX509Certificates(cert);
+    X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(cert);
 
     assertEquals(2, certificates.length);
   }
@@ -48,7 +47,7 @@ public class TlsTest {
     String cert = getStandardCert().replace(LF, CRLF);
     String certs = cert + CRLF + cert + CRLF;
 
-    X509Certificate[] certificates = parseX509Certificates(certs);
+    X509Certificate[] certificates = X509CertificateGenerator.parseX509Certificates(certs);
 
     assertEquals(2, certificates.length);
   }
