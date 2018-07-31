@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc.server.tls;
 
+import com.google.common.base.Strings;
 import com.nordstrom.xrpc.XrpcConstants;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
@@ -53,18 +54,11 @@ public class Tls {
   private static final String PASSWORD = "passwordsAreGood";
   // TODO(JR): This should only be called if a cert is not provided
   private static final X509Certificate selfSignedCert = createSelfSigned();
-  private final String cert;
-  private final String key;
-  private SslContext sslCtx;
+  private final TlsConfig tlsConfig;
+  private final SslContext sslCtx;
 
-  public Tls() {
-    this.cert = null;
-    this.key = null;
-  }
-
-  public Tls(String cert, String key) {
-    this.cert = cert;
-    this.key = key;
+  public Tls(TlsConfig tlsConfig) {
+    this.tlsConfig = tlsConfig;
     this.sslCtx = buildEncryptionHandler();
   }
 
@@ -91,7 +85,8 @@ public class Tls {
     try {
 
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
-      final String rawCertString = cert;
+      final String rawCertString = tlsConfig.certificate();
+      final String key = tlsConfig.privateKey();
       PrivateKey privateKey;
       // PublicKey publicKey;
       // TODO(JR): Leave code in, we should really validate the signature with the public key
@@ -110,7 +105,7 @@ public class Tls {
 
       java.security.cert.X509Certificate[] chain;
 
-      if (cert != null) {
+      if (!Strings.isNullOrEmpty(tlsConfig.certificate())) {
 
         String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
 
@@ -144,6 +139,7 @@ public class Tls {
         log.info("Using OpenSSL");
         sslCtx =
             SslContextBuilder.forServer(privateKey, chain)
+                .clientAuth(tlsConfig.clientAuth())
                 .sslProvider(SslProvider.OPENSSL)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(
@@ -169,6 +165,7 @@ public class Tls {
         kmf.init(keyStore, PASSWORD.toCharArray());
         sslCtx =
             SslContextBuilder.forServer(kmf)
+                .clientAuth(tlsConfig.clientAuth())
                 .sslProvider(SslProvider.JDK)
                 .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                 .applicationProtocolConfig(
