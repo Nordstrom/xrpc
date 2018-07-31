@@ -50,6 +50,9 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Getter
 public class XConfig {
+  private static final String DEFAULT_XRPC_CERTIFICATE = "certificate";
+  private static final String DEFAULT_XRPC_PRIVATE_KEY = "private_key";
+
   private final int readerIdleTimeout;
   private final int writerIdleTimeout;
   private final int allIdleTimeout;
@@ -83,9 +86,6 @@ public class XConfig {
   private final int rateLimiterPoolSize;
 
   private final CorsConfig corsConfig;
-
-  private final String cert;
-  private final String key;
 
   /**
    * Construct a config object using the default configuration values <a
@@ -127,23 +127,6 @@ public class XConfig {
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
     defaultContentType = config.getString("default_content_type");
-
-    // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
-    // fall back to cert and key configured in plaintext in xrpc.conf.
-    if (config.hasPath("path_to_cert")) {
-      String pathToCert = config.getString("path_to_cert");
-      cert = readFromFile(Paths.get(pathToCert));
-    } else {
-      cert = config.getString("cert");
-    }
-
-    if (config.hasPath("path_to_key")) {
-      String pathToKey = config.getString("path_to_key");
-      key = readFromFile(Paths.get(pathToKey));
-    } else {
-      key = config.getString("key");
-    }
-
     globalSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
     globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
     port = config.getInt("server.port");
@@ -152,7 +135,6 @@ public class XConfig {
     consoleReporter = config.getBoolean("console_reporter");
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
-
     enableWhiteList = config.getBoolean("enable_white_list");
     enableBlackList = config.getBoolean("enable_black_list");
 
@@ -174,11 +156,11 @@ public class XConfig {
     String certificate =
         tlsConf.hasPath("path_to_certificate")
             ? readFromFile(Paths.get(tlsConf.getString("path_to_certificate")))
-            : tlsConf.getString("certificate");
+            : tlsConf.getString(DEFAULT_XRPC_CERTIFICATE);
     String privateKey =
         tlsConf.hasPath("path_to_private_key")
             ? readFromFile(Paths.get(tlsConf.getString("path_to_private_key")))
-            : tlsConf.getString("private_key");
+            : tlsConf.getString(DEFAULT_XRPC_PRIVATE_KEY);
     return TlsConfig.builder()
         .certificate(certificate)
         .privateKey(privateKey)

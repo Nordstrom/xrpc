@@ -93,8 +93,6 @@ class XConfigTest {
     assertThat(config.ipBlackList(), is(NONE));
     assertThat(config.ipWhiteList(), is(NONE));
     assertThat(config.defaultContentType(), is("application/json"));
-    assertThat(config.cert(), matchesPattern(CERTIFICATE_REGEX));
-    assertThat(config.key(), matchesPattern(PRIVATE_KEY_REGEX));
   }
 
   @Test
