@@ -86,7 +86,7 @@ public class Tls {
 
       final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
       final String rawCertString = tlsConfig.certificate();
-      final String key = tlsConfig.certificate();
+      final String key = tlsConfig.privateKey();
       PrivateKey privateKey;
       // PublicKey publicKey;
       // TODO(JR): Leave code in, we should really validate the signature with the public key
