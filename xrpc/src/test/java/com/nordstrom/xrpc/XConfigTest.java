@@ -107,10 +107,10 @@ class XConfigTest {
     assertFalse(config.corsConfig().isShortCircuit());
   }
 
-  @Test
-  void shouldSetDefaultTlsConfigValues() {
-    assertEquals(ClientAuth.NONE, config.tlsConfig().clientAuth());
-    assertThat(config.tlsConfig().certificate(), matchesPattern(CERTIFICATE_REGEX));
-    assertThat(config.tlsConfig().privateKey(), matchesPattern(PRIVATE_KEY_REGEX));
-  }
+//  @Test
+//  void shouldSetDefaultTlsConfigValues() {
+//    assertEquals(ClientAuth.NONE, config.tlsConfig().clientAuth());
+//    assertThat(config.tlsConfig().certificate(), matchesPattern(CERTIFICATE_REGEX));
+//    assertThat(config.tlsConfig().privateKey(), matchesPattern(PRIVATE_KEY_REGEX));
+//  }
 }
