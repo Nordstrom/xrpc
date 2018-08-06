@@ -25,7 +25,7 @@ class ServerTest {
 
   @BeforeEach
   void setup() {
-    server = new Server();
+    server = new Server(0);
   }
 
   @AfterEach
