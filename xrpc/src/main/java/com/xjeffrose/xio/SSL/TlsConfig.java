@@ -1,5 +1,7 @@
 package com.xjeffrose.xio.SSL;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
@@ -31,10 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.DatatypeConverter;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Strings.*;
 
 @Slf4j
 public class TlsConfig {
@@ -154,15 +153,15 @@ public class TlsConfig {
 
   private static ApplicationProtocolConfig buildAlpnConfig(Config config) {
     ApplicationProtocolConfig.Protocol protocol =
-      config.getEnum(ApplicationProtocolConfig.Protocol.class, "protocol");
+        config.getEnum(ApplicationProtocolConfig.Protocol.class, "protocol");
     ApplicationProtocolConfig.SelectorFailureBehavior selectorBehavior =
-      config.getEnum(ApplicationProtocolConfig.SelectorFailureBehavior.class, "selectorBehavior");
+        config.getEnum(ApplicationProtocolConfig.SelectorFailureBehavior.class, "selectorBehavior");
     ApplicationProtocolConfig.SelectedListenerFailureBehavior selectedBehavior =
-      config.getEnum(
-        ApplicationProtocolConfig.SelectedListenerFailureBehavior.class, "selectedBehavior");
+        config.getEnum(
+            ApplicationProtocolConfig.SelectedListenerFailureBehavior.class, "selectedBehavior");
     List<String> supportedProtocols = config.getStringList("supportedProtocols");
     return new ApplicationProtocolConfig(
-      protocol, selectorBehavior, selectedBehavior, supportedProtocols);
+        protocol, selectorBehavior, selectedBehavior, supportedProtocols);
   }
 
   private static List<X509Certificate> buildCerts(List<String> paths) {
@@ -176,8 +175,11 @@ public class TlsConfig {
   }
 
   public TlsConfig(Config config) {
-    if (isNullOrEmpty(config.getString("privateKeyPath")) || isNullOrEmpty(config.getString("x509CertPath"))) {
-      log.info("Private key path or x509 certificate path not defined. Generating self signed certificate.");
+    if (isNullOrEmpty(config.getString("privateKeyPath"))
+        || isNullOrEmpty(config.getString("x509CertPath"))) {
+      log.info(
+          "Private key path or x509 certificate path not defined. "
+              + "Generating self signed certificate.");
       com.nordstrom.xrpc.server.tls.X509Certificate selfSignedCertificate = Tls.createSelfSigned();
       certificate = selfSignedCertificate.cert();
       privateKey = selfSignedCertificate.key();
@@ -187,14 +189,16 @@ public class TlsConfig {
       certificate = parseX509CertificateFromPem(readPathFromKey("x509CertPath", config));
       privateKey = parsePkcs8FormattedPrivateKeyFromPem(readPathFromKey("privateKeyPath", config));
     }
+    // TODO validate signature with public key
+
     useSsl = config.getBoolean("useSsl");
     logInsecureConfig = config.getBoolean("logInsecureConfig");
     x509TrustedCerts = buildCerts(config.getStringList("x509TrustedCertPaths"));
     x509CertChain =
-      new ImmutableList.Builder<X509Certificate>()
-        .add(certificate)
-        .addAll(buildCerts(config.getStringList("x509CertChainPaths")))
-        .build();
+        new ImmutableList.Builder<X509Certificate>()
+            .add(certificate)
+            .addAll(buildCerts(config.getStringList("x509CertChainPaths")))
+            .build();
     useOpenSsl = config.getBoolean("useOpenSsl");
     alpnConfig = buildAlpnConfig(config.getConfig("alpn"));
     ciphers = config.getStringList("ciphers");

@@ -18,22 +18,17 @@ package com.nordstrom.xrpc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.nordstrom.xrpc.server.tls.Tls;
-import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 import com.xjeffrose.xio.SSL.TlsConfig;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
-import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.internal.PlatformDependent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -205,15 +200,6 @@ public class XConfig {
       return new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
     } catch (IOException e) {
       throw new RuntimeException("Could not read cert/key from path: " + path, e);
-    }
-  }
-
-  private <T extends Enum<T>> T getEnum(
-      Config config, String key, Class<T> enumClass, T defaultValue) {
-    try {
-      return config.getEnum(enumClass, key);
-    } catch (ConfigException.Missing e) {
-      return defaultValue;
     }
   }
 }

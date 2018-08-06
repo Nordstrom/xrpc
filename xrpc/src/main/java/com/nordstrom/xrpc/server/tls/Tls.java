@@ -16,52 +16,13 @@
 
 package com.nordstrom.xrpc.server.tls;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.nordstrom.xrpc.XrpcConstants;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigMergeable;
 import com.xjeffrose.xio.SSL.SslContextFactory;
 import com.xjeffrose.xio.SSL.TlsConfig;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.SignatureException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.util.ArrayList;
-import java.util.List;
-import javax.net.ssl.KeyManagerFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base64;
-
-import static com.google.common.base.Strings.*;
 
 @Slf4j
 public class Tls {
@@ -92,121 +53,7 @@ public class Tls {
     return handler;
   }
 
-  public SslContext buildEncryptionHandler() {
-    try {
-
-      final List<java.security.cert.X509Certificate> certList = new ArrayList<>();
-      final String rawCertString = tlsConfig.certificate();
-      final String key = tlsConfig.privateKey();
-      PrivateKey privateKey;
-      // PublicKey publicKey;
-      // TODO(JR): Leave code in, we should really validate the signature with the public key
-      X509Certificate selfSignedCert = null;
-
-      if (key != null) {
-        X509CertificateGenerator.DerKeySpec derKeySpec =
-            X509CertificateGenerator.parseDerKeySpec(key);
-        privateKey = X509CertificateGenerator.buildPrivateKey(derKeySpec);
-        // publicKey = X509CertificateGenerator.buildPublicKey(derKeySpec);
-        // TODO(JR): Leave code in, we should really validate the signature with the public key
-      } else {
-        selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
-        privateKey = selfSignedCert.key();
-      }
-
-      java.security.cert.X509Certificate[] chain;
-
-      if (!Strings.isNullOrEmpty(tlsConfig.certificate())) {
-
-        String[] certs = rawCertString.split("-----END CERTIFICATE-----\n");
-
-        for (String cert : certs) {
-          CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          java.security.cert.X509Certificate x509Certificate =
-              (java.security.cert.X509Certificate)
-                  cf.generateCertificate(
-                      new ByteArrayInputStream(
-                          (cert + "-----END CERTIFICATE-----\n")
-                              .getBytes(XrpcConstants.DEFAULT_CHARSET)));
-          certList.add(x509Certificate);
-        }
-
-        chain = new java.security.cert.X509Certificate[certList.size()];
-
-        for (int i = 0; i < certList.size(); i++) {
-          chain[i] = certList.get(i);
-        }
-      } else {
-        if (selfSignedCert == null) {
-          selfSignedCert = SelfSignedX509CertGenerator.generate("*.nordstrom.com");
-        }
-        chain = new java.security.cert.X509Certificate[1];
-        chain[0] = selfSignedCert.cert();
-      }
-
-      SslContext sslCtx = null;
-
-      if (OpenSsl.isAvailable()) {
-        log.info("Using OpenSSL");
-        sslCtx =
-            SslContextBuilder.forServer(privateKey, chain)
-                .clientAuth(tlsConfig.clientAuth())
-                .sslProvider(SslProvider.OPENSSL)
-                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-                .applicationProtocolConfig(
-                    new ApplicationProtocolConfig(
-                        Protocol.ALPN,
-                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and
-                        // JDK providers.
-                        SelectorFailureBehavior.NO_ADVERTISE,
-                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK
-                        // providers.
-                        SelectedListenerFailureBehavior.ACCEPT,
-                        ApplicationProtocolNames.HTTP_2,
-                        ApplicationProtocolNames.HTTP_1_1))
-                .build();
-      } else {
-        log.info("Using JSSE");
-        final KeyStore keyStore = KeyStore.getInstance("JKS", "SUN");
-        keyStore.load(null, PASSWORD.toCharArray());
-        keyStore.setKeyEntry(
-            chain[0].getIssuerX500Principal().getName(), privateKey, PASSWORD.toCharArray(), chain);
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-
-        kmf.init(keyStore, PASSWORD.toCharArray());
-        sslCtx =
-            SslContextBuilder.forServer(kmf)
-                .clientAuth(tlsConfig.clientAuth())
-                .sslProvider(SslProvider.JDK)
-                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-                .applicationProtocolConfig(
-                    new ApplicationProtocolConfig(
-                        Protocol.ALPN,
-                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and
-                        // JDK providers.
-                        SelectorFailureBehavior.NO_ADVERTISE,
-                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK
-                        // providers.
-                        SelectedListenerFailureBehavior.ACCEPT,
-                        ApplicationProtocolNames.HTTP_2,
-                        ApplicationProtocolNames.HTTP_1_1))
-                .build();
-      }
-
-      return sslCtx;
-
-    } catch (NoSuchAlgorithmException
-        | KeyStoreException
-        | UnrecoverableKeyException
-        | CertificateException
-        | NoSuchProviderException
-        | IllegalArgumentException
-        | IOException
-        | SignatureException
-        | InvalidKeyException e) {
-      e.printStackTrace();
-    }
-
-    return null;
+  private SslContext buildEncryptionHandler() {
+    return SslContextFactory.buildServerContext(tlsConfig);
   }
 }
