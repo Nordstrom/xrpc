@@ -29,22 +29,12 @@ class ServerTest {
     build("/ping"),
     build("/ready"));
   private static final int NUMBER_OF_INFO_ADMIN_ROUTES = 5;
-
   private Server server;
-  @Mock HealthCheck healthCheck;
-
 
   @BeforeEach
   void setup() {
     MockitoAnnotations.initMocks(this);
     server = new Server();
-  }
-
-  @Test
-  void shouldAddHealthCheckToRegistry() {
-    server.addHealthCheck("testHealthCheck", healthCheck);
-    assertEquals(1, server.healthCheckRegistry().getNames().size());
-    assertEquals("testHealthCheck", server.healthCheckRegistry().getNames().first());
   }
 
   @Test
