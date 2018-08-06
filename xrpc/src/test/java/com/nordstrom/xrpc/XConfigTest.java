@@ -16,22 +16,32 @@
 
 package com.nordstrom.xrpc;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.Matchers.matchesPattern;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.xjeffrose.xio.SSL.TlsConfig;
+import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import java.util.Set;
+
+import static io.netty.handler.ssl.ApplicationProtocolConfig.Protocol.ALPN;
+import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT;
+import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE;
+import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class XConfigTest {
 
@@ -39,10 +49,28 @@ class XConfigTest {
       "[\n]-----BEGIN CERTIFICATE-----[\\s\\S]*-----END CERTIFICATE-----[\n]";
   private static final String PRIVATE_KEY_REGEX =
       "[\n]-----BEGIN RSA PRIVATE KEY-----[\\s\\S]*-----END RSA PRIVATE KEY-----[\n]";
-  private static final ImmutableSet<Object> NONE = ImmutableSet.of();
+  private static final Set<Object> NONE = ImmutableSet.of();
+  private static final List<String> SUPPORTED_PROTOCOLS = ImmutableList.of("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+    "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+    "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+    "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+    "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+    "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
   private static final int TEN_MEGABYTES = 10485760;
   private static final int SECONDS = 1;
-  private XConfig config = new XConfig();
+  private static final ImmutableList<String> SUPPORTED_PROTOCOLS_IN_PREFERENCE_ORDER = ImmutableList.of("h2", "http/1.1");
+  private static XConfig config;
+  private static TlsConfig tlsConfig;
+  private static CorsConfig corsConfig;
+  private static ApplicationProtocolConfig applicationProtocolConfig;
+
+  @BeforeAll
+  static void setup() {
+    config = new XConfig();
+    corsConfig = config.corsConfig();
+    tlsConfig = config.tlsConfig();
+    applicationProtocolConfig = tlsConfig.getAlpnConfig();
+  }
 
   @Test
   void getClientRateLimitOverride() {
@@ -99,18 +127,65 @@ class XConfigTest {
 
   @Test
   void shouldSetDefaultCorsConfigValues() {
-    assertEquals(NONE, config.corsConfig().origins());
-    assertEquals(NONE, config.corsConfig().allowedRequestHeaders());
-    assertEquals(NONE, config.corsConfig().allowedRequestMethods());
-    assertFalse(config.corsConfig().isCorsSupportEnabled());
-    assertFalse(config.corsConfig().isCredentialsAllowed());
-    assertFalse(config.corsConfig().isShortCircuit());
+    assertEquals(NONE, corsConfig.origins());
+    assertEquals(NONE, corsConfig.allowedRequestHeaders());
+    assertEquals(NONE, corsConfig.allowedRequestMethods());
+    assertFalse(corsConfig.isCorsSupportEnabled());
+    assertFalse(corsConfig.isCredentialsAllowed());
+    assertFalse(corsConfig.isShortCircuit());
   }
 
-//  @Test
-//  void shouldSetDefaultTlsConfigValues() {
-//    assertEquals(ClientAuth.NONE, config.tlsConfig().clientAuth());
-//    assertThat(config.tlsConfig().certificate(), matchesPattern(CERTIFICATE_REGEX));
-//    assertThat(config.tlsConfig().privateKey(), matchesPattern(PRIVATE_KEY_REGEX));
-//  }
+  @Test
+  void shouldOnlySupportEngineeringStandardsDefinedCypherSuitesByDefault() {
+    List<String> defaultSupportedProtocols =  tlsConfig.getCiphers();
+    assertEquals(6, defaultSupportedProtocols.size());
+    for (String protocol : defaultSupportedProtocols) {
+      assertTrue(SUPPORTED_PROTOCOLS.contains(protocol));
+    }
+  }
+
+  @Test
+  void shouldSetSensibleAlpnValuesByDefault() {
+    assertEquals(SUPPORTED_PROTOCOLS_IN_PREFERENCE_ORDER, applicationProtocolConfig.supportedProtocols());
+    assertEquals(NO_ADVERTISE, applicationProtocolConfig.selectorFailureBehavior());
+    assertEquals(ACCEPT, applicationProtocolConfig.selectedListenerFailureBehavior());
+    assertEquals(ALPN, applicationProtocolConfig.protocol());
+  }
+
+  @Test
+  void shouldGenerateSelfSignedCertificateWhenNoneAreProvided() {
+    assertNotNull(tlsConfig.getPrivateKey());
+    assertNotNull(tlsConfig.getCertificateAndChain());
+    assertEquals(1, tlsConfig.getCertificateAndChain().length);
+  }
+
+  @Test
+  void shouldLogWhenInsecureConfigurationIsUsedByDefault() {
+    assertTrue(tlsConfig.isLogInsecureConfig());
+  }
+
+  @Test
+  void shouldUseTlsByDefault() {
+    assertTrue(tlsConfig.isUseSsl());
+  }
+
+  @Test
+  void shouldSetClientAuthToOptionalByDefault () {
+    assertEquals(ClientAuth.OPTIONAL, tlsConfig.getClientAuth());
+  }
+
+  @Test
+  void shouldDisableOcspByDefault() {
+    assertFalse(tlsConfig.isEnableOcsp());
+  }
+
+  @Test
+  void shouldSetSessionTimeoutToZeroByDefault() {
+    assertEquals(0, tlsConfig.getSessionTimeout());
+  }
+
+  @Test
+  void shouldSetSessionCacheSizeToZeroByDefault() {
+    assertEquals(0, tlsConfig.getSessionCacheSize());
+  }
 }

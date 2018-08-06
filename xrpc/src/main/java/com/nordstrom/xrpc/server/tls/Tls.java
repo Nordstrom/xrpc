@@ -17,7 +17,13 @@
 package com.nordstrom.xrpc.server.tls;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.XrpcConstants;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigMergeable;
+import com.xjeffrose.xio.SSL.SslContextFactory;
+import com.xjeffrose.xio.SSL.TlsConfig;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -33,7 +39,11 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -42,18 +52,19 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
+
+import static com.google.common.base.Strings.*;
 
 @Slf4j
 public class Tls {
-  private static final String PASSWORD = "passwordsAreGood";
-  // TODO(JR): This should only be called if a cert is not provided
-  private static final X509Certificate selfSignedCert = createSelfSigned();
   private final TlsConfig tlsConfig;
   private final SslContext sslCtx;
 
@@ -66,9 +77,9 @@ public class Tls {
     try {
       return SelfSignedX509CertGenerator.generate("*.nordstrom.com");
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Failed to generate self signed certificate", e);
+      throw new RuntimeException(e);
     }
-    return null;
   }
 
   public ChannelHandler encryptionHandler(ByteBufAllocator alloc) {

@@ -18,11 +18,13 @@ package com.nordstrom.xrpc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.nordstrom.xrpc.server.tls.TlsConfig;
+import com.nordstrom.xrpc.server.tls.Tls;
+import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
+import com.xjeffrose.xio.SSL.TlsConfig;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
@@ -145,23 +147,9 @@ public class XConfig {
 
     corsConfig = buildCorsConfig(config.getConfig("cors"));
 
-    tlsConfig = buildTlsConfig(config);
+    tlsConfig = new TlsConfig(config.getConfig("tls"));
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
-  }
-
-  private TlsConfig buildTlsConfig(Config config) {
-    Config tlsConf = config.getConfig("tls");
-    ClientAuth clientAuth = getEnum(tlsConf, "client_auth", ClientAuth.class, ClientAuth.NONE);
-    String certificate =
-        tlsConf.hasPath("path_to_certificate")
-            ? readFromFile(Paths.get(tlsConf.getString("path_to_certificate")))
-            : tlsConf.getString(DEFAULT_XRPC_CERTIFICATE);
-    String privateKey =
-        tlsConf.hasPath("path_to_private_key")
-            ? readFromFile(Paths.get(tlsConf.getString("path_to_private_key")))
-            : tlsConf.getString(DEFAULT_XRPC_PRIVATE_KEY);
-    return new TlsConfig(clientAuth, certificate, privateKey);
   }
 
   private CorsConfig buildCorsConfig(Config config) {
