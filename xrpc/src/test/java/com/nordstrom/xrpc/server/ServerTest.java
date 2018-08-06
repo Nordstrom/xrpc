@@ -11,9 +11,9 @@ import io.netty.handler.codec.http.HttpMethod;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 
 class ServerTest {
 
@@ -25,8 +25,12 @@ class ServerTest {
 
   @BeforeEach
   void setup() {
-    MockitoAnnotations.initMocks(this);
     server = new Server();
+  }
+
+  @AfterEach
+  void tearDown() {
+    server.shutdown();
   }
 
   @Test
