@@ -4,30 +4,22 @@ import static com.nordstrom.xrpc.server.http.RoutePath.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.codahale.metrics.health.HealthCheck;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.nordstrom.xrpc.server.http.Route;
 import com.nordstrom.xrpc.server.http.RoutePath;
 import io.netty.handler.codec.http.HttpMethod;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
 
 class ServerTest {
 
-  private static final List<RoutePath> EXPECTED_ADMIN_ROUTES = ImmutableList.of(
-    build("/metrics"),
-    build("/health"),
-    build("/info"),
-    build("/ping"),
-    build("/ready"));
+  private static final List<RoutePath> EXPECTED_ADMIN_ROUTES =
+      ImmutableList.of(
+          build("/metrics"), build("/health"), build("/info"), build("/ping"), build("/ready"));
   private static final int NUMBER_OF_INFO_ADMIN_ROUTES = 5;
   private Server server;
 
