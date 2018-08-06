@@ -1,6 +1,6 @@
 package com.nordstrom.xrpc.server;
 
-import static com.nordstrom.xrpc.server.http.RoutePath.*;
+import static com.nordstrom.xrpc.server.http.RoutePath.build;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
