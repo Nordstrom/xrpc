@@ -47,9 +47,6 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Getter
 public class XConfig {
-  private static final String DEFAULT_XRPC_CERTIFICATE = "certificate";
-  private static final String DEFAULT_XRPC_PRIVATE_KEY = "private_key";
-
   private final int readerIdleTimeout;
   private final int writerIdleTimeout;
   private final int allIdleTimeout;
