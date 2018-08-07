@@ -21,10 +21,10 @@ import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFai
 import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,10 +36,26 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslProvider;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.xml.bind.DatatypeConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -61,6 +77,7 @@ class XConfigTest {
   private static TlsConfig tlsConfig;
   private static CorsConfig corsConfig;
   private static ApplicationProtocolConfig applicationProtocolConfig;
+  private static Config xrpcDefaultConfig;
 
   @BeforeAll
   static void setup() {
@@ -68,6 +85,8 @@ class XConfigTest {
     corsConfig = config.corsConfig();
     tlsConfig = config.tlsConfig();
     applicationProtocolConfig = tlsConfig.getAlpnConfig();
+    xrpcDefaultConfig =
+        ConfigFactory.parseResources(XConfigTest.class, "/com/nordstrom/xrpc/xrpc.conf");
   }
 
   @Test
@@ -152,10 +171,37 @@ class XConfigTest {
   }
 
   @Test
-  void shouldGenerateSelfSignedCertificateWhenNoneAreProvided() {
-    assertNotNull(tlsConfig.getPrivateKey());
-    assertNotNull(tlsConfig.getCertificateAndChain());
-    assertEquals(1, tlsConfig.getCertificateAndChain().length);
+  void shouldUseUserSuppliedCertificateWhenDefined() throws IOException, URISyntaxException {
+    Config configWithCertPaths =
+        ConfigFactory.parseMap(
+            ImmutableMap.of(
+                "tls",
+                ImmutableMap.of(
+                    "privateKeyPath",
+                    getResourceAbsolutePath("testing-purposes-only-key.pem"),
+                    "x509CertPath",
+                    getResourceAbsolutePath("testing-purposes-only-certificate.crt"))));
+    TlsConfig tlsConfig =
+        new XConfig(configWithCertPaths.withFallback(xrpcDefaultConfig)).tlsConfig();
+
+    String privateKey = getFileContent("testing-purposes-only-key.pem");
+    String certificate = getFileContent("testing-purposes-only-certificate.crt");
+
+    assertThat(tlsConfig.getPrivateKey(), is(parsePrivateKeyFromPem(privateKey)));
+    assertThat(tlsConfig.getCertificateAndChain().length, is(1));
+    assertThat(tlsConfig.getCertificateAndChain()[0], is(parseX509CertificateFromPem(certificate)));
+  }
+
+  @Test
+  void shouldGenerateSelfSignedCertificateWhenNoneAreProvided()
+      throws IOException, URISyntaxException {
+    String privateKey = getFileContent("testing-purposes-only-key.pem");
+    String certificate = getFileContent("testing-purposes-only-certificate.crt");
+
+    assertThat(tlsConfig.getPrivateKey(), is(not(parsePrivateKeyFromPem(privateKey))));
+    assertThat(tlsConfig.getCertificateAndChain().length, is(1));
+    assertThat(
+        tlsConfig.getCertificateAndChain()[0], is(not(parseX509CertificateFromPem(certificate))));
   }
 
   @Test
@@ -191,5 +237,54 @@ class XConfigTest {
   @Test
   void shouldUseOpenSslByDefault() {
     assertEquals(SslProvider.OPENSSL, tlsConfig.getSslProvider());
+  }
+
+  private X509Certificate parseX509CertificateFromPem(String pemData) {
+    try {
+      CertificateFactory fact = CertificateFactory.getInstance("X.509");
+      ByteArrayInputStream is = new ByteArrayInputStream(pemData.getBytes(StandardCharsets.UTF_8));
+      X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
+      return cer;
+    } catch (CertificateException var4) {
+      return null;
+    }
+  }
+
+  private String getFileContent(String resourceName) throws URISyntaxException, IOException {
+    URI url = this.getClass().getClassLoader().getResource(resourceName).toURI();
+    Path resPath = Paths.get(url);
+    return new String(Files.readAllBytes(resPath), "UTF8");
+  }
+
+  private String getResourceAbsolutePath(String resourceName) {
+    return this.getClass().getClassLoader().getResource(resourceName).getPath();
+  }
+
+  private static PrivateKey parsePrivateKeyFromPem(String pemData) {
+    PrivateKey key;
+    try {
+      StringBuilder builder = new StringBuilder();
+      boolean inKey = false;
+      for (String line : pemData.split("\n")) {
+        if (!inKey) {
+          if (line.startsWith("-----BEGIN ") && line.endsWith(" PRIVATE KEY-----")) {
+            inKey = true;
+          }
+        } else {
+          if (line.startsWith("-----END ") && line.endsWith(" PRIVATE KEY-----")) {
+            break;
+          }
+          builder.append(line);
+        }
+      }
+
+      byte[] encoded = DatatypeConverter.parseBase64Binary(builder.toString());
+      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      key = kf.generatePrivate(keySpec);
+    } catch (GeneralSecurityException e) {
+      throw new RuntimeException(e);
+    }
+    return key;
   }
 }
