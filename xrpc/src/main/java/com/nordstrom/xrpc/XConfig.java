@@ -156,7 +156,7 @@ public class XConfig {
 
   private TlsConfig generateTlsConfig(Config config) {
     Config tls = config.getConfig("tls");
-    if (!config.hasPath("privateKeyPath") || !config.hasPath("x509CertPath")) {
+    if (!tls.hasPath("privateKeyPath") || !tls.hasPath("x509CertPath")) {
       log.info(
           "Private key path or x509 certificate path not defined. "
               + "Generating self signed certificate.");
