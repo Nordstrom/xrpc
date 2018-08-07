@@ -35,7 +35,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
   }
 
   @Override
-  public void initChannel(Channel ch) throws Exception {
+  public void initChannel(Channel ch) {
     ChannelPipeline cp = ch.pipeline();
     cp.addLast(
         "idleDisconnectHandler",

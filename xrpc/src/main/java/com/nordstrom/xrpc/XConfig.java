@@ -17,24 +17,33 @@
 package com.nordstrom.xrpc;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.nordstrom.xrpc.server.tls.Tls;
+import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
+import com.xjeffrose.xio.SSL.TlsConfig;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.util.internal.PlatformDependent;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.security.PrivateKey;
+import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
+import sun.misc.BASE64Encoder;
+import sun.security.provider.X509Factory;
+import sun.security.x509.X509CertImpl;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -46,6 +55,7 @@ import lombok.experimental.Accessors;
  */
 @Accessors(fluent = true)
 @Getter
+@Slf4j
 public class XConfig {
   private final int readerIdleTimeout;
   private final int writerIdleTimeout;
@@ -58,8 +68,6 @@ public class XConfig {
   private final int maxConnections;
   private final double softReqPerSec;
   private final double hardReqPerSec;
-  private final String cert;
-  private final String key;
   private final int port;
   private final double globalSoftReqPerSec;
   private final double globalHardReqPerSec;
@@ -73,6 +81,7 @@ public class XConfig {
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
   private final String defaultContentType;
+  private final TlsConfig tlsConfig;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
       PlatformDependent.newConcurrentHashMap();
@@ -122,23 +131,6 @@ public class XConfig {
     adminRoutesEnableInfo = config.getBoolean("admin_routes.enable_info");
     adminRoutesEnableUnsafe = config.getBoolean("admin_routes.enable_unsafe");
     defaultContentType = config.getString("default_content_type");
-
-    // Check to see if path_to_cert and path_to_key are configured. If they are not configured,
-    // fall back to cert and key configured in plaintext in xrpc.conf.
-    if (config.hasPath("path_to_cert")) {
-      String pathToCert = config.getString("path_to_cert");
-      cert = readFromFile(Paths.get(pathToCert));
-    } else {
-      cert = config.getString("cert");
-    }
-
-    if (config.hasPath("path_to_key")) {
-      String pathToKey = config.getString("path_to_key");
-      key = readFromFile(Paths.get(pathToKey));
-    } else {
-      key = config.getString("key");
-    }
-
     globalSoftReqPerSec = config.getDouble("global_soft_req_per_sec");
     globalHardReqPerSec = config.getDouble("global_hard_req_per_sec");
     port = config.getInt("server.port");
@@ -147,7 +139,6 @@ public class XConfig {
     consoleReporter = config.getBoolean("console_reporter");
     slf4jReporterPollingRate = config.getInt("slf4j_reporter_polling_rate");
     consoleReporterPollingRate = config.getInt("console_reporter_polling_rate");
-
     enableWhiteList = config.getBoolean("enable_white_list");
     enableBlackList = config.getBoolean("enable_black_list");
 
@@ -158,7 +149,59 @@ public class XConfig {
 
     corsConfig = buildCorsConfig(config.getConfig("cors"));
 
+    tlsConfig = generateTlsConfig(config);
+
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
+  }
+
+  private TlsConfig generateTlsConfig(Config config) {
+    Config tls = config.getConfig("tls");
+    if (!config.hasPath("privateKeyPath") || !config.hasPath("x509CertPath")) {
+      log.info(
+          "Private key path or x509 certificate path not defined. "
+              + "Generating self signed certificate.");
+      X509Certificate selfSignedCertificate = Tls.createSelfSigned();
+      try {
+        String certificate = generateCertificateString(selfSignedCertificate.cert());
+        String certificateFilePath = writeToDisk(certificate, "certificate.crt");
+        String privateKey = generatePrivateKeyString(selfSignedCertificate.key());
+        String privateKeyFilePath = writeToDisk(privateKey, "key.pem");
+        Config configWithCertPaths =
+            ConfigFactory.parseMap(
+                ImmutableMap.of(
+                    "privateKeyPath", privateKeyFilePath, "x509CertPath", certificateFilePath));
+        tls = configWithCertPaths.withFallback(tls);
+      } catch (CertificateEncodingException e) {
+        log.error("Failed when writing certificate or private key to disc", e);
+        throw new RuntimeException();
+      }
+    }
+    return new TlsConfig(tls);
+  }
+
+  private String generatePrivateKeyString(PrivateKey key) {
+    return "-----BEGIN PRIVATE KEY-----\n"
+        + new BASE64Encoder().encodeBuffer(key.getEncoded())
+        + "-----END PRIVATE KEY-----";
+  }
+
+  private String generateCertificateString(X509CertImpl certificate)
+      throws CertificateEncodingException {
+    return X509Factory.BEGIN_CERT
+        + System.lineSeparator()
+        + new BASE64Encoder().encodeBuffer(certificate.getEncoded())
+        + X509Factory.END_CERT;
+  }
+
+  private String writeToDisk(String content, String filePath) {
+    File outputFile = new File(filePath);
+    try (PrintWriter out = new PrintWriter(outputFile)) {
+      out.write(content);
+    } catch (FileNotFoundException e) {
+      log.error("Failure whilst attempting to write to disk", e);
+      throw new RuntimeException();
+    }
+    return outputFile.getAbsolutePath();
   }
 
   private CorsConfig buildCorsConfig(Config config) {
@@ -201,20 +244,11 @@ public class XConfig {
                   List<String> valString = Arrays.asList(value.unwrapped().toString().split(":"));
                   List<Double> val = new ArrayList<>();
                   valString.forEach(v -> val.add(Double.parseDouble(v)));
-
                   clientRateLimitOverride.put(key, val);
                 }));
   }
 
   public Map<String, List<Double>> getClientRateLimitOverride() {
     return clientRateLimitOverride;
-  }
-
-  private String readFromFile(Path path) {
-    try {
-      return new String(Files.readAllBytes(path.toAbsolutePath()), XrpcConstants.DEFAULT_CHARSET);
-    } catch (IOException e) {
-      throw new RuntimeException("Could not read cert/key from path: " + path, e);
-    }
   }
 }

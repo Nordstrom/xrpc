@@ -108,7 +108,7 @@ public class Server implements Routes {
   private Server(XConfig config, int port) {
     this.config = config;
     this.port = port >= 0 ? port : config.port();
-    this.tls = new Tls(config.cert(), config.key());
+    this.tls = new Tls(config.tlsConfig());
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     // This adds support for normal constructor binding.
