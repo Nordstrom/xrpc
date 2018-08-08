@@ -16,13 +16,12 @@
 
 package com.nordstrom.xrpc;
 
-import static com.google.common.io.Files.asCharSink;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.CharSink;
+import com.google.common.io.Files;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
@@ -199,7 +198,7 @@ public class XConfig {
   private String writeToDiskReturnAbsoluterPath(String content, String filePath) {
     try {
       File outputFile = new File(filePath);
-      CharSink sink = asCharSink(outputFile, StandardCharsets.UTF_8);
+      CharSink sink = Files.asCharSink(outputFile, StandardCharsets.UTF_8);
       sink.write(content);
       return outputFile.getAbsolutePath();
     } catch (IOException e) {
