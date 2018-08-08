@@ -28,7 +28,6 @@ public final class X509Certificate {
   private final X509CertImpl cert;
 
   public X509Certificate(String fqdn, PrivateKey key, X509CertImpl cert) {
-
     this.fqdn = fqdn;
     this.key = key;
     this.cert = cert;
