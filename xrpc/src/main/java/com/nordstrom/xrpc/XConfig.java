@@ -16,9 +16,13 @@
 
 package com.nordstrom.xrpc;
 
+import static com.google.common.io.Files.asCharSink;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.BaseEncoding;
+import com.google.common.io.CharSink;
 import com.nordstrom.xrpc.server.tls.Tls;
 import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
@@ -30,8 +34,8 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.util.internal.PlatformDependent;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
@@ -41,7 +45,6 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import sun.misc.BASE64Encoder;
 import sun.security.provider.X509Factory;
 import sun.security.x509.X509CertImpl;
 
@@ -163,9 +166,9 @@ public class XConfig {
       X509Certificate selfSignedCertificate = Tls.createSelfSigned();
       try {
         String certificate = generateCertificateString(selfSignedCertificate.cert());
-        String certificateFilePath = writeToDisk(certificate, "certificate.crt");
+        String certificateFilePath = writeToDiskReturnAbsoluterPath(certificate, "certificate.crt");
         String privateKey = generatePrivateKeyString(selfSignedCertificate.key());
-        String privateKeyFilePath = writeToDisk(privateKey, "key.pem");
+        String privateKeyFilePath = writeToDiskReturnAbsoluterPath(privateKey, "key.pem");
         Config configWithCertPaths =
             ConfigFactory.parseMap(
                 ImmutableMap.of(
@@ -173,7 +176,7 @@ public class XConfig {
         tls = configWithCertPaths.withFallback(tls);
       } catch (CertificateEncodingException e) {
         log.error("Failed when writing certificate or private key to disc", e);
-        throw new RuntimeException();
+        throw new RuntimeException(e);
       }
     }
     return new TlsConfig(tls);
@@ -181,7 +184,7 @@ public class XConfig {
 
   private String generatePrivateKeyString(PrivateKey key) {
     return "-----BEGIN PRIVATE KEY-----\n"
-        + new BASE64Encoder().encodeBuffer(key.getEncoded())
+        + BaseEncoding.base64().encode(key.getEncoded())
         + "-----END PRIVATE KEY-----";
   }
 
@@ -189,19 +192,20 @@ public class XConfig {
       throws CertificateEncodingException {
     return X509Factory.BEGIN_CERT
         + System.lineSeparator()
-        + new BASE64Encoder().encodeBuffer(certificate.getEncoded())
+        + BaseEncoding.base64().encode(certificate.getEncoded())
         + X509Factory.END_CERT;
   }
 
-  private String writeToDisk(String content, String filePath) {
-    File outputFile = new File(filePath);
-    try (PrintWriter out = new PrintWriter(outputFile)) {
-      out.write(content);
-    } catch (FileNotFoundException e) {
+  private String writeToDiskReturnAbsoluterPath(String content, String filePath) {
+    try {
+      File outputFile = new File(filePath);
+      CharSink sink = asCharSink(outputFile, StandardCharsets.UTF_8);
+      sink.write(content);
+      return outputFile.getAbsolutePath();
+    } catch (IOException e) {
       log.error("Failure whilst attempting to write to disk", e);
-      throw new RuntimeException();
+      throw new RuntimeException(e);
     }
-    return outputFile.getAbsolutePath();
   }
 
   private CorsConfig buildCorsConfig(Config config) {
