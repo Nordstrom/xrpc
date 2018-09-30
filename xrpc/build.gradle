@@ -10,7 +10,7 @@ buildscript {
 }
 
 plugins {
-  id 'com.github.sherter.google-java-format' version '0.6'
+  id 'com.github.sherter.google-java-format' version '0.7.1'
   id 'net.researchgate.release' version '2.4.0'
   id 'com.github.spotbugs' version '1.6.1'
   id 'me.champeau.gradle.jmh' version '0.4.4'
