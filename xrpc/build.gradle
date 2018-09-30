@@ -11,9 +11,10 @@ buildscript {
 
 plugins {
   id 'com.github.sherter.google-java-format' version '0.7.1'
-  id 'net.researchgate.release' version '2.4.0'
-  id 'com.github.spotbugs' version '1.6.1'
+  id 'com.github.spotbugs' version '1.6.4'
+  id 'io.franzbecker.gradle-lombok' version '1.14'
   id 'me.champeau.gradle.jmh' version '0.4.4'
+  id 'net.researchgate.release' version '2.4.0'
 }
 
 release {
@@ -39,20 +40,16 @@ archivesBaseName = 'xrpc'
 
 description = """Simple, production ready Java API server built on top of functional composition."""
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.10
+targetCompatibility = 1.10
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
-  // The tls package uses a ton of proprietary APIs that generate warnings. Suppress these (and fork
-  // the compiler so that the definition works).
   options.compilerArgs += [
-    '-XDignore.symbol.file',
     // TODO (AD): add back cast and remove only for generated proto
     '-Xlint:auxiliaryclass,classfile,deprecation,dep-ann,divzero,empty,fallthrough,' +
       'finally,options,overloads,overrides,path,rawtypes,static,try,unchecked,varargs',
     '-parameters',
     '-Werror']
-  options.fork = true
   options.forkOptions.executable = 'javac'
 }
 
@@ -72,7 +69,7 @@ dependencies {
   compile 'com.google.guava:guava:21.0'
   compile 'com.squareup.okhttp3:okhttp:3.10.0'
   compile 'com.typesafe:config:1.3.1'
-  compile 'com.xjeffrose:xio:0.13.0'
+  compile 'com.xjeffrose:xio-tls:0.13.51'
   compile 'com.google.protobuf:protobuf-java:3.0.0'
   compile 'com.google.protobuf:protobuf-java-util:3.0.0'
   compile 'io.dropwizard.metrics:metrics-core:3.2.5'
@@ -86,7 +83,6 @@ dependencies {
   compile 'io.netty:netty-tcnative-boringssl-static:2.0.7.Final'
   compile 'io.netty:netty-transport-native-epoll:4.1.19.Final'
   compile 'io.netty:netty-transport-native-kqueue:4.1.19.Final'
-  compile 'org.projectlombok:lombok:1.16.20'
   compile 'org.slf4j:slf4j-api:1.7.25'
   testCompile 'com.xjeffrose:xio-test:0.13.5'
   testCompile 'org.junit.jupiter:junit-jupiter-api:5.0.1'
@@ -99,6 +95,8 @@ dependencies {
   runtimeOnly 'ch.qos.logback:logback-classic:1.1.7'
   runtimeOnly 'ch.qos.logback:logback-core:1.1.7'
   runtimeOnly 'org.codehaus.groovy:groovy-all:2.4.1'
+  // This module is required by xio, but isn't pulled in as a dependency.
+  runtimeOnly 'javax.xml.bind:jaxb-api:2.3.0'
 
   // alpn agent necessary for http2 testing with okhttp
   agent 'org.mortbay.jetty.alpn:jetty-alpn-agent:2.0.7'
@@ -134,7 +132,7 @@ checkstyle {
 }
 
 spotbugs {
-  toolVersion = '3.1.2'
+  toolVersion = '3.1.6'
   ignoreFailures = true
 }
 
@@ -223,4 +221,9 @@ publishing {
       }
     }
   }
+}
+
+lombok {
+    version = '1.18.2'
+    sha256 = '524e0a697e9d62950b2f763d88d35cd8dc82a9a1'
 }

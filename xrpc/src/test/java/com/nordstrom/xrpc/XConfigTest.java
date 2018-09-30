@@ -21,7 +21,6 @@ import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFai
 import static io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,9 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.BaseEncoding;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.xjeffrose.xio.SSL.TlsConfig;
+import com.xjeffrose.xio.tls.TlsConfig;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
@@ -55,8 +55,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.bind.DatatypeConverter;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class XConfigTest {
@@ -73,21 +71,6 @@ class XConfigTest {
   private static final int SECONDS = 1;
   private static final ImmutableList<String> SUPPORTED_PROTOCOLS_IN_PREFERENCE_ORDER =
       ImmutableList.of("h2", "http/1.1");
-  private static XConfig config;
-  private static TlsConfig tlsConfig;
-  private static CorsConfig corsConfig;
-  private static ApplicationProtocolConfig applicationProtocolConfig;
-  private static Config xrpcDefaultConfig;
-
-  @BeforeAll
-  static void setup() {
-    config = new XConfig();
-    corsConfig = config.corsConfig();
-    tlsConfig = config.tlsConfig();
-    applicationProtocolConfig = tlsConfig.getAlpnConfig();
-    xrpcDefaultConfig =
-        ConfigFactory.parseResources(XConfigTest.class, "/com/nordstrom/xrpc/xrpc.conf");
-  }
 
   @Test
   void getClientRateLimitOverride() {
@@ -111,7 +94,8 @@ class XConfigTest {
   }
 
   @Test
-  void shouldSetDefaultXrpcConfigValues() {
+  void deaultConfig_shouldUseCorrectXrpcConfigValues() {
+    XConfig config = new XConfig();
     assertEquals(TEN_MEGABYTES, config.maxPayloadBytes());
     assertEquals(200 * SECONDS, config.readerIdleTimeout());
     assertEquals(400 * SECONDS, config.writerIdleTimeout());
@@ -143,7 +127,8 @@ class XConfigTest {
   }
 
   @Test
-  void shouldSetDefaultCorsConfigValues() {
+  void defaultConfig_shouldUseCorrectCorsConfigValues() {
+    CorsConfig corsConfig = new XConfig().corsConfig();
     assertEquals(NONE, corsConfig.origins());
     assertEquals(NONE, corsConfig.allowedRequestHeaders());
     assertEquals(NONE, corsConfig.allowedRequestMethods());
@@ -153,36 +138,44 @@ class XConfigTest {
   }
 
   @Test
-  void shouldOnlySupportEngineeringStandardsDefinedCypherSuitesByDefault() {
+  void buildTlsConfig_shouldUseCorrectTlsConfigValues() {
+    TlsConfig tlsConfig =
+        XConfig.buildTlsConfig(
+            ConfigFactory.parseResources(XConfig.class, "xrpc.conf").getConfig("tls"));
+
     List<String> defaultSupportedProtocols = tlsConfig.getCiphers();
     assertEquals(6, defaultSupportedProtocols.size());
     for (String protocol : defaultSupportedProtocols) {
       assertTrue(SUPPORTED_PROTOCOLS.contains(protocol));
     }
-  }
 
-  @Test
-  void shouldSetSensibleAlpnValuesByDefault() {
+    ApplicationProtocolConfig applicationProtocolConfig = tlsConfig.getAlpnConfig();
     assertEquals(
         SUPPORTED_PROTOCOLS_IN_PREFERENCE_ORDER, applicationProtocolConfig.supportedProtocols());
     assertEquals(NO_ADVERTISE, applicationProtocolConfig.selectorFailureBehavior());
     assertEquals(ACCEPT, applicationProtocolConfig.selectedListenerFailureBehavior());
     assertEquals(ALPN, applicationProtocolConfig.protocol());
+    assertTrue(tlsConfig.isLogInsecureConfig());
+    assertTrue(tlsConfig.isUseSsl());
+    assertEquals(ClientAuth.OPTIONAL, tlsConfig.getClientAuth());
+    assertFalse(tlsConfig.isEnableOcsp());
+    assertEquals(0, tlsConfig.getSessionTimeout());
+    assertEquals(0, tlsConfig.getSessionCacheSize());
+    assertEquals(SslProvider.OPENSSL, tlsConfig.getSslProvider());
   }
 
   @Test
-  void shouldUseUserSuppliedCertificateWhenDefined() throws IOException, URISyntaxException {
+  void buildTlsConfig_shouldUseUserSuppliedCertificateWhenDefined() throws Exception {
+    Config defaultConfig =
+        ConfigFactory.parseResources(XConfigTest.class, "xrpc.conf").getConfig("tls");
     Config configWithCertPaths =
         ConfigFactory.parseMap(
             ImmutableMap.of(
-                "tls",
-                ImmutableMap.of(
-                    "privateKeyPath",
-                    getResourceAbsolutePath("testing-purposes-only-key.pem"),
-                    "x509CertPath",
-                    getResourceAbsolutePath("testing-purposes-only-certificate.crt"))));
-    TlsConfig tlsConfig =
-        new XConfig(configWithCertPaths.withFallback(xrpcDefaultConfig)).tlsConfig();
+                "privateKeyPath",
+                getResourceAbsolutePath("testing-purposes-only-key.pem"),
+                "x509CertPath",
+                getResourceAbsolutePath("testing-purposes-only-certificate.crt")));
+    TlsConfig tlsConfig = XConfig.buildTlsConfig(configWithCertPaths.withFallback(defaultConfig));
 
     String privateKey = getFileContent("testing-purposes-only-key.pem");
     String certificate = getFileContent("testing-purposes-only-certificate.crt");
@@ -190,53 +183,6 @@ class XConfigTest {
     assertThat(tlsConfig.getPrivateKey(), is(parsePrivateKeyFromPem(privateKey)));
     assertThat(tlsConfig.getCertificateAndChain().length, is(1));
     assertThat(tlsConfig.getCertificateAndChain()[0], is(parseX509CertificateFromPem(certificate)));
-  }
-
-  @Test
-  void shouldGenerateSelfSignedCertificateWhenNoneAreProvided()
-      throws IOException, URISyntaxException {
-    String privateKey = getFileContent("testing-purposes-only-key.pem");
-    String certificate = getFileContent("testing-purposes-only-certificate.crt");
-
-    assertThat(tlsConfig.getPrivateKey(), is(not(parsePrivateKeyFromPem(privateKey))));
-    assertThat(tlsConfig.getCertificateAndChain().length, is(1));
-    assertThat(
-        tlsConfig.getCertificateAndChain()[0], is(not(parseX509CertificateFromPem(certificate))));
-  }
-
-  @Test
-  void shouldLogWhenInsecureConfigurationIsUsedByDefault() {
-    assertTrue(tlsConfig.isLogInsecureConfig());
-  }
-
-  @Test
-  void shouldUseTlsByDefault() {
-    assertTrue(tlsConfig.isUseSsl());
-  }
-
-  @Test
-  void shouldSetClientAuthToOptionalByDefault() {
-    assertEquals(ClientAuth.OPTIONAL, tlsConfig.getClientAuth());
-  }
-
-  @Test
-  void shouldDisableOcspByDefault() {
-    assertFalse(tlsConfig.isEnableOcsp());
-  }
-
-  @Test
-  void shouldSetSessionTimeoutToZeroByDefault() {
-    assertEquals(0, tlsConfig.getSessionTimeout());
-  }
-
-  @Test
-  void shouldSetSessionCacheSizeToZeroByDefault() {
-    assertEquals(0, tlsConfig.getSessionCacheSize());
-  }
-
-  @Test
-  void shouldUseOpenSslByDefault() {
-    assertEquals(SslProvider.OPENSSL, tlsConfig.getSslProvider());
   }
 
   private X509Certificate parseX509CertificateFromPem(String pemData) {
@@ -278,7 +224,7 @@ class XConfigTest {
         }
       }
 
-      byte[] encoded = DatatypeConverter.parseBase64Binary(builder.toString());
+      byte[] encoded = BaseEncoding.base64().decode(builder.toString());
       PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
       KeyFactory kf = KeyFactory.getInstance("RSA");
       key = kf.generatePrivate(keySpec);

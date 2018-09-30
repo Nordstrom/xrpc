@@ -16,51 +16,34 @@
 
 package com.nordstrom.xrpc.server;
 
-import com.google.auto.value.AutoValue;
 import com.nordstrom.xrpc.XConfig;
-import com.nordstrom.xrpc.server.tls.Tls;
+import io.netty.handler.ssl.SslContext;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** State is a value object for storing server state. */
-@AutoValue
-public abstract class State {
-  public abstract XConfig config();
+@Accessors(fluent = true)
+@Builder(builderClassName = "Builder")
+@Getter
+public class State {
+  private final XConfig config;
 
-  public abstract ConnectionLimiter globalConnectionLimiter();
+  private final ConnectionLimiter globalConnectionLimiter;
 
-  public abstract ServiceRateLimiter rateLimiter();
+  private final ServiceRateLimiter rateLimiter;
 
-  public abstract WhiteListFilter whiteListFilter();
+  private final WhiteListFilter whiteListFilter;
 
-  public abstract BlackListFilter blackListFilter();
+  private final BlackListFilter blackListFilter;
 
-  public abstract Firewall firewall();
+  private final Firewall firewall;
 
-  public abstract Tls tls();
+  private final SslContext sslContext;
 
-  public abstract Http2OrHttpHandler h1h2();
+  private final Http2OrHttpHandler h1h2;
 
-  static Builder builder() {
-    return new AutoValue_State.Builder();
-  }
-
-  @AutoValue.Builder
-  public abstract static class Builder {
-    public abstract Builder config(XConfig config);
-
-    public abstract Builder globalConnectionLimiter(ConnectionLimiter globalConnectionLimiter);
-
-    public abstract Builder rateLimiter(ServiceRateLimiter rateLimiter);
-
-    public abstract Builder whiteListFilter(WhiteListFilter whiteListFilter);
-
-    public abstract Builder blackListFilter(BlackListFilter blackListFilter);
-
-    public abstract Builder firewall(Firewall firewall);
-
-    public abstract Builder tls(Tls tls);
-
-    public abstract Builder h1h2(Http2OrHttpHandler h1h2);
-
-    public abstract State build();
-  }
+  // This can be generated automatically by lombok, but we declare it here to fix a javadoc warning.
+  // TODO(jkinkead): Remove once we have delombok integrated (issue #160).
+  public static class Builder {}
 }
