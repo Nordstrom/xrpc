@@ -18,6 +18,9 @@ spec:
       labels:
         app: xrpc
     spec:
+      volumes:
+      - name: netty-tmp-volume # Required for Netty to be able to export .so files under restrictive pod security policies
+        emptyDir: {}
       containers:
         - name: xrpc # Name of container. Can be same as app-name
           image: xrpc:1.0 # docker image with version tag
@@ -26,6 +29,9 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          volumeMounts:
+            - mountPath: /tmp
+              name: netty-tmp-volume
           readinessProbe:           # Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails.
             httpGet:
               path: /health
