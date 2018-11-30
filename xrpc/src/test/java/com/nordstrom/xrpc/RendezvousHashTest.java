@@ -62,10 +62,8 @@ class RendezvousHashTest {
       hosts.forEach(host -> hostToMatchingHashes.get(host).add(randomNumberString));
     }
 
-    Double averageMatchingHashesPerHost = hostToMatchingHashes.values().stream()
-        .mapToInt(List::size)
-        .average()
-        .orElse(-1);
+    Double averageMatchingHashesPerHost =
+        hostToMatchingHashes.values().stream().mapToInt(List::size).average().orElse(-1);
 
     int expectedAverage = hashesToMatch * totalGetsToRun / totalHosts;
     assertEquals(expectedAverage, averageMatchingHashesPerHost.intValue());
@@ -73,31 +71,35 @@ class RendezvousHashTest {
 
   @Test
   void shouldNotNullPointerWhileUsedConcurrently() throws InterruptedException {
-    RendezvousHash<CharSequence> rendezvousHash = new RendezvousHash<>(
-        Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), Arrays.asList("hash1", "hash2")
-    );
+    RendezvousHash<CharSequence> rendezvousHash =
+        new RendezvousHash<>(
+            Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), Arrays.asList("hash1", "hash2"));
 
     List<Object> errors = Collections.synchronizedList(new ArrayList<>());
 
     ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    IntStream.range(0, 100).forEach(i -> {
-      executorService.submit(() -> {
-        try {
-          rendezvousHash.get("hash1".getBytes(), 2);
-        } catch (NullPointerException e) {
-          errors.add(e);
-        }
-      });
+    IntStream.range(0, 100)
+        .forEach(
+            i -> {
+              executorService.submit(
+                  () -> {
+                    try {
+                      rendezvousHash.get("hash1".getBytes(), 2);
+                    } catch (NullPointerException e) {
+                      errors.add(e);
+                    }
+                  });
 
-      executorService.submit(() -> {
-        try {
-          rendezvousHash.getOne("hash1".getBytes());
-        } catch (NullPointerException e) {
-          errors.add(e);
-        }
-      });
-    });
+              executorService.submit(
+                  () -> {
+                    try {
+                      rendezvousHash.getOne("hash1".getBytes());
+                    } catch (NullPointerException e) {
+                      errors.add(e);
+                    }
+                  });
+            });
 
     executorService.shutdown();
     executorService.awaitTermination(1, TimeUnit.SECONDS);

@@ -61,12 +61,7 @@ public class RendezvousHash<N> {
 
     nodeList.forEach(xs -> addNodeToMap(key, hashMap, xs));
 
-    return hashMap
-      .keySet()
-      .stream()
-      .max(Long::compare) // find the largest key
-      .map(hashMap::get) // return node with the largest key
-      .orElse(null); // or return null if the map is empty
+    return hashMap.keySet().stream().max(Long::compare).map(hashMap::get).orElse(null);
   }
 
   public List<N> get(byte[] key, int listSize) {
@@ -88,13 +83,7 @@ public class RendezvousHash<N> {
   }
 
   private N addNodeToMap(byte[] key, Map<Long, N> nodeMap, N node) {
-    return nodeMap.put(
-      hasher
-        .newHasher()
-        .putBytes(key)
-        .putObject(node, nodeFunnel)
-        .hash()
-        .asLong(),
-      node);
+    long hash = hasher.newHasher().putBytes(key).putObject(node, nodeFunnel).hash().asLong();
+    return nodeMap.put(hash, node);
   }
 }
