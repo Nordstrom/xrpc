@@ -22,7 +22,6 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BinaryOperator;
@@ -58,18 +57,18 @@ public class RendezvousHash<N> {
   }
 
   public N getOne(byte[] key) {
-    final Map<Long, N> nodeMap = generateHashToNodeMap(key);
+    final TreeMap<Long, N> nodeMap = generateOrderedNodeMapForKey(key);
 
-    return nodeMap.keySet().stream().max(Long::compare).map(nodeMap::get).orElse(null);
+    return nodeMap.descendingMap().values().stream().findFirst().orElse(null);
   }
 
   public List<N> get(byte[] key, int listSize) {
-    Map<Long, N> nodeMap = generateHashToNodeMap(key);
+    TreeMap<Long, N> nodeMap = generateOrderedNodeMapForKey(key);
 
-    return nodeMap.values().stream().limit(listSize).collect(Collectors.toList());
+    return nodeMap.descendingMap().values().stream().limit(listSize).collect(Collectors.toList());
   }
 
-  private TreeMap<Long, N> generateHashToNodeMap(byte[] key) {
+  private TreeMap<Long, N> generateOrderedNodeMapForKey(byte[] key) {
     return nodeList
         .stream()
         .collect(Collectors.toMap(keyMapper(key), node -> node, collisionHandler(), TreeMap::new));
