@@ -16,6 +16,7 @@
 
 package com.nordstrom.xrpc;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentSkipListMap;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,7 +34,6 @@ public class RendezvousHash<N> {
 
   private final HashFunction hasher;
   private final Funnel<N> nodeFunnel;
-  private final Map<Long, N> hashMap = new ConcurrentSkipListMap<>();
   private final Set<N> nodeList = Sets.newConcurrentHashSet();
 
   public RendezvousHash(Funnel<N> nodeFunnel, Collection<? extends N> init) {
@@ -58,34 +57,44 @@ public class RendezvousHash<N> {
   }
 
   public N getOne(byte[] key) {
-    hashMap.clear();
+    final Map<Long, N> hashMap = Maps.newTreeMap();
 
-    nodeList.forEach(
-        xs -> {
-          hashMap.put(
-              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
-        });
+    nodeList.forEach(xs -> addNodeToMap(key, hashMap, xs));
 
-    return hashMap.remove(hashMap.keySet().stream().max(Long::compare).orElse(null));
+    return hashMap
+      .keySet()
+      .stream()
+      .max(Long::compare) // find the largest key
+      .map(hashMap::get) // return node with the largest key
+      .orElse(null); // or return null if the map is empty
   }
 
   public List<N> get(byte[] key, int listSize) {
-    hashMap.clear();
+    Map<Long, N> nodeMap = Maps.newTreeMap();
+
+    nodeList.forEach(node -> addNodeToMap(key, nodeMap, node));
+    TreeSet<Long> set = Sets.newTreeSet(nodeMap.keySet());
+
     List<N> nodes = new ArrayList<>(listSize);
-
-    nodeList.forEach(
-        xs ->
-            hashMap.put(
-                hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs));
-
-    TreeSet<Long> set = Sets.newTreeSet(hashMap.keySet());
-
     for (int i = 0; i < listSize; i++) {
-      Long x = set.first();
-      nodes.add(i, hashMap.remove(x));
-      set.remove(x);
+      Long firstHash = set.first();
+      N node = nodeMap.remove(firstHash);
+
+      nodes.add(node);
+      set.remove(firstHash);
     }
 
     return nodes;
+  }
+
+  private N addNodeToMap(byte[] key, Map<Long, N> nodeMap, N node) {
+    return nodeMap.put(
+      hasher
+        .newHasher()
+        .putBytes(key)
+        .putObject(node, nodeFunnel)
+        .hash()
+        .asLong(),
+      node);
   }
 }
