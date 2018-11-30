@@ -16,17 +16,18 @@
 
 package com.nordstrom.xrpc;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.TreeMap;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -57,33 +58,30 @@ public class RendezvousHash<N> {
   }
 
   public N getOne(byte[] key) {
-    final Map<Long, N> hashMap = Maps.newTreeMap();
+    final Map<Long, N> nodeMap = generateHashToNodeMap(key);
 
-    nodeList.forEach(xs -> addNodeToMap(key, hashMap, xs));
-
-    return hashMap.keySet().stream().max(Long::compare).map(hashMap::get).orElse(null);
+    return nodeMap.keySet().stream().max(Long::compare).map(nodeMap::get).orElse(null);
   }
 
   public List<N> get(byte[] key, int listSize) {
-    Map<Long, N> nodeMap = Maps.newTreeMap();
+    Map<Long, N> nodeMap = generateHashToNodeMap(key);
 
-    nodeList.forEach(node -> addNodeToMap(key, nodeMap, node));
-    TreeSet<Long> set = Sets.newTreeSet(nodeMap.keySet());
-
-    List<N> nodes = new ArrayList<>(listSize);
-    for (int i = 0; i < listSize; i++) {
-      Long firstHash = set.first();
-      N node = nodeMap.remove(firstHash);
-
-      nodes.add(node);
-      set.remove(firstHash);
-    }
-
-    return nodes;
+    return nodeMap.values().stream().limit(listSize).collect(Collectors.toList());
   }
 
-  private N addNodeToMap(byte[] key, Map<Long, N> nodeMap, N node) {
-    long hash = hasher.newHasher().putBytes(key).putObject(node, nodeFunnel).hash().asLong();
-    return nodeMap.put(hash, node);
+  private TreeMap<Long, N> generateHashToNodeMap(byte[] key) {
+    return nodeList
+        .stream()
+        .collect(Collectors.toMap(keyMapper(key), node -> node, collisionHandler(), TreeMap::new));
+  }
+
+  private Function<N, Long> keyMapper(byte[] key) {
+    return node -> hasher.newHasher().putBytes(key).putObject(node, nodeFunnel).hash().asLong();
+  }
+
+  private BinaryOperator<N> collisionHandler() {
+    return (v1, v2) -> {
+      throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
+    };
   }
 }
