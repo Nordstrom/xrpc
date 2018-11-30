@@ -63,9 +63,9 @@ class RendezvousHashTest {
     }
 
     Double averageMatchingHashesPerHost = hostToMatchingHashes.values().stream()
-      .mapToInt(List::size)
-      .average()
-      .orElse(-1);
+        .mapToInt(List::size)
+        .average()
+        .orElse(-1);
 
     int expectedAverage = hashesToMatch * totalGetsToRun / totalHosts;
     assertEquals(expectedAverage, averageMatchingHashesPerHost.intValue());
@@ -74,7 +74,7 @@ class RendezvousHashTest {
   @Test
   void shouldNotNullPointerWhileUsedConcurrently() throws InterruptedException {
     RendezvousHash<CharSequence> rendezvousHash = new RendezvousHash<>(
-      Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), Arrays.asList("hash1", "hash2")
+        Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), Arrays.asList("hash1", "hash2")
     );
 
     List<Object> errors = Collections.synchronizedList(new ArrayList<>());
