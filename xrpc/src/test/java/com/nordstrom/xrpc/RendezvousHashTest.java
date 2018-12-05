@@ -18,48 +18,93 @@ package com.nordstrom.xrpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Funnels;
 import io.netty.util.internal.PlatformDependent;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class RendezvousHashTest {
+
+  public static final int MAX_RANDOM_NUMBER = 123456789;
+
   @Test
-  public void get() throws Exception {
-    List<String> nodeList = new ArrayList<>();
-    Map<String, List<String>> mm = PlatformDependent.newConcurrentHashMap();
-    for (int i = 0; i < 100; i++) {
-      nodeList.add(("Host" + i));
-      mm.put(("Host" + i), new ArrayList<>());
+  public void get_shouldReturnExpectedNumberOfHashesOnAllRuns() throws Exception {
+    List<String> hostList = new ArrayList<>();
+    Map<String, List<String>> hostToMatchingHashes = PlatformDependent.newConcurrentHashMap();
+    int totalHosts = 100;
+    for (int i = 0; i < totalHosts; i++) {
+      hostList.add(("Host" + i));
+      hostToMatchingHashes.put(("Host" + i), new ArrayList<>());
     }
 
     RendezvousHash<CharSequence> rendezvousHash =
-        new RendezvousHash<>(Funnels.stringFunnel(Charset.defaultCharset()), nodeList);
-    Random r = new Random();
-    for (int i = 0; i < 100000; i++) {
-      String thing = (Integer.toString(r.nextInt(123456789)));
-      List<CharSequence> hosts = rendezvousHash.get(thing.getBytes(), 3);
-      hosts.forEach(
-          xs -> {
-            mm.get(xs).add(thing);
-          });
+        new RendezvousHash<>(Funnels.stringFunnel(Charset.defaultCharset()), hostList);
+
+    int totalGetsToRun = 100000;
+    int hashesToMatch = 3;
+    Random random = new Random();
+    for (int i = 0; i < totalGetsToRun; i++) {
+      String randomNumberString = (Integer.toString(random.nextInt(MAX_RANDOM_NUMBER)));
+      List<CharSequence> hosts = rendezvousHash.get(randomNumberString.getBytes(), hashesToMatch);
+      hosts.forEach(host -> hostToMatchingHashes.get(host).add(randomNumberString));
     }
 
-    List<Integer> xx = new ArrayList<>();
-    mm.keySet()
+    Double averageMatchingHashesPerHost =
+        hostToMatchingHashes.values().stream().mapToInt(List::size).average().orElse(-1);
+
+    int expectedAverage = hashesToMatch * totalGetsToRun / totalHosts;
+    assertEquals(expectedAverage, averageMatchingHashesPerHost.intValue());
+  }
+
+  @Test
+  void shouldNotNullPointerWhileUsedConcurrently() throws InterruptedException {
+    RendezvousHash<CharSequence> rendezvousHash =
+        new RendezvousHash<>(
+            Funnels.stringFunnel(XrpcConstants.DEFAULT_CHARSET), Arrays.asList("hash1", "hash2"));
+
+    List<Object> errors = Collections.synchronizedList(new ArrayList<>());
+
+    ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+    IntStream.range(0, 100)
         .forEach(
-            xs -> {
-              xx.add(mm.get(xs).size());
+            i -> {
+              executorService.submit(
+                  () -> {
+                    try {
+                      rendezvousHash.get("hash1".getBytes(), 2);
+                    } catch (NullPointerException e) {
+                      errors.add(e);
+                    }
+                  });
+
+              executorService.submit(
+                  () -> {
+                    try {
+                      rendezvousHash.getOne("hash1".getBytes());
+                    } catch (NullPointerException e) {
+                      errors.add(e);
+                    }
+                  });
             });
 
-    Double xd = xx.stream().mapToInt(x -> x).average().orElse(-1);
-    assertEquals(3000, xd.intValue());
+    executorService.shutdown();
+    executorService.awaitTermination(1, TimeUnit.SECONDS);
+
+    assertTrue(errors.isEmpty());
   }
 
   @Test

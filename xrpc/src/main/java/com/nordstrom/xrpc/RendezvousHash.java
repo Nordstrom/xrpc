@@ -20,13 +20,13 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.TreeMap;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,7 +34,6 @@ public class RendezvousHash<N> {
 
   private final HashFunction hasher;
   private final Funnel<N> nodeFunnel;
-  private final Map<Long, N> hashMap = new ConcurrentSkipListMap<>();
   private final Set<N> nodeList = Sets.newConcurrentHashSet();
 
   public RendezvousHash(Funnel<N> nodeFunnel, Collection<? extends N> init) {
@@ -58,34 +57,30 @@ public class RendezvousHash<N> {
   }
 
   public N getOne(byte[] key) {
-    hashMap.clear();
+    final TreeMap<Long, N> nodeMap = generateOrderedNodeMapForKey(key);
 
-    nodeList.forEach(
-        xs -> {
-          hashMap.put(
-              hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs);
-        });
-
-    return hashMap.remove(hashMap.keySet().stream().max(Long::compare).orElse(null));
+    return nodeMap.descendingMap().values().stream().findFirst().orElse(null);
   }
 
   public List<N> get(byte[] key, int listSize) {
-    hashMap.clear();
-    List<N> nodes = new ArrayList<>(listSize);
+    TreeMap<Long, N> nodeMap = generateOrderedNodeMapForKey(key);
 
-    nodeList.forEach(
-        xs ->
-            hashMap.put(
-                hasher.newHasher().putBytes(key).putObject(xs, nodeFunnel).hash().asLong(), xs));
+    return nodeMap.descendingMap().values().stream().limit(listSize).collect(Collectors.toList());
+  }
 
-    TreeSet<Long> set = Sets.newTreeSet(hashMap.keySet());
+  private TreeMap<Long, N> generateOrderedNodeMapForKey(byte[] key) {
+    return nodeList
+        .stream()
+        .collect(Collectors.toMap(keyMapper(key), node -> node, collisionHandler(), TreeMap::new));
+  }
 
-    for (int i = 0; i < listSize; i++) {
-      Long x = set.first();
-      nodes.add(i, hashMap.remove(x));
-      set.remove(x);
-    }
+  private Function<N, Long> keyMapper(byte[] key) {
+    return node -> hasher.newHasher().putBytes(key).putObject(node, nodeFunnel).hash().asLong();
+  }
 
-    return nodes;
+  private BinaryOperator<N> collisionHandler() {
+    return (v1, v2) -> {
+      throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
+    };
   }
 }
