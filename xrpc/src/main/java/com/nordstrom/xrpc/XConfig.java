@@ -166,7 +166,7 @@ public class XConfig {
               + "Generating self signed certificate.");
       SelfSignedCertificate selfSignedCert;
       try {
-        selfSignedCert = new SelfSignedCertificate("*.nordstrom.com");
+        selfSignedCert = new SelfSignedCertificate("localhost");
       } catch (CertificateException ce) {
         throw new IllegalStateException("Error creating a self-signed cert", ce);
       }

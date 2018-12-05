@@ -26,13 +26,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 
 /** Contextual data for the server. The same instance of this is used for all channel handlers. */
 @Accessors(fluent = true)
 @Builder(builderClassName = "Builder")
 @Getter
-@Slf4j
 // TODO: (AD) Merge with State
 public class ServerContext {
   public static final AttributeKey<ServerContext> ATTRIBUTE_KEY =

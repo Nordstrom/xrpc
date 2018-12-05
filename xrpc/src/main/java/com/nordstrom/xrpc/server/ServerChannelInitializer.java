@@ -53,8 +53,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
     }
 
     cp.addLast("firewall", state.firewall());
-    cp.addLast(
-        "encryptionHandler", state.sslContext().newHandler(ch.alloc())); // Add Config for Certs
+    cp.addLast("encryptionHandler", state.sslContext().newHandler(ch.alloc()));
     cp.addLast("codec", state.h1h2());
     cp.addLast("exceptionLogger", new ExceptionLogger());
   }
