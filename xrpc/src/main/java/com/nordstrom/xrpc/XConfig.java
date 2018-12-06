@@ -16,27 +16,21 @@
 
 package com.nordstrom.xrpc;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.CharSink;
-import com.google.common.io.Files;
-import com.nordstrom.xrpc.server.tls.Tls;
-import com.nordstrom.xrpc.server.tls.X509Certificate;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
-import com.xjeffrose.xio.SSL.TlsConfig;
+import com.xjeffrose.xio.tls.SslContextFactory;
+import com.xjeffrose.xio.tls.TlsConfig;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.internal.PlatformDependent;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,8 +38,6 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import sun.security.provider.X509Factory;
-import sun.security.x509.X509CertImpl;
 
 /**
  * A configuration object for the xrpc framework. This can be left with defaults, or provided with a
@@ -83,7 +75,7 @@ public class XConfig {
   private final boolean adminRoutesEnableInfo;
   private final boolean adminRoutesEnableUnsafe;
   private final String defaultContentType;
-  private final TlsConfig tlsConfig;
+  private final SslContext sslContext;
 
   private final Map<String, List<Double>> clientRateLimitOverride =
       PlatformDependent.newConcurrentHashMap();
@@ -151,60 +143,37 @@ public class XConfig {
 
     corsConfig = buildCorsConfig(config.getConfig("cors"));
 
-    tlsConfig = generateTlsConfig(config);
+    sslContext = SslContextFactory.buildServerContext(buildTlsConfig(config.getConfig("tls")));
 
     populateClientOverrideList(config.getObjectList("req_per_second_override"));
   }
 
-  private TlsConfig generateTlsConfig(Config config) {
-    Config tls = config.getConfig("tls");
-    if (!tls.hasPath("privateKeyPath") || !tls.hasPath("x509CertPath")) {
+  /**
+   * Returns a TLS config for this server using the configuration in the given config. This creates
+   * a self-signed cert to use if there is no certificate in the TLS configuration.
+   *
+   * @throws IllegalStateException if a self-signed certificate can not be generated
+   */
+  @VisibleForTesting
+  static TlsConfig buildTlsConfig(Config config) {
+    TlsConfig.Builder configBuilder = TlsConfig.builderFrom(config);
+
+    // Create a private key & CA trust chain if they are missing. This is normal for local
+    // development.
+    if (!config.hasPath("privateKeyPath") || !config.hasPath("x509CertPath")) {
       log.info(
           "Private key path or x509 certificate path not defined. "
               + "Generating self signed certificate.");
-      X509Certificate selfSignedCertificate = Tls.createSelfSigned();
+      SelfSignedCertificate selfSignedCert;
       try {
-        String certificate = generateCertificateString(selfSignedCertificate.cert());
-        String certificateFilePath = writeToDiskReturnAbsoluterPath(certificate, "certificate.crt");
-        String privateKey = generatePrivateKeyString(selfSignedCertificate.key());
-        String privateKeyFilePath = writeToDiskReturnAbsoluterPath(privateKey, "key.pem");
-        Config configWithCertPaths =
-            ConfigFactory.parseMap(
-                ImmutableMap.of(
-                    "privateKeyPath", privateKeyFilePath, "x509CertPath", certificateFilePath));
-        tls = configWithCertPaths.withFallback(tls);
-      } catch (CertificateEncodingException e) {
-        log.error("Failed when writing certificate or private key to disc", e);
-        throw new RuntimeException(e);
+        selfSignedCert = new SelfSignedCertificate("localhost");
+      } catch (CertificateException ce) {
+        throw new IllegalStateException("Error creating a self-signed cert", ce);
       }
+      configBuilder.privateKey(selfSignedCert.key()).certificate(selfSignedCert.cert());
     }
-    return new TlsConfig(tls);
-  }
 
-  private String generatePrivateKeyString(PrivateKey key) {
-    return "-----BEGIN PRIVATE KEY-----\n"
-        + BaseEncoding.base64().encode(key.getEncoded())
-        + "-----END PRIVATE KEY-----";
-  }
-
-  private String generateCertificateString(X509CertImpl certificate)
-      throws CertificateEncodingException {
-    return X509Factory.BEGIN_CERT
-        + System.lineSeparator()
-        + BaseEncoding.base64().encode(certificate.getEncoded())
-        + X509Factory.END_CERT;
-  }
-
-  private String writeToDiskReturnAbsoluterPath(String content, String filePath) {
-    try {
-      File outputFile = new File(filePath);
-      CharSink sink = Files.asCharSink(outputFile, StandardCharsets.UTF_8);
-      sink.write(content);
-      return outputFile.getAbsolutePath();
-    } catch (IOException e) {
-      log.error("Failure whilst attempting to write to disk", e);
-      throw new RuntimeException(e);
-    }
+    return configBuilder.build();
   }
 
   private CorsConfig buildCorsConfig(Config config) {

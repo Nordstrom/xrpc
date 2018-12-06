@@ -1,4 +1,5 @@
 language: java
+jdk: openjdk10
 install: true
 script:
   - ./gradlew clean check

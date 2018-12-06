@@ -36,7 +36,6 @@ import com.nordstrom.xrpc.encoding.ProtoDecoder;
 import com.nordstrom.xrpc.encoding.ProtoDefaultInstances;
 import com.nordstrom.xrpc.encoding.ProtoEncoder;
 import com.nordstrom.xrpc.server.http.Route;
-import com.nordstrom.xrpc.server.tls.Tls;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import io.netty.bootstrap.ServerBootstrap;
@@ -44,6 +43,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.ssl.SslContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -60,10 +60,10 @@ import org.slf4j.LoggerFactory;
 @Accessors(fluent = true)
 public class Server implements Routes {
   private final XConfig config;
-  private final Tls tls;
 
   /* Context builder. */
   private final ServerContext.Builder contextBuilder;
+  private final SslContext sslContext;
 
   @Getter private final MetricRegistry metricRegistry = new MetricRegistry();
   @Getter private final RouteBuilder routeBuilder = new RouteBuilder();
@@ -108,7 +108,7 @@ public class Server implements Routes {
   private Server(XConfig config, int port) {
     this.config = config;
     this.port = port >= 0 ? port : config.port();
-    this.tls = new Tls(config.tlsConfig());
+    this.sslContext = config.sslContext();
     this.healthCheckRegistry = new HealthCheckRegistry(config.asyncHealthCheckThreadCount());
 
     // This adds support for normal constructor binding.
@@ -234,7 +234,7 @@ public class Server implements Routes {
             .whiteListFilter(new WhiteListFilter(metricRegistry, config.ipWhiteList()))
             .blackListFilter(new BlackListFilter(metricRegistry, config.ipBlackList()))
             .firewall(new Firewall(metricRegistry))
-            .tls(tls)
+            .sslContext(sslContext)
             .h1h2(
                 new Http2OrHttpHandler(
                     new UrlRouter(), ctx, config.corsConfig(), config.maxPayloadBytes()))

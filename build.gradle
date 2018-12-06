@@ -2,6 +2,7 @@ allprojects {
   repositories {
     mavenCentral()
     jcenter()
+    maven { url 'https://dl.bintray.com/nordstromoss/oss_maven/' }
   }
 
   apply plugin: 'java'
