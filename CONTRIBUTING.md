@@ -18,6 +18,6 @@ To publish:
 1. Ensure that you have a `github.com/Nordstrom/xrpc` remote in your git repository named
    `upstream`.
 2. Check out a branch called `master`, synced to `upstream/master`.
-3. (Optional) Update [gradle.properties](./gradle.properties) if you want this to be a non-patch release.
+3. (Optional) Update [gradle.properties](./xrpc/gradle.properties) if you want this to be a non-patch release.
 3. Run `./gradlew release`. Watch the output closely for prompts, and follow instructions.
 4. Edit the [release notes for the tag](https://github.com/Nordstrom/xrpc/releases), and mark it as released.
