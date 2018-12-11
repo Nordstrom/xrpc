@@ -38,6 +38,11 @@ public interface ResponseFactory {
     return createResponse(HttpResponseStatus.OK, body);
   }
 
+  /** Return 202 ACCEPTED response with body object to be encoded based on Content Negotiation. */
+  default <T> HttpResponse accepted(T body) throws IOException {
+    return createResponse(HttpResponseStatus.ACCEPTED, body);
+  }
+
   /**
    * Return 400 BAD REQUEST response with body object to be encoded based on Content Negotiation.
    */
