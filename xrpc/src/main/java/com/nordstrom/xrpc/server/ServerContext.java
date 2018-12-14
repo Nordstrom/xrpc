@@ -18,6 +18,7 @@ package com.nordstrom.xrpc.server;
 
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
+import com.nordstrom.xrpc.XConfig;
 import com.nordstrom.xrpc.encoding.Decoders;
 import com.nordstrom.xrpc.encoding.Encoders;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -47,6 +48,8 @@ public class ServerContext {
   private final Encoders encoders;
 
   private final Decoders decoders;
+
+  @Getter private final XConfig config;
 
   // This can be generated automatically by lombok, but we declare it here to fix a javadoc warning.
   // TODO(jkinkead): Remove once we have delombok integrated (issue #160).

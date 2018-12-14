@@ -17,6 +17,7 @@
 package com.nordstrom.xrpc.server;
 
 import com.nordstrom.xrpc.encoding.Decoder;
+import com.nordstrom.xrpc.utils.RequestIdGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
@@ -43,6 +44,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Accessors(fluent = true)
 public class XrpcRequest implements ResponseFactory {
+  /** The x-request-id header should be in lower case for http2. */
+  private static final String xrequestId = "x-request-id";
+
   /** The HTTP/1.x request to handle. null if this is an HTTP/2 request. */
   private final FullHttpRequest h1Request;
 
@@ -55,6 +59,13 @@ public class XrpcRequest implements ResponseFactory {
   @Getter private final ByteBufAllocator alloc;
 
   @Getter private final ServerContext connectionContext;
+
+  /**
+   * Unique Id assigned to each incoming request. This value can be used as part of request/response
+   * logging, exception logging, custom http header to upstream calls for tracing etc. This is set
+   * only if request response logging is turned on. By default is turned off.
+   */
+  @Getter private final Optional<String> id;
 
   /** The variables captured from the route path. */
   private final Map<String, String> groups;
@@ -80,6 +91,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = null;
+    this.id = getRequestId();
   }
 
   public XrpcRequest(
@@ -95,6 +107,7 @@ public class XrpcRequest implements ResponseFactory {
     this.alloc = channel.alloc();
     this.eventLoop = channel.eventLoop();
     this.h2Data = alloc.compositeBuffer();
+    this.id = getRequestId();
   }
 
   public HttpQuery query() {
@@ -235,5 +248,21 @@ public class XrpcRequest implements ResponseFactory {
 
   public CharSequence acceptCharsetHeader() {
     return header(HttpHeaderNames.ACCEPT_CHARSET);
+  }
+
+  private Optional<String> getRequestId() {
+    if (this.connectionContext != null
+        && this.connectionContext.config() != null
+        && this.connectionContext.config().requestResponseLogging()) {
+      if (this.h1Request != null
+          && this.h1Request.headers() != null
+          && Optional.ofNullable(h1Request.headers().get(xrequestId)).isPresent()) {
+        return Optional.ofNullable(h1Request.headers().get(xrequestId));
+      } else if (this.h2Headers != null && this.h2Headers.get(xrequestId) != null) {
+        return Optional.ofNullable(this.h2Headers.get(xrequestId).toString());
+      }
+      return Optional.ofNullable(RequestIdGenerator.generate());
+    }
+    return Optional.empty();
   }
 }
